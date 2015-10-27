@@ -445,7 +445,7 @@ func (c Controller) index() string {
 	return "index"
 }
 
-func (c Controller) view(c *routing.Context) string {
+func (c Controller) view() string {
 	return "view" + c.Params["id"]
 }
 
