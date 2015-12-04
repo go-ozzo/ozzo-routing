@@ -27,8 +27,8 @@ func HTTPHandler(h http.Handler) Handler {
 	}
 }
 
-// Logger specifies the logger interface needed by ErrorHandler to log an error.
-type Logger interface {
+// ErrorLogger specifies the logger interface needed by ErrorHandler to log an error.
+type ErrorLogger interface {
 	// Error records an error message using the format and optional arguments.
 	// The usage of format and arguments is similar to those for fmt.Printf().
 	Error(format string, a ...interface{})
@@ -42,7 +42,7 @@ type Logger interface {
 // the error using logger (when it is not nil).
 //
 // This handler is usually used as one of the last handlers for a router.
-func ErrorHandler(logger Logger) Handler {
+func ErrorHandler(logger ErrorLogger) Handler {
 	return func(c *Context) HTTPError {
 		if err, ok := c.Error.(HTTPError); ok {
 			c.Response.WriteHeader(err.Code())
