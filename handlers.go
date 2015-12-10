@@ -75,8 +75,9 @@ func TrailingSlashRemover(status int) Handler {
 	}
 }
 
-// AccessLogger returns a handler that logs an entry for every request.
-// The access log entries will be written using the specified writer in the Apache httpd access log format.
+// AccessLogger returns a handler that logs a message for every request.
+// The access log messages contain information including client IPs, time used to serve each request, request line,
+// response status and size.
 func AccessLogger(log LogFunc) Handler {
 	var mu sync.Mutex
 	return func(c *Context) {
@@ -89,12 +90,11 @@ func AccessLogger(log LogFunc) Handler {
 		c.Next()
 
 		clientIP := getClientIP(req)
-		start := startTime.Format("02/Jan/2006 15:04:05 -0700")
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
 		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.RequestURI, req.Proto)
 		mu.Lock()
 		defer mu.Unlock()
-		log("%s - - [%s] \"%s %d %d\" %.3fms\n", clientIP, start, requestLine, rw.status, rw.bytesWritten, elapsed)
+		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.status, rw.bytesWritten)
 	}
 }
 
