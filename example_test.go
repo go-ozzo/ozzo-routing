@@ -1,7 +1,7 @@
 package routing_test
 
 import (
-	"os"
+	"log"
 	"net/http"
 	"github.com/go-ozzo/ozzo-routing"
 )
@@ -10,7 +10,7 @@ func Example() {
 	r := routing.NewRouter()
 
 	r.Use(
-		routing.AccessLogger(os.Stdout),
+		routing.AccessLogger(log.Printf),
 		routing.TrailingSlashRemover(http.StatusMovedPermanently),
 	)
 

@@ -36,7 +36,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"log"
 	"net/http"
 	"github.com/go-ozzo/ozzo-routing"
 )
@@ -46,7 +46,7 @@ func main() {
 
 	// install commonly used middlewares
 	r.Use(
-		routing.AccessLogger(os.Stdout),
+		routing.AccessLogger(log.Printf),
 		routing.TrailingSlashRemover(http.StatusMovedPermanently),
 	)
 
@@ -324,7 +324,7 @@ These handlers may be used like the following:
 r := routing.NewRouter()
 
 r.Use(
-    routing.AccessLogger(os.Stdout),
+    routing.AccessLogger(log.Printf),
     routing.TrailingSlashRemover(http.StatusMovedPermanently),
 )
 

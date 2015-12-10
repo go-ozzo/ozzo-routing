@@ -9,9 +9,12 @@ import (
 	"strings"
 	"fmt"
 	"time"
-	"io"
 	"sync"
 )
+
+// LogFunc logs a message using the given format and optional arguments.
+// The usage of format and arguments is similar to those for fmt.Printf().
+type LogFunc func(format string, a ...interface{})
 
 // HTTPHandlerFunc adapts a http.HandlerFunc into a routing.Handler.
 func HTTPHandlerFunc(h http.HandlerFunc) Handler {
@@ -27,29 +30,22 @@ func HTTPHandler(h http.Handler) Handler {
 	}
 }
 
-// ErrorLogger specifies the logger interface needed by ErrorHandler to log an error.
-type ErrorLogger interface {
-	// Error records an error message using the format and optional arguments.
-	// The usage of format and arguments is similar to those for fmt.Printf().
-	Error(format string, a ...interface{})
-}
-
 // ErrorHandler returns a handler that handles the error recorded in Context.Error.
 //
 // If Context.Error is an HTTPError, ErrorHandler will set the response status code
 // as the status code specified by Context.Error; Otherwise, ErrorHandler will
-// set the status code to be 500 (http.StatusInternalServerError) and record
-// the error using logger (when it is not nil).
+// set the status code to be 500 (http.StatusInternalServerError) and log
+// the error using the specified LogFunc (if it is not nil).
 //
 // This handler is usually used as one of the last handlers for a router.
-func ErrorHandler(logger ErrorLogger) Handler {
+func ErrorHandler(f LogFunc) Handler {
 	return func(c *Context) HTTPError {
 		if err, ok := c.Error.(HTTPError); ok {
 			c.Response.WriteHeader(err.Code())
 			return err
 		}
-		if logger != nil {
-			logger.Error("%v", c.Error)
+		if f != nil {
+			f("%v", c.Error)
 		}
 		c.Response.WriteHeader(http.StatusInternalServerError)
 		return NewHTTPError(http.StatusInternalServerError)
@@ -80,8 +76,8 @@ func TrailingSlashRemover(status int) Handler {
 }
 
 // AccessLogger returns a handler that logs an entry for every request.
-// The access log entries will be written using the specified writer and the Apache httpd access log format.
-func AccessLogger(writer io.Writer) Handler {
+// The access log entries will be written using the specified writer in the Apache httpd access log format.
+func AccessLogger(log LogFunc) Handler {
 	var mu sync.Mutex
 	return func(c *Context) {
 		startTime := time.Now()
@@ -94,13 +90,11 @@ func AccessLogger(writer io.Writer) Handler {
 
 		clientIP := getClientIP(req)
 		start := startTime.Format("02/Jan/2006 15:04:05 -0700")
-		elapsed := time.Now().Sub(startTime).Seconds() * 1000
+		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
 		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.RequestURI, req.Proto)
 		mu.Lock()
 		defer mu.Unlock()
-		fmt.Fprintf(writer, "%s - - [%s] \"%s %d %d\" %.3fms\n",
-			clientIP, start, requestLine,
-			rw.status, rw.bytesWritten, elapsed)
+		log("%s - - [%s] \"%s %d %d\" %.3fms\n", clientIP, start, requestLine, rw.status, rw.bytesWritten, elapsed)
 	}
 }
 
