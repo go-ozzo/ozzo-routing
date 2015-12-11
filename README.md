@@ -317,6 +317,7 @@ ozzo-routing comes with a few commonly used handlers:
 * `routing.NotFoundHandler`: a handler triggering 404 HTTP error
 * `routing.TrailingSlashRemover`: a handler removing the trailing slashes from the request URL
 * `routing.AccessLogger`: a handler that records an entry for every incoming request
+* `routing.StaticFile`: a handler that serves the content of the specified file as the response
 
 These handlers may be used like the following:
 
