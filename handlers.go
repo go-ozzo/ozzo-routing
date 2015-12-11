@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"time"
 	"sync"
+	"os"
+	"path/filepath"
 )
 
 // LogFunc logs a message using the given format and optional arguments.
@@ -127,4 +129,21 @@ func (r *logResponseWriter) Write(p []byte) (int, error) {
 func (r *logResponseWriter) WriteHeader(status int) {
 	r.status = status
 	r.ResponseWriter.WriteHeader(status)
+}
+
+// StaticFile returns a handler that serves the content of the specified file as the response.
+// If the specified file does not exist, the handler will pass the control to the next available handler.
+func StaticFile(path string) Handler {
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(RootPath, path)
+	}
+	return func(c *Context) {
+		if file, err := os.Open(path); err == nil {
+			if fs, err2 := file.Stat(); err2 == nil {
+				http.ServeContent(c.Response, c.Request, path, fs.ModTime(), file)
+				return
+			}
+		}
+		c.Next()
+	}
 }
