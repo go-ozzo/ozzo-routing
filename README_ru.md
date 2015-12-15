@@ -402,7 +402,7 @@ ozzo-routing может быть использована, чтобы легко
 Например,
 
 ```go
-// server.go file:
+// файл server.go:
 ...
 r := routing.NewRouter()
 ...
