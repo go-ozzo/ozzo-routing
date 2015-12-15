@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/go-ozzo/ozzo-routing.svg?branch=master)](https://travis-ci.org/go-ozzo/ozzo-routing)
 [![Coverage](http://gocover.io/_badge/github.com/go-ozzo/ozzo-routing)](http://gocover.io/github.com/go-ozzo/ozzo-routing)
 
-ozzo-routing это Go-пакет, обспечивающий поддержку маршрутизации и обработки для Web приложений.
+ozzo-routing это Go-пакет, обеспечивающий поддержку маршрутизации и обработки для Web приложений.
 Он включает в себя:
 
 * middleware pipeline архитектуру, подобную [Express framework](http://expressjs.com).
