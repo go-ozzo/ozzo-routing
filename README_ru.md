@@ -435,5 +435,5 @@ func (c Controller) view() string {
 
 ## Признательность
 
-ozzo-routing схож по реализации, как в [Express](http://expressjs.com/), [Martini](https://github.com/go-martini/martini),
-и многих подобных проектах.
+ozzo-routing схож по реализации с [Express](http://expressjs.com/), [Martini](https://github.com/go-martini/martini),
+так и многими другими подобными проектами.
