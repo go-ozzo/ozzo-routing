@@ -32,7 +32,7 @@ func (s RoutePatternError) Error() string {
 
 var (
 	routeRegex = regexp.MustCompile(`^(?:([A-Z\,]+)\s+)?(.*?)$`)
-	literalRegex = regexp.MustCompile(`^[A-Za-z0-9/_\\-~]*$`)
+	literalRegex = regexp.MustCompile(`^[\w\-~]*$`)
 	paramRegex = regexp.MustCompile(`<([^>]+)>`)
 	paramInternalRegex = regexp.MustCompile(`^(\w+):?([^>]+)?$`)
 )

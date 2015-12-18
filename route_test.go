@@ -82,6 +82,11 @@ func TestRouteMatch(t *testing.T) {
 		{"/users", "GET", "/users/123", false},
 		{"/users", "POST", "/users", true},
 
+		{"/users.html", "POST", "/users.html", true},
+		{"/users.html", "POST", "/usersahtml", true},
+		{"/users\\.html", "POST", "/users.html", true},
+		{"/users\\.html", "POST", "/usersahtml", false},
+
 		{"GET /users", "GET", "/users", true},
 		{"GET /users", "GET", "/user", false},
 		{"GET /users", "GET", "/users/123", false},

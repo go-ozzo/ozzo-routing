@@ -10,7 +10,7 @@
 
 ## Description
 
-ozzo-config is a Go package that supports request routing and processing for Web applications.
+ozzo-routing is a Go package that supports request routing and processing for Web applications.
 It has the following features:
 
 * middleware pipeline architecture, similar to that in the [Express framework](http://expressjs.com).
@@ -18,6 +18,7 @@ It has the following features:
 * modular code organization through route grouping
 * dependency injection for handler parameters
 * URL path parameters
+* static file server
 * error handling
 * compatible with `http.Handler` and `http.HandlerFunc`
 
@@ -42,7 +43,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"log"
 	"net/http"
 	"github.com/go-ozzo/ozzo-routing"
 )
@@ -52,7 +53,7 @@ func main() {
 
 	// install commonly used middlewares
 	r.Use(
-		routing.AccessLogger(os.Stdout),
+		routing.AccessLogger(log.Printf),
 		routing.TrailingSlashRemover(http.StatusMovedPermanently),
 	)
 
@@ -323,6 +324,8 @@ ozzo-routing comes with a few commonly used handlers:
 * `routing.NotFoundHandler`: a handler triggering 404 HTTP error
 * `routing.TrailingSlashRemover`: a handler removing the trailing slashes from the request URL
 * `routing.AccessLogger`: a handler that records an entry for every incoming request
+* `routing.Static`: a handler that serves the files under the specified folder as response content
+* `routing.StaticFile`: a handler that serves the content of the specified file as the response
 
 These handlers may be used like the following:
 
@@ -330,7 +333,7 @@ These handlers may be used like the following:
 r := routing.NewRouter()
 
 r.Use(
-    routing.AccessLogger(os.Stdout),
+    routing.AccessLogger(log.Printf),
     routing.TrailingSlashRemover(http.StatusMovedPermanently),
 )
 
@@ -385,6 +388,17 @@ from the path pattern, like shown in the above example.
 
 You can create multiple levels of route groups. In fact, as we have explained earlier, the whole routing system
 is a tree structure, which allows you to organize your code in a multilevel modular fashion.
+
+## Serving Static Files
+
+Static files can be served through the `routing.Static` or `routing.StaticFile` handler. The former serves files
+under the specified directory according to the current request, while the latter serves a single file. For example,
+
+```go
+r := routing.NewRouter()
+// serves the files under working-dir/web/assets
+r.To("/assets(/.*)?", routing.Static("web"))
+```
 
 
 ## Error Handling

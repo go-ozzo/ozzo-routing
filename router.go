@@ -14,6 +14,7 @@ import (
 	"strings"
 	"reflect"
 	"fmt"
+	"os"
 )
 
 // Handler is the type of the functions that can be associated with a router or route.
@@ -61,8 +62,18 @@ type Router struct {
 	regex    *regexp.Regexp  // the compiled regexp of the pattern
 }
 
+// DataWriter writes the given data to response.
+// If a response object implements this interface, WriteData will be invoked to write data to response.
 type DataWriter interface {
+	// WriteData writes the given data to response.
 	WriteData(interface{}) (int, error)
+}
+
+// RootPath keeps the current working directory.
+var RootPath string
+
+func init() {
+	RootPath, _ = os.Getwd()
 }
 
 // NewRouter creates an empty Router.

@@ -25,7 +25,7 @@ func TestErrorHandler(t *testing.T) {
 	l := &LoggerMock{}
 
 	c.Error = NewHTTPError(http.StatusNotFound)
-	h := ErrorHandler(l).(func(*Context) HTTPError)
+	h := ErrorHandler(l.Error).(func(*Context) HTTPError)
 	e := h(c)
 	if e.Code() != http.StatusNotFound {
 		t.Errorf("Expected error status %v, got %v", http.StatusNotFound, e.Code())
