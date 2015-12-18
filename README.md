@@ -4,6 +4,12 @@
 [![Build Status](https://travis-ci.org/go-ozzo/ozzo-routing.svg?branch=master)](https://travis-ci.org/go-ozzo/ozzo-routing)
 [![Coverage](http://gocover.io/_badge/github.com/go-ozzo/ozzo-routing)](http://gocover.io/github.com/go-ozzo/ozzo-routing)
 
+## Other languages
+
+[Русский](/docs/README-ru.md)
+
+## Description
+
 ozzo-routing is a Go package that supports request routing and processing for Web applications.
 It has the following features:
 
