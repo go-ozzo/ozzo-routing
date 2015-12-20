@@ -151,9 +151,13 @@ type StaticOptions struct {
 // Static returns a handler that serves the files under the specified folder as response content.
 // For example, if root is "static" and the handler is handling the URL path "/app/index.html",
 // then the content of the file "<working dir>/static/app/index.html" may be served as the response.
-func Static(root string, options StaticOptions) Handler {
+func Static(root string, opts ...StaticOptions) Handler {
 	if !filepath.IsAbs(root) {
 		root = filepath.Join(RootPath, root)
+	}
+	options := StaticOptions{}
+	if len(opts) > 0 {
+		options = opts[0]
 	}
 	if options.IndexFile == "" {
 		options.IndexFile = "index.html"
