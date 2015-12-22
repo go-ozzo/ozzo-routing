@@ -14,18 +14,18 @@ func Example() {
 		routing.TrailingSlashRemover(http.StatusMovedPermanently),
 	)
 
-	r.Get("", func() string {
-		return "Welcome, ozzo!"
+	r.Get("", func(c *routing.Context) {
+		c.Write("Welcome, ozzo!")
 	})
-	r.Post("/login", func() string {
-		return "Please login first"
+	r.Post("/login", func(c *routing.Context) {
+		c.Write("Please login first")
 	})
 	r.Group("/admin", func(gr *routing.Router) {
-		gr.Get("/posts", func() string {
-			return "GET /admin/posts"
+		gr.Get("/posts", func(c *routing.Context) {
+			c.Write("GET /admin/posts")
 		})
-		gr.Post("/posts", func() string {
-			return "POST /admin/posts"
+		gr.Post("/posts", func(c *routing.Context) {
+			c.Write("POST /admin/posts")
 		})
 	})
 

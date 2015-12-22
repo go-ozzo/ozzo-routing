@@ -65,7 +65,6 @@ func NewRoute(pattern string, handlers []Handler) *Route {
 		}
 	}
 
-	validateHandlers(handlers)
 	route.Handlers = append(route.Handlers, handlers...)
 
 	if !literalRegex.MatchString(route.Pattern) {

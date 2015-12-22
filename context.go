@@ -6,19 +6,13 @@ package routing
 
 import (
 	"net/http"
-	"github.com/go-ozzo/ozzo-di"
+	"fmt"
 )
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
 //
-// Context is injected into a handler if the handler requires a *Context parameter.
-//
 // Context contains references to http.Request and http.ResponseWriter which are commonly
 // needed by handlers. Context also provides the the URL parameter values through its Params field.
-//
-// Context serves as a dependency injection container. Handlers may register typed data which can then
-// be injected as parameter values for other handlers. By default, if a handler has a parameter of type
-// "*routing.Context", the current Context will be injected.
 //
 // Handlers can use the Data field to share data among them.
 //
@@ -27,8 +21,6 @@ import (
 // Within a handler, you may call Context.Next() to pass the control to the next eligible handler;
 // call Context.NextRoute() to pass the control to the first handler of the next matching route.
 type Context struct {
-	di.Container                     // dependency injection container
-
 	Request   *http.Request          // the current HTTP request
 	Response  http.ResponseWriter    // the response writer
 	Params    map[string]string      // the URL parameter values of the matching route(s)
@@ -41,8 +33,7 @@ type Context struct {
 
 // NewContext creates a new Context with the given response and request information.
 func NewContext(res http.ResponseWriter, req *http.Request) *Context {
-	c := &Context{
-		Container: di.NewContainer(),
+	return &Context{
 		Params: make(map[string]string),
 		Request: req,
 		Response: res,
@@ -50,8 +41,6 @@ func NewContext(res http.ResponseWriter, req *http.Request) *Context {
 		NextRoute: func() {},
 		Data: make(map[string]interface{}),
 	}
-	c.Register(c)
-	return c
 }
 
 // Panic creates a HTTPError and panics with it.
@@ -59,4 +48,28 @@ func NewContext(res http.ResponseWriter, req *http.Request) *Context {
 // the message based on the status code.
 func (c *Context) Panic(status int, message ...string) {
 	panic(NewHTTPError(status, message...))
+}
+
+// Write writes the specified to the response.
+// If the response object implements DataWriter, Write will call its WriteData() method
+// to write the specified data. Otherwise, it will write the data as a string to the response.
+func (c *Context) Write(data interface{}) {
+	// use DataWriter to write response if possible
+	if dw, ok := c.Response.(DataWriter); ok {
+		if _, err := dw.WriteData(data); err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	switch data.(type) {
+	case []byte:
+		c.Response.Write(data.([]byte))
+	case string:
+		c.Response.Write([]byte(data.(string)))
+	default:
+		if data != nil {
+			fmt.Fprint(c.Response, data)
+		}
+	}
 }

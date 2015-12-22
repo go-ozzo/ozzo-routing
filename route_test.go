@@ -57,8 +57,8 @@ func TestNewRoute(t *testing.T) {
 	}
 
 	// testing handlers
-	h1 := func(Context) {}
-	h2 := func(Context) {}
+	h1 := func(*Context) {}
+	h2 := func(*Context) {}
 	r = NewRoute("", []Handler{h1, h2})
 	if len(r.Handlers) != 2 || r.Handlers[0] == nil || r.Handlers[1] == nil {
 		t.Errorf("newRoute(\"\", h1, h2): handlers not assigned correctly")

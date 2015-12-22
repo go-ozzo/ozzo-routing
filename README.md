@@ -16,7 +16,6 @@ It has the following features:
 * middleware pipeline architecture, similar to that in the [Express framework](http://expressjs.com).
 * highly extensible through pluggable handlers (middlewares)
 * modular code organization through route grouping
-* dependency injection for handler parameters
 * URL path parameters
 * static file server
 * error handling
@@ -58,19 +57,19 @@ func main() {
 	)
 
 	// set up routes and handlers
-	r.Get("", func() string {
-		return "Go ozzo!"
+	r.Get("", func(c *routing.Context) {
+		fmt.Fprint(c.Response, "Go ozzo!")
 	})
-	r.Get("/users", func() string {
-		return "getting users"
+	r.Get("/users", func(c *routing.Context) {
+		fmt.Fprint(c.Response, "getting users")
 	})
 	r.Group("/admin", func(gr *routing.Router) {
-        gr.Post("/users", func() string {
-            return "creating users"
-        })
-        gr.Delete("/users", func() string {
-            return "deleting users"
-        })
+		gr.Post("/users", func(c *routing.Context) {
+			fmt.Fprint(c.Response, "creating users")
+		})
+		gr.Delete("/users", func(c *routing.Context) {
+			fmt.Fprint(c.Response, "deleting users")
+		})
 	})
 
 	// handle requests that don't match any route
@@ -121,9 +120,9 @@ r.Get("/users", handler1, handler2, ...)
 
 // an internal node (child routers)
 r.Group("/admin", func(r *routing.Router) {
-    // leaves under the internal node
-    r.Post("/users", handler1, handler2, ...)
-    r.Delete("/users", handler1, handler2, ...)
+	// leaves under the internal node
+	r.Post("/users", handler1, handler2, ...)
+	r.Delete("/users", handler1, handler2, ...)
 })
 ```
 
@@ -155,10 +154,10 @@ You can create and add a route to a routing tree by calling `Router.To()` or one
 ```go
 r := routing.New()
 
-r.To("GET /users", func() { })
+r.To("GET /users", func(*routing.Context) { })
 
 // or equivalently using the Get() shortcut
-r.Get("/users", func() { })
+r.Get("/users", func(*routing.Context) { })
 ```
 
 The above code adds a route that matches URL path `/users` and only applies to the GET HTTP method. You may
@@ -168,16 +167,16 @@ If a route should match multiple HTTP methods, you can use the syntax like shown
 
 ```go
 // only match GET or POST
-r.To("GET,POST /users", func() { })
+r.To("GET,POST /users", func(*routing.Context) { })
 
 // match any HTTP method
-r.To("/users", func() { })
+r.To("/users", func(*routing.Context) { })
 ```
 
 If a route should match *any request*, call `Router.Use()` like the following:
 
 ```go
-r.Use(func() { })
+r.Use(func(*routing.Context) { })
 ```
 
 
@@ -195,18 +194,18 @@ When a route matches a URL path, the matching parameters on the URL path will be
 r := routing.NewRouter()
 
 r.To("GET /cities/<name>", func (c *routing.Context) {
-    fmt.Fprintf(c.Response, "Name: %v", c.Params["name"])
+	fmt.Fprintf(c.Response, "Name: %v", c.Params["name"])
 })
 
 r.To("GET /users/<id:\\d+>", func (c *routing.Context) {
-    fmt.Fprintf(c.Response, "ID: %v", c.Params["id"])
+	fmt.Fprintf(c.Response, "ID: %v", c.Params["id"])
 })
 ```
 
 
 ## Handlers
 
-Handlers are simply any callable functions. A handler is called when a request is dispatched
+Handlers are functions associated with routers or routes. A handler is called when a request is dispatched
 to the route or router that the handler is associated with.
 
 Within a handler, you can call `Context.Next()` to pass the control to the next available
@@ -224,21 +223,21 @@ For example,
 ```go
 r := routing.NewRouter()
 r.Get("/users", func(c *routing.Context) {
-    fmt.Fprintln(c.Response, "/users1 start")
-    c.Next()
-    fmt.Fprintln(c.Response, "/users1 end")
+	fmt.Fprintln(c.Response, "/users1 start")
+	c.Next()
+	fmt.Fprintln(c.Response, "/users1 end")
 }, func(c *routing.Context) {
-    fmt.Fprintln(c.Response, "/users2 start")
-    c.Next()
-    fmt.Fprintln(c.Response, "/users2 end")
+	fmt.Fprintln(c.Response, "/users2 start")
+	c.Next()
+	fmt.Fprintln(c.Response, "/users2 end")
 })
 
 r.Get("/users", func(c *routing.Context) {
-    fmt.Fprintln(c.Response, "/users3")
+	fmt.Fprintln(c.Response, "/users3")
 })
 
 r.Get("/users", func(c *routing.Context) {
-    fmt.Fprintln(c.Response, "/users4")
+	fmt.Fprintln(c.Response, "/users4")
 })
 ```
 
@@ -258,39 +257,23 @@ Also note that the handler outputs are properly nested.
 
 ### Context
 
-For each incoming request, a new `routing.Context` instance is created which includes contextual
-information for handling the request, such as the current request, response, etc. A handler can get access
-to the current `Context` by declaring a `*routing.Context` parameter, like the following:
-
-```go
-func (c *routing.Context) {
-}
-```
+For each incoming request, a new `routing.Context` object is created which includes contextual
+information for handling the request, such as the current request, response, etc. The context object
+is passed as the parameter to the handlers that are processing the request.
 
 Using `Context`, handlers can share data between each other. A simple way is to exploit the `Context.Data` field.
-For example, one handler stores `Context.Data["user"]` which can be accessed by another handler. A more advanced
-way is to use `Context` as a dependency injection (DI) container. In particular, one handler registers
-the data to be shared (e.g. a cache) with `Context` and another handler declares a parameter of the same data type.
-Then through automatic dependency injection by `Context`, the latter handler will receive the registered data value
-as its parameter. For example,
+For example, one handler stores `Context.Data["user"]` which can be accessed by another handler. For example,
 
 ```go
 r := routing.NewRouter()
 r.Use(func (c *routing.Context) {
-    // use Context.Data to share data
-    c.Data["db"] = &Database{}
-
-    // use dependency injection to share data
-    c.Register(&Cache{})
+	// use Context.Data to share data
+	c.Data["cache"] = &Cache{}
 })
 r.Use(func (c *routing.Context, cache *Cache) {
-    // access c.Data["db"]
-
-    // cache is injected
+	// access c.Data["cache"]
 })
 ```
-
-> Info: When a handler has a `*routing.Context` parameter, its value is also obtained via dependency injection.
 
 ### Response and Return Values
 
@@ -298,22 +281,14 @@ Many handlers need to send output in response. This can be done using the follow
 
 ```go
 func (c *routing.Context) {
-    fmt.Fprint(c.Response, "Hello world")
+	fmt.Fprint(c.Response, "Hello world")
 }
 ```
 
-An alternative way is to set the output as the return value of a handler. For example, the above code
-can be rewritten as follows:
-
-```go
-func () string {
-    return "Hello world"
-}
-```
-
-You can return data of arbitrary structure, not just a string. The router will format the return data
-into a string by calling `fmt.Fprint()`. You may also customize the data formatting by replacing
-`Context.Response` with a response object that implements the `DataWriter` interface.
+An alternative way is to call the `Context.Write()` method. This method differs from the previous one in that
+it will call `Response.WriteData()` to write the data if `Context.Response` implements the `routing.DataWriter` interface.
+This allows the response object to do some preprocessing (e.g. serializing data in JSON or XML format) before sending
+it to output.
 
 
 ### Built-in Handlers
@@ -333,8 +308,8 @@ These handlers may be used like the following:
 r := routing.NewRouter()
 
 r.Use(
-    routing.AccessLogger(log.Printf),
-    routing.TrailingSlashRemover(http.StatusMovedPermanently),
+	routing.AccessLogger(log.Printf),
+	routing.TrailingSlashRemover(http.StatusMovedPermanently),
 )
 
 // ... register routes and handlers
@@ -377,9 +352,9 @@ r := routing.NewRouter()
 
 // the /admin route group
 r.Group("/admin", function(gr *routing.Router) {
-    gr.Post("/users", func() { })
-    gr.Delete("/users", func() { })
-    // ...
+	gr.Post("/users", func(*routing.Context) { })
+	gr.Delete("/users", func(*routing.Context) { })
+	// ...
 })
 ```
 
@@ -408,8 +383,7 @@ by calling the `Router.Error()` method. When a panic happens in a handler, the r
 from it and call the error handlers registered after the current route. Any normal handlers in between
 will be skipped.
 
-Error handlers can obtain the error information from `Context.Error`. Like normal handlers,
-error handlers also get their parameter values through dependency injection. For example,
+Error handlers can obtain the error information from `Context.Error`. For example,
 
 ```go
 r := routing.NewRouter()
@@ -417,7 +391,7 @@ r := routing.NewRouter()
 // ...register routes and handlers
 
 r.Error(func(c *routing.Context) {
-    fmt.Println(c.Error)
+	fmt.Println(c.Error)
 })
 ```
 
@@ -429,49 +403,12 @@ For example,
 
 ```go
 func (c *routing.Context) {
-    c.Panic(http.StatusNotFound)
-    // equivalent to the following code
-    // panic(routing.NewHTTPError(http.StatusNotFound))
+	c.Panic(http.StatusNotFound)
+	// equivalent to the following code
+	// panic(routing.NewHTTPError(http.StatusNotFound))
 }
 ```
 
-
-## MVC Implementation
-
-ozzo-routing can be used to easily implement the controller part of the MVC pattern.
-For example,
-
-```go
-// server.go file:
-...
-r := routing.NewRouter()
-...
-r.Group("/users", users.Routes)
-...
-
-// users/controller.go file:
-package users
-...
-func Routes(r *routing.Router) {
-	r.Get("", Controller.index)
-	r.Get("/<id:\\d+>", Controller.view)
-	...
-}
-
-type Controller struct {
-	*routing.Context `inject`
-}
-
-func (c Controller) index() string {
-	return "index"
-}
-
-func (c Controller) view() string {
-	return "view" + c.Params["id"]
-}
-
-...
-```
 
 ## Credits
 

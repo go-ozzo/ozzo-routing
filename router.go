@@ -2,30 +2,24 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package routing implements Sinatra-styled routing.
+// Package routing implements Sinatra-styled HTTP routing.
 package routing
-
-// todo: add ignoreTrailingSlash option
-// todo: add default error handler
 
 import (
 	"regexp"
 	"net/http"
 	"strings"
-	"reflect"
-	"fmt"
 	"os"
 )
 
-// Handler is the type of the functions that can be associated with a router or route.
+// Handler is a function associated with a router or route.
+// A handler is called when its associated router or route matches the current request.
 //
-// A handler is a function whose parameter values are injected by Context according to the parameter types.
-//
-// Within a handler, call Context.Next() to pass the control to the next handler on the same route/router,
-// or the first handler of the next matching route/router; call Context.NextRoute() to pass the control
-// to the first handler of the next matching route/router; and call Context.Error() to trigger an error
-// and pass the control to error handlers registered with the router.
-type Handler interface{}
+// Through the Context parameter, you can access the current request and response objects.
+// If a handler does not finish processing the current request, call Context.Next() to pass the control
+// to the next handler on the same route/router or the first handler of the next matching route/router;
+// call Context.NextRoute() to pass the control to the first handler of the next matching route/router.
+type Handler func(*Context)
 
 // Routable matches the specified HTTP method and URL path, and dispatches them to handlers for processing.
 type Routable interface {
@@ -102,7 +96,6 @@ func NewChildRouter(pattern string, handlers []Handler) *Router {
 		}
 	}
 
-	validateHandlers(handlers)
 	r.Handlers = append(r.Handlers, handlers...)
 
 	if !literalRegex.MatchString(r.Pattern) {
@@ -150,12 +143,11 @@ func (r *Router) Group(pattern string, rt func(*Router), handlers ...Handler) {
 // For example,
 //
 //   router := routing.New()
-//   router.To("GET,POST /users", func() { })
-//   router.To("/posts", func() { })
+//   router.To("GET,POST /users", func(*routing.Context) { })
+//   router.To("/posts", func(*routing.Context) { })
 //
 // A route can be associated with multiple handlers (functions) which will be called one after another
-// when the route matches the current request. A handler can have parameters whose values will be injected
-// by Context according to their types. Please refer to Context for more details about dependency injection.
+// when the route matches the current request.
 //
 // Within a handler, you can call Context.Next() to pass the control to the next handler on the same route
 // or the first handler of the next matching route. You can also call Context.NextRoute() to pass the control
@@ -326,18 +318,6 @@ func copyParams(params map[string]string) map[string]string {
 	return r
 }
 
-func validateHandlers(handlers []Handler) {
-	for _, handler := range handlers {
-		t := reflect.TypeOf(handler)
-		if t.Kind() != reflect.Func {
-			panic("a handler must be a callable function")
-		}
-		if t.NumOut() > 1 {
-			panic("a handler can return at most one value")
-		}
-	}
-}
-
 func callHandler(c *Context, fn Handler) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -346,28 +326,5 @@ func callHandler(c *Context, fn Handler) {
 		}
 	}()
 
-	result := c.Call(fn)
-	if len(result) == 0 {
-		return
-	}
-	output := result[0]
-
-	// use DataWriter to write response if possible
-	if dw, ok := c.Response.(DataWriter); ok {
-		if _, err := dw.WriteData(output); err != nil {
-			panic(err)
-		}
-		return
-	}
-
-	switch output.(type) {
-	case []byte:
-		c.Response.Write(output.([]byte))
-	case string:
-		c.Response.Write([]byte(output.(string)))
-	default:
-		if output != nil {
-			fmt.Fprint(c.Response, output)
-		}
-	}
+	fn(c)
 }

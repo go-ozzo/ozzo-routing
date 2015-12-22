@@ -25,11 +25,8 @@ func TestErrorHandler(t *testing.T) {
 	l := &LoggerMock{}
 
 	c.Error = NewHTTPError(http.StatusNotFound)
-	h := ErrorHandler(l.Error).(func(*Context) HTTPError)
-	e := h(c)
-	if e.Code() != http.StatusNotFound {
-		t.Errorf("Expected error status %v, got %v", http.StatusNotFound, e.Code())
-	}
+	h := ErrorHandler(l.Error)
+	h(c)
 	if res.Code != http.StatusNotFound {
 		t.Errorf("Expected response status %v, got %v", http.StatusNotFound, res.Code)
 	}
@@ -37,10 +34,7 @@ func TestErrorHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	c.Error = "xyz"
 	c.Response = res
-	e2 := h(c)
-	if e2.Code() != http.StatusInternalServerError {
-		t.Errorf("Expected error status %v, got %v", http.StatusInternalServerError, e.Code())
-	}
+	h(c)
 	if res.Code != http.StatusInternalServerError {
 		t.Errorf("Expected response status %v, got %v", http.StatusInternalServerError, res.Code)
 	}
@@ -50,7 +44,7 @@ func TestErrorHandler(t *testing.T) {
 }
 
 func TestNotFoundHandler(t *testing.T) {
-	h := NotFoundHandler().(func())
+	h := NotFoundHandler()
 	defer func() {
 		err := recover()
 		if err == nil {
@@ -62,7 +56,7 @@ func TestNotFoundHandler(t *testing.T) {
 		}
 	}()
 
-	h()
+	h(nil)
 }
 
 func TestTrailingSlashRemover(t *testing.T) {

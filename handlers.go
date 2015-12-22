@@ -41,16 +41,17 @@ func HTTPHandler(h http.Handler) Handler {
 //
 // This handler is usually used as one of the last handlers for a router.
 func ErrorHandler(f LogFunc) Handler {
-	return func(c *Context) HTTPError {
+	return func(c *Context) {
 		if err, ok := c.Error.(HTTPError); ok {
 			c.Response.WriteHeader(err.Code())
-			return err
+			c.Write(err)
+			return
 		}
 		if f != nil {
 			f("%v", c.Error)
 		}
 		c.Response.WriteHeader(http.StatusInternalServerError)
-		return NewHTTPError(http.StatusInternalServerError)
+		c.Write(NewHTTPError(http.StatusInternalServerError))
 	}
 }
 
@@ -58,7 +59,7 @@ func ErrorHandler(f LogFunc) Handler {
 //
 // This handler is usually used as one of the last handlers for a router.
 func NotFoundHandler() Handler {
-	return func() {
+	return func(*Context) {
 		panic(NewHTTPError(http.StatusNotFound))
 	}
 }
