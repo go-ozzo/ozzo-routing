@@ -56,7 +56,7 @@ func (c *Context) Panic(status int, message ...string) {
 func (c *Context) Write(data interface{}) {
 	// use DataWriter to write response if possible
 	if dw, ok := c.Response.(DataWriter); ok {
-		if _, err := dw.WriteData(data); err != nil {
+		if err := dw.WriteData(data); err != nil {
 			panic(err)
 		}
 		return

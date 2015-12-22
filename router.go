@@ -60,7 +60,7 @@ type Router struct {
 // If a response object implements this interface, WriteData will be invoked to write data to response.
 type DataWriter interface {
 	// WriteData writes the given data to response.
-	WriteData(interface{}) (int, error)
+	WriteData(interface{}) error
 }
 
 // RootPath keeps the current working directory.
