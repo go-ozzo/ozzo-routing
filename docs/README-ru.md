@@ -85,7 +85,7 @@ func main() {
 go run server.go
 ```
 
-Теперь вы можете получить доступ по адресам URL, таким как `http://localhost:8080`, `http://localhost:8080/users`.
+Теперь вы можете получить доступ по адресам URL, таким как `http://localhost:8080`, `http://localhost:8080/admin/users`.
 
 
 ## Дерево маршрутизации
