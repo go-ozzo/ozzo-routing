@@ -9,7 +9,6 @@ import (
 	"strings"
 	"fmt"
 	"time"
-	"sync"
 	"os"
 	"path/filepath"
 )
