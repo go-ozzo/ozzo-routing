@@ -42,13 +42,13 @@ func HTTPHandler(h http.Handler) Handler {
 // This handler is usually used as one of the last handlers for a router.
 func ErrorHandler(f LogFunc) Handler {
 	return func(c *Context) {
+		if f != nil {
+			f("%v", c.Error)
+		}
 		if err, ok := c.Error.(HTTPError); ok {
 			c.Response.WriteHeader(err.Code())
 			c.Write(err)
 			return
-		}
-		if f != nil {
-			f("%v", c.Error)
 		}
 		c.Response.WriteHeader(http.StatusInternalServerError)
 		c.Write(NewHTTPError(http.StatusInternalServerError))
@@ -82,7 +82,6 @@ func TrailingSlashRemover(status int) Handler {
 // The access log messages contain information including client IPs, time used to serve each request, request line,
 // response status and size.
 func AccessLogger(log LogFunc) Handler {
-	var mu sync.Mutex
 	return func(c *Context) {
 		startTime := time.Now()
 
@@ -95,8 +94,7 @@ func AccessLogger(log LogFunc) Handler {
 		clientIP := getClientIP(req)
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
 		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.RequestURI, req.Proto)
-		mu.Lock()
-		defer mu.Unlock()
+
 		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.status, rw.bytesWritten)
 	}
 }
