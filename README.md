@@ -96,13 +96,15 @@ You should be able to access URLs such as `http://localhost:8080`, `http://local
 
 ozzo-routing works by building a routing table in a router and then dispatching HTTP requests to the matching handlers 
 found in the routing table. An intuitive illustration of a routing table is as follows:
- 
+
+
 Routes            |  Handlers
-------------------------------------
+------------------|-----------------
 GET /users        |  m1, m2, h1, ...
 POST /users       |  m1, m2, h2, ...
 PUT /users/<id>   |  m1, m2, h3, ...
 DELETE /users/<id>|  m1, m2, h4, ...
+
 
 For an incoming request `GET /users`, the first route would match and the handlers m1, m2, and h1 would be executed.
 If the request is `PUT /users/123`, the third route would match and the corresponding handlers would be executed.
@@ -178,13 +180,15 @@ api.Put("/users/<id>", h3).Delete(h4)
 ```
 
 The above `/api` route group establishes the following routing table:
- 
+
+
 Routes                |  Handlers
-------------------------------------
+----------------------|-------------
 GET /api/users        |  m1, m2, h1, ...
 POST /api/users       |  m1, m2, h2, ...
 PUT /api/users/<id>   |  m1, m2, h3, ...
 DELETE /api/users/<id>|  m1, m2, h4, ...
+
 
 As you can see, all these routes have the same route prefix `/api` and the handlers `m1` and `m2`. In other similar
 routing frameworks, the handlers registered with a route group are also called *middlewares*.
