@@ -4,35 +4,46 @@ import (
 	"log"
 	"net/http"
 	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/access"
+	"github.com/go-ozzo/ozzo-routing/slash"
+	"github.com/go-ozzo/ozzo-routing/content"
+	"github.com/go-ozzo/ozzo-routing/fault"
+	"github.com/go-ozzo/ozzo-routing/file"
 )
 
 func Example() {
-	r := routing.NewRouter()
+	router := routing.New()
 
-	r.Use(
-		routing.AccessLogger(log.Printf),
-		routing.TrailingSlashRemover(http.StatusMovedPermanently),
+	router.Use(
+		// all these handlers are shared by every route
+		access.Logger(log.Printf),
+		slash.Remover(http.StatusMovedPermanently),
+		fault.Recovery(log.Printf),
 	)
 
-	r.Get("", func(c *routing.Context) {
-		c.Write("Welcome, ozzo!")
+	// serve RESTful APIs
+	api := router.Group("/api")
+	api.Use(
+		// these handlers are shared by the routes in the api group only
+		content.TypeNegotiator(content.JSON, content.XML),
+	)
+	api.Get("/users", func(c *routing.Context) error {
+		return c.Write("user list")
 	})
-	r.Post("/login", func(c *routing.Context) {
-		c.Write("Please login first")
+	api.Post("/users", func(c *routing.Context) error {
+		return c.Write("create a new user")
 	})
-	r.Group("/admin", func(gr *routing.Router) {
-		gr.Get("/posts", func(c *routing.Context) {
-			c.Write("GET /admin/posts")
-		})
-		gr.Post("/posts", func(c *routing.Context) {
-			c.Write("POST /admin/posts")
-		})
+	api.Put(`/users/<id:\d+>`, func(c *routing.Context) error {
+		return c.Write("update user " + c.Param("id"))
 	})
 
-	r.Use(routing.NotFoundHandler())
+	// serve index file
+	router.Get("/", file.Content("ui/index.html"))
+	// serve files under the "ui" subdirectory
+	router.Get("/*", file.Server(file.PathMap{
+		"/": "/ui/",
+	}))
 
-	r.Error(routing.ErrorHandler(nil))
-
-	http.Handle("/", r)
+	http.Handle("/", router)
 	http.ListenAndServe(":8080", nil)
 }

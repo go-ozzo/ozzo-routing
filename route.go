@@ -1,143 +1,161 @@
-// Copyright 2015 Qiang Xue. All rights reserved.
+// Copyright 2016 Qiang Xue. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package routing
 
 import (
-	"regexp"
+	"net/url"
 	"fmt"
 	"strings"
 )
 
-// Route is a route associated with a list of handlers.
-// If a route matches the current HTTP request, the associated handlers will be invoked.
-// A route matches a request only if it matches both the HTTP method and the URL path of the current request.
+// Route represents a URL path pattern that can be used to match requested URLs.
 type Route struct {
-	Methods  map[string]bool // HTTP methods
-	Pattern  string          // URL path to be matched
-	Handlers []Handler       // handlers associated with this route
-
-	err      bool            // whether this route is for handling errors
-	regex    *regexp.Regexp  // parsed regex of pattern
+	group      *RouteGroup
+	name, path string
+	template   string
 }
 
-// RoutePatternError describes the route pattern which is of invalid format.
-type RoutePatternError string
+// newRoute creates a new Route with the given route path and route group.
+func newRoute(path string, group *RouteGroup) *Route {
+	path = group.prefix + path
+	name := path
 
-// Error returns the error message represented by RoutePatternError
-func (s RoutePatternError) Error() string {
-	return "Invalid route pattern: " + string(s)
+	// an asterisk at the end matches any number of characters
+	if strings.HasSuffix(path, "*") {
+		path = path[:len(path) - 1] + "<:.*>"
+	}
+
+	route := &Route{
+		group: group,
+		name: name,
+		path: path,
+		template: buildURLTemplate(path),
+	}
+	group.router.routes[name] = route
+
+	return route
 }
 
-var (
-	routeRegex = regexp.MustCompile(`^(?:([A-Z\,]+)\s+)?(.*?)$`)
-	literalRegex = regexp.MustCompile(`^[\w\-~]*$`)
-	paramRegex = regexp.MustCompile(`<([^>]+)>`)
-	paramInternalRegex = regexp.MustCompile(`^(\w+):?([^>]+)?$`)
-)
+// Name sets the name of the route.
+// This method will update the registration of the route in the router as well.
+func (r *Route) Name(name string) *Route {
+	r.name = name
+	r.group.router.routes[name] = r
+	return r
+}
 
-// NewRoute creates a new route with the specified URL pattern and handlers.
-// The URL pattern should be in the format of "METHOD pattern", where "METHOD"
-// is optional, representing one or multiple HTTP methods separated by commas,
-// while "pattern" is a regular expression used to determine if the route matches
-// the currently requested URL path.
-//
-// The followings are some examples of the pattern parameter:
-//
-//     /users                // matches "/users"
-//     /users/<id:\d+>       // matches "/users/123"
-//     GET,POST /users       // matches "/users" for GET or POST only
-func NewRoute(pattern string, handlers []Handler) *Route {
-	matches := routeRegex.FindStringSubmatch(pattern)
-	if len(matches) != 3 {
-		panic(RoutePatternError(pattern))
+// Get adds the route to the router using the GET HTTP method.
+func (r *Route) Get(handlers ...Handler) *Route {
+	return r.add("GET", handlers)
+}
+
+// Post adds the route to the router using the POST HTTP method.
+func (r *Route) Post(handlers ...Handler) *Route {
+	return r.add("POST", handlers)
+}
+
+// Put adds the route to the router using the PUT HTTP method.
+func (r *Route) Put(handlers ...Handler) *Route {
+	return r.add("PUT", handlers)
+}
+
+// Patch adds the route to the router using the PATCH HTTP method.
+func (r *Route) Patch(handlers ...Handler) *Route {
+	return r.add("PATCH", handlers)
+}
+
+// Delete adds the route to the router using the DELETE HTTP method.
+func (r *Route) Delete(handlers ...Handler) *Route {
+	return r.add("DELETE", handlers)
+}
+
+// Connect adds the route to the router using the CONNECT HTTP method.
+func (r *Route) Connect(handlers ...Handler) *Route {
+	return r.add("CONNECT", handlers)
+}
+
+// Head adds the route to the router using the HEAD HTTP method.
+func (r *Route) Head(handlers ...Handler) *Route {
+	return r.add("HEAD", handlers)
+}
+
+// Options adds the route to the router using the OPTIONS HTTP method.
+func (r *Route) Options(handlers ...Handler) *Route {
+	return r.add("OPTIONS", handlers)
+}
+
+// Trace adds the route to the router using the TRACE HTTP method.
+func (r *Route) Trace(handlers ...Handler) *Route {
+	return r.add("TRACE", handlers)
+}
+
+// To adds the route to the router with the given HTTP methods and handlers.
+// Multiple HTTP methods should be separated by commas (without any surrounding spaces).
+func (r *Route) To(methods string, handlers ...Handler) *Route {
+	for _, method := range strings.Split(methods, ",") {
+		r.add(method, handlers)
 	}
+	return r
+}
 
-	route := Route{
-		Methods: make(map[string]bool),
-		Pattern: matches[2],
+// URL creates a URL using the current route and the given parameters.
+// The parameters should be given in the sequence of name1, value1, name2, value2, and so on.
+// If a parameter in the route is not provided a value, the parameter token will remain in the resulting URL.
+// The method will perform URL encoding for all given parameter values.
+func (r *Route) URL(pairs ...interface{}) (s string) {
+	s = r.template
+	for i := 0; i < len(pairs); i += 1 {
+		name := fmt.Sprintf("<%v>", pairs[i])
+		value := ""
+		if i < len(pairs) - 1 {
+			value = url.QueryEscape(fmt.Sprint(pairs[i + 1]))
+		}
+		s = strings.Replace(s, name, value, -1)
 	}
+	return
+}
 
-	if len(matches[1]) > 0 {
-		for _, method := range strings.Split(matches[1], ",") {
-			route.Methods[method] = true
+// add registers the route, the specified HTTP method and the handlers to the router.
+// The handlers will be combined with the handlers of the route group.
+func (r *Route) add(method string, handlers []Handler) *Route {
+	hh := combineHandlers(r.group.handlers, handlers)
+	r.group.router.add(method, r.path, hh)
+	return r
+}
+
+// buildURLTemplate converts a route pattern into a URL template by removing regular expressions in parameter tokens.
+func buildURLTemplate(path string) string {
+	template, start, end := "", -1, -1
+	for i := 0; i < len(path); i++ {
+		if path[i] == '<' && start < 0 {
+			start = i
+		} else if path[i] == '>' && start >= 0 {
+			name := path[start+1:i]
+			for j := start + 1; j < i; j++ {
+				if path[j] == ':' {
+					name = path[start+1:j]
+					break
+				}
+			}
+			template += path[end + 1:start] + "<" + name + ">"
+			end = i
+			start = -1
 		}
 	}
-
-	route.Handlers = append(route.Handlers, handlers...)
-
-	if !literalRegex.MatchString(route.Pattern) {
-		route.regex = regexp.MustCompile("^" + parseParamPattern(route.Pattern) + "$")
+	if end < 0 {
+		template = path
+	} else if end <  len(path) - 1 {
+		template += path[end + 1:]
 	}
-
-	return &route
+	return template
 }
 
-// Match checks if the route matches the specified HTTP method and URL path.
-func (r *Route) Match(method, path string) (bool, string, map[string]string) {
-	if len(r.Methods) > 0 && !r.Methods[method] {
-		return false, path, nil
-	}
-	return r.MatchPath(path)
-}
-
-// MatchPath checks if the route matches the specified URL path
-func (r *Route) MatchPath(path string) (bool, string, map[string]string) {
-	if r.regex == nil {
-		return path == r.Pattern, path, nil
-	}
-
-	if r.Pattern == ".*" {
-		return true, path, nil
-	}
-
-	matches := r.regex.FindStringSubmatch(path)
-	if len(matches) == 0 || matches[0] != path {
-		return false, path, nil
-	}
-
-	params := make(map[string]string)
-	for i, name := range r.regex.SubexpNames() {
-		if len(name) > 0 {
-			params[name] = matches[i]
-		}
-	}
-
-	return true, path, params
-}
-
-// Dispatch invokes the handlers associated with this route.
-func (r *Route) Dispatch(method, path string, c *Context) {
-	index := 0
-	oldNext := c.Next
-
-	c.Next = func() {
-		if index < len(r.Handlers) && (r.err == (c.Error != nil)) {
-			handler := r.Handlers[index]
-			index++
-			callHandler(c, handler)
-		} else {
-			index = len(r.Handlers)
-			c.Next = oldNext
-			oldNext()
-		}
-	}
-
-	c.Next()
-}
-
-// parseParamPattern converts "<name:pattern>" tokens in the pattern into named subpattern in a regexp.
-func parseParamPattern(pattern string) string {
-	return paramRegex.ReplaceAllStringFunc(pattern, func(m string) string {
-		matches := paramInternalRegex.FindStringSubmatch(m[1 : len(m) - 1])
-		switch {
-		case len(matches) < 3:
-			return m
-		case matches[2] == "":
-			return fmt.Sprintf(`(?P<%s>[^/]+)`, matches[1])
-		default:
-			return fmt.Sprintf(`(?P<%s>%s)`, matches[1], matches[2])
-		}
-	})
+// combineHandlers merges two lists of handlers into a new list.
+func combineHandlers(h1 []Handler, h2 []Handler) []Handler {
+	hh := make([]Handler, len(h1) + len(h2))
+	copy(hh, h1)
+	copy(hh[len(h1):], h2)
+	return hh
 }

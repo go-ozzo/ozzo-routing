@@ -4,22 +4,18 @@
 [![Build Status](https://travis-ci.org/go-ozzo/ozzo-routing.svg?branch=master)](https://travis-ci.org/go-ozzo/ozzo-routing)
 [![Coverage](http://gocover.io/_badge/github.com/go-ozzo/ozzo-routing)](http://gocover.io/github.com/go-ozzo/ozzo-routing)
 
-## Other languages
-
-[Русский](/docs/README-ru.md)
-
 ## Description
 
-ozzo-routing is a Go package that supports request routing and processing for Web applications.
+ozzo-routing is a Go package that provides high performance and powerful HTTP routing capabilities for Web applications.
 It has the following features:
 
-* middleware pipeline architecture, similar to that in the [Express framework](http://expressjs.com).
-* highly extensible through pluggable handlers (middlewares)
+* middleware pipeline architecture, similar to that of the [Express framework](http://expressjs.com).
+* extremely fast request routing with zero dynamic memory allocation
 * modular code organization through route grouping
-* URL path parameters
-* static file server
-* error handling
+* flexible URL path matching, supporting URL parameters and regular expressions
+* URL creation according to the predefined routes
 * compatible with `http.Handler` and `http.HandlerFunc`
+* ready-to-use handlers sufficient for building RESTful APIs
 
 ## Requirements
 
@@ -38,48 +34,51 @@ go get github.com/go-ozzo/ozzo-routing
 Create a `server.go` file with the following content:
 
 ```go
-package main
-
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/access"
+	"github.com/go-ozzo/ozzo-routing/slash"
+	"github.com/go-ozzo/ozzo-routing/content"
+	"github.com/go-ozzo/ozzo-routing/fault"
+	"github.com/go-ozzo/ozzo-routing/file"
 )
 
-func main() {
-	r := routing.NewRouter()
+func Example() {
+	router := routing.New()
 
-	// install commonly used middlewares
-	r.Use(
-		routing.AccessLogger(log.Printf),
-		routing.TrailingSlashRemover(http.StatusMovedPermanently),
+	router.Use(
+		// all these handlers are shared by every route
+		access.Logger(log.Printf),
+		slash.Remover(http.StatusMovedPermanently),
+		fault.Recovery(log.Printf),
 	)
 
-	// set up routes and handlers
-	r.Get("", func(c *routing.Context) {
-		fmt.Fprint(c.Response, "Go ozzo!")
+	// serve RESTful APIs
+	api := router.Group("/api")
+	api.Use(
+		// these handlers are shared by the routes in the api group only
+		content.TypeNegotiator(content.JSON, content.XML),
+	)
+	api.Get("/users", func(c *routing.Context) error {
+		return c.Write("user list")
 	})
-	r.Get("/users", func(c *routing.Context) {
-		fmt.Fprint(c.Response, "getting users")
+	api.Post("/users", func(c *routing.Context) error {
+		return c.Write("create a new user")
 	})
-	r.Group("/admin", func(gr *routing.Router) {
-		gr.Post("/users", func(c *routing.Context) {
-			fmt.Fprint(c.Response, "creating users")
-		})
-		gr.Delete("/users", func(c *routing.Context) {
-			fmt.Fprint(c.Response, "deleting users")
-		})
+	api.Put(`/users/<id:\d+>`, func(c *routing.Context) error {
+		return c.Write("update user " + c.Param("id"))
 	})
 
-	// handle requests that don't match any route
-	r.Use(routing.NotFoundHandler())
+	// serve index file
+	router.Get("/", file.Content("ui/index.html"))
+	// serve files under the "ui" subdirectory
+	router.Get("/*", file.Server(file.PathMap{
+		"/": "/ui/",
+	}))
 
-	// handle errors triggered by handlers
-	r.Error(routing.ErrorHandler(nil))
-
-	// hook up the router and start up a Go Web server
-	http.Handle("/", r)
+	http.Handle("/", router)
 	http.ListenAndServe(":8080", nil)
 }
 ```
@@ -90,327 +89,264 @@ Now run the following command to start the Web server:
 go run server.go
 ```
 
-You should be able to access URLs such as `http://localhost:8080`, `http://localhost:8080/admin/users`.
+You should be able to access URLs such as `http://localhost:8080`, `http://localhost:8080/users`.
 
 
-## Routing Tree
+### Routes
 
-ozzo-routing works by building a *routing tree* and dispatching HTTP requests to the handlers on this tree.
+ozzo-routing works by building a routing table in a router and then dispatching HTTP requests to the matching handlers 
+found in the routing table. An intuitive illustration of a routing table is as follows:
+ 
+Routes            |  Handlers
+------------------------------------
+GET /users        |  m1, m2, h1, ...
+POST /users       |  m1, m2, h2, ...
+PUT /users/<id>   |  m1, m2, h3, ...
+DELETE /users/<id>|  m1, m2, h4, ...
 
-A leaf node on the routing tree is called a *route*, while a non-leaf node is a *router*. On each node
-(either a leaf or a non-leaf node), there is a list of *handlers* (aka middlewares) which contain the custom logic
-for handling HTTP requests.
+For an incoming request `GET /users`, the first route would match and the handlers m1, m2, and h1 would be executed.
+If the request is `PUT /users/123`, the third route would match and the corresponding handlers would be executed.
+Note that the token `<id>` can match any number of non-slash characters and the matching part can be accessed as 
+a path parameter value in the handlers.
 
-Dispatching an incoming HTTP request starts from the root of the routing tree in a depth-first traversal.
-The HTTP method and the URL path are used to match against the encountering nodes. The handlers on the matching
-nodes will be invoked according to the node order and handler order. A handler should call either
-`Context.Next()` or `Context.NextRoute()` to pass the control to the next eligible handler. Otherwise,
-the request handling is considered complete and no further handlers will be invoked.
+**If an incoming request matches multiple routes in the table, the route added first to the table will take precedence.
+All other matching routes will be ignored.**
 
-To build a routing tree, first call `routing.NewRouter()` to create the root node. Then call `Router.To()`, `Router.Get()`,
-`Router.Post()`, etc., to create leaf nodes, or call `Router.Group()` to create a non-leaf node. For example,
+The actual implementation of the routing table uses a variant of the radix tree data structure, which makes the routing
+process as fast as working with a hash table, thanks to the inspiration from [httprouter](https://github.com/julienschmidt/httprouter).
+
+To add a new route and its handlers to the routing table, call the `To` method like the following:
+  
+```go
+router := routing.New()
+router.To("GET", "/users", m1, m2, h1)
+router.To("POST", "/users", m1, m2, h2)
+```
+
+You can also use shortcut methods, such as `Get`, `Post`, `Put`, etc., which are named after the HTTP method names:
+ 
+```go
+router.Get("/users", m1, m2, h1)
+router.Post("/users", m1, m2, h2)
+```
+
+If you have multiple routes with the same URL path but different HTTP methods, like the above example, you can 
+chain them together as follows,
 
 ```go
-// root
-r := routing.NewRouter()
+router.Get("/users", m1, m2, h1).Post(m1, m2, h2)
+```
 
-// leaves (routes)
-r.Get("", handler1, handler2, ...)
-r.Get("/users", handler1, handler2, ...)
+If you want to use the same set of handlers to handle the same URL path but different HTTP methods, you can take
+the following shortcut:
 
-// an internal node (child routers)
-r.Group("/admin", func(r *routing.Router) {
-	// leaves under the internal node
-	r.Post("/users", handler1, handler2, ...)
-	r.Delete("/users", handler1, handler2, ...)
+```go
+router.To("GET,POST", "/users", m1, m2, h)
+```
+
+A route may contain parameter tokens which are in the format of `<name:pattern>`, where `name` stands for the parameter
+name, and `pattern` is a regular expression which the parameter value should match. A token `<name>` is equivalent
+to `<name:[^/]*>`, i.e., it matches any number of non-slash characters. At the end of a route, an asterisk character
+can be used to match any number of arbitrary characters. Below are some examples:
+
+* `/users/<username>`: matches `/users/admin`
+* `/users/accnt-<id:\d+>`: matches `/users/accnt-123`, but not `/users/accnt-admin`
+* `/users/<username>/*`: matches `/users/admin/profile`
+
+When a URL path matches a route, the matching parameters on the URL path can be accessed via `Context.Param()`:
+
+```go
+router := routing.New()
+
+router.Get("/users/<username>", func (c *routing.Context) error {
+	fmt.Fprintf(c.Response, "Name: %v", c.Param("username"))
 })
 ```
 
-Because `Router` implements `http.Handler`, it can be readily used to serve subtrees on existing Go servers.
+
+### Route Groups
+
+Route group is a way of grouping together the routes which have the same route prefix. The routes in a group also
+share the same handlers that are registered with the group via its `Use` method. For example,
+
+```go
+router := routing.New()
+api := router.Group("/api")
+api.Use(m1, m2)
+api.Get("/users", h1).Post(h2)
+api.Put("/users/<id>", h3).Delete(h4)
+```
+
+The above `/api` route group establishes the following routing table:
+ 
+Routes                |  Handlers
+------------------------------------
+GET /api/users        |  m1, m2, h1, ...
+POST /api/users       |  m1, m2, h2, ...
+PUT /api/users/<id>   |  m1, m2, h3, ...
+DELETE /api/users/<id>|  m1, m2, h4, ...
+
+As you can see, all these routes have the same route prefix `/api` and the handlers `m1` and `m2`. In other similar
+routing frameworks, the handlers registered with a route group are also called *middlewares*.
+
+Route groups can be nested. That is, a route group can create a child group by calling the `Group()` method. The router
+serves as the top level route group. A child group inherits the handlers registered with its parent group. For example, 
+
+```go
+router := routing.New()
+router.Use(m1)
+
+api := router.Group("/api")
+api.Use(m2)
+
+users := group.Group("/users")
+users.Use(m3)
+users.Put("/<id>", h1)
+```
+
+Because the router serves as the parent of the `api` group which is the parent of the `users` group, 
+the `PUT /api/users/<id>` route is associated with the handlers `m1`, `m2`, `m3`, and `h1`.
+
+
+### Router
+
+Router manages the routing table and dispatches incoming requests to appropriate handlers. A router instance is created
+by calling the `routing.New()` method.
+
+Because `Router` implements the `http.Handler` interface, it can be readily used to serve subtrees on existing Go servers.
 For example,
 
 ```go
-http.Handle("/", r)
+router := routing.New()
+http.Handle("/", router)
 http.ListenAndServe(":8080", nil)
 ```
 
 
-## Routes
+### Handlers
 
-A route has a path pattern that is used to match the URL path of incoming requests. Only requests matching the pattern
-may be dispatched by the route. For example, a pattern `/users` matches any request whose URL path is `/users`.
-Regular expression can be used in the pattern. For example, a pattern `/users/\\d+` matches URL path `/users/123`,
-but not `/users` or `/users/abc`.
+A handler is a function with the signature `func(*routing.Context) error`. A handler is executed by the router if
+the incoming request URL path matches the route that the handler is associated with. Through the `routing.Context` 
+parameter, you can access the request information in handlers.
 
-Optionally, a route may have one or multiple HTTP methods (e.g. `GET`, `POST`) so that only requests using one of
-those HTTP methods may be dispatched by the route.
+A route may be associated with multiple handlers. These handlers will be executed in the order that they are registered
+to the route. The execution sequence can be terminated in the middle using one of the following two methods:
 
-A route is usually associated with one or multiple handlers. When a route matches and dispatches a request, its handlers
-will be called.
-
-You can create and add a route to a routing tree by calling `Router.To()` or one of its shortcut methods, such as `Router.Use()`,
-`Router.Get()`. For example,
-
-```go
-r := routing.New()
-
-r.To("GET /users", func(*routing.Context) { })
-
-// or equivalently using the Get() shortcut
-r.Get("/users", func(*routing.Context) { })
-```
-
-The above code adds a route that matches URL path `/users` and only applies to the GET HTTP method. You may
-also call `Post()`, `Put()`, `Patch()`, `Head()`, or `Options()` to deal with other common HTTP methods.
-
-If a route should match multiple HTTP methods, you can use the syntax like shown below:
-
-```go
-// only match GET or POST
-r.To("GET,POST /users", func(*routing.Context) { })
-
-// match any HTTP method
-r.To("/users", func(*routing.Context) { })
-```
-
-If a route should match *any request*, call `Router.Use()` like the following:
-
-```go
-r.Use(func(*routing.Context) { })
-```
-
-
-### URL Parameters
-
-The path pattern specified for a route can be used to capture URL parameters by embedding tokens in the format
-of `<name:pattern>`, where `name` stands for the parameter name, and `pattern` is a regular expression which
-the parameter value should match. You can omit the `pattern` part, which means the parameter should match a non-empty
-string without any slash character.
-
-When a route matches a URL path, the matching parameters on the URL path will be made available through
-`Context.Params`. For example,
-
-```go
-r := routing.NewRouter()
-
-r.To("GET /cities/<name>", func (c *routing.Context) {
-	fmt.Fprintf(c.Response, "Name: %v", c.Params["name"])
-})
-
-r.To("GET /users/<id:\\d+>", func (c *routing.Context) {
-	fmt.Fprintf(c.Response, "ID: %v", c.Params["id"])
-})
-```
-
-
-## Handlers
-
-Handlers are functions associated with routers or routes. A handler is called when a request is dispatched
-to the route or router that the handler is associated with.
-
-Within a handler, you can call `Context.Next()` to pass the control to the next available
-handler on the same route or the first handler on the next matching route.
-You may also call `Context.NextRoute()` to invoke the first handler of the next matching route.
-
-Usually, handlers serving as filters should call `Context.Next()` so that the next handlers
-can get a chance to further process a request. Handlers that are controller actions often do not
-call `Context.Next()` because they are the last step of request processing.
-`Context.NextRoute()` is often called by handlers to determine if the current route/router
-should be used to dispatch the request.
-
-For example,
-
-```go
-r := routing.NewRouter()
-r.Get("/users", func(c *routing.Context) {
-	fmt.Fprintln(c.Response, "/users1 start")
-	c.Next()
-	fmt.Fprintln(c.Response, "/users1 end")
-}, func(c *routing.Context) {
-	fmt.Fprintln(c.Response, "/users2 start")
-	c.Next()
-	fmt.Fprintln(c.Response, "/users2 end")
-})
-
-r.Get("/users", func(c *routing.Context) {
-	fmt.Fprintln(c.Response, "/users3")
-})
-
-r.Get("/users", func(c *routing.Context) {
-	fmt.Fprintln(c.Response, "/users4")
-})
-```
-
-When dispatching the URL path `/users` with the above routing tree, it will output the following text:
-
-```
-/users1 start
-/users2 start
-/users3
-/users2 end
-/users1 end
-```
-
-Note that `/user4` is not displayed because the request dispatching ends after displaying `/user3`.
-Also note that the handler outputs are properly nested.
+* A handler returns an error: the router will skip the rest of the handlers and handle the returned error.
+* A handler calls `Context.Abort()`: the router will simply skip the rest of the handlers. There is no error to be handled.
+ 
+A handler can call `Context.Next()` to explicitly execute the rest of the unexecuted handlers and take actions after
+they finish execution. For example, a response compression handler may start the output buffer, call `Context.Next()`,
+and then compress and send the output to response.
 
 
 ### Context
 
-For each incoming request, a new `routing.Context` object is created which includes contextual
-information for handling the request, such as the current request, response, etc. The context object
-is passed as the parameter to the handlers that are processing the request.
+For each incoming request, a `routing.Context` object is populated with the request information and passed through
+the handlers that need to handle the request. Handlers can get the request information via `Context.Request` and
+send a response back via `Context.Response`. The `Context.Param()` method allows handlers to access the URL path
+parameters that match the current route.
 
-Using `Context`, handlers can share data between each other. A simple way is to exploit the `Context.Data` field.
-For example, one handler stores `Context.Data["user"]` which can be accessed by another handler. For example,
+Using `Context.Get()` and `Context.Set()`, handlers can share data between each other. For example, an authentication
+handler can store the authenticated user identity by calling `Context.Set()`, and other handlers can retrieve back
+the identity information by calling `Context.Get()`.
 
-```go
-r := routing.NewRouter()
-r.Use(func (c *routing.Context) {
-	// use Context.Data to share data
-	c.Data["cache"] = &Cache{}
-})
-r.Use(func (c *routing.Context, cache *Cache) {
-	// access c.Data["cache"]
-})
-```
-
-### Response and Return Values
-
-Many handlers need to send output in response. This can be done using the following code:
-
-```go
-func (c *routing.Context) {
-	fmt.Fprint(c.Response, "Hello world")
-}
-```
-
-An alternative way is to call the `Context.Write()` method. This method differs from the previous one in that
-it will call `Response.WriteData()` to write the data if `Context.Response` implements the `routing.DataWriter` interface.
-This allows the response object to do some preprocessing (e.g. serializing data in JSON or XML format) before sending
-it to output.
+Context also provides a handy `Write()` method that can be used to write data of arbitrary type to the response.
+The `Write()` method can also be overridden (by replacement) to achieve more versatile response data writing. 
 
 
-### Built-in Handlers
+### Error Handling
 
-ozzo-routing comes with a few commonly used handlers:
+A handler may return an error indicating some erroneous condition. Sometimes, a handler or the code it calls may cause
+a panic. Both should be handled properly to ensure best user experience. It is recommended that you use 
+the `fault.Recover` handler or a similar error handler to handle these errors.
 
-* `routing.ErrorHandler`: an error handler
+If an error is not handled by any handler, the router will handle it by calling its `handleError()` method which
+simply sets an appropriate HTTP status code and writes the error message to the response.
+
+When an incoming request has no matching route, the router will call the handlers registered via the `Router.NotFound()`
+method. All the handlers registered via `Router.Use()` will also be called in advance. By default, the following two
+handlers are registered with `Router.NotFound()`:
+
+* `routing.MethodNotAllowedHandler`: a handler that sends an `Allow` HTTP header indicating the allowed HTTP methods for a requested URL
 * `routing.NotFoundHandler`: a handler triggering 404 HTTP error
-* `routing.TrailingSlashRemover`: a handler removing the trailing slashes from the request URL
-* `routing.AccessLogger`: a handler that records an entry for every incoming request
-* `routing.Static`: a handler that serves the files under the specified folder as response content
-* `routing.StaticFile`: a handler that serves the content of the specified file as the response
 
-These handlers may be used like the following:
+
+### Handlers in Subpackages
+
+ozzo-routing comes with a few commonly used handlers in its subpackages:
+
+* `fault.Recovery`: a handler that recovers from panics and handles errors returned by handlers
+* `access.Logger`: a handler that records an entry for every incoming request
+* `file.Server`: a handler that serves the files under the specified folder as response content
+* `file.Content`: a handler that serves the content of the specified file as the response
+* `slash.Remover`: a handler removing the trailing slashes from the request URL
+* `auth.Basic`, `auth.Bearer`, `auth.Query`: these handlers provide authentication via HTTP Basic, HTTP Bearer, and 
+  token-based query parameter.
+
+The following code shows how these handlers may be used:
 
 ```go
-r := routing.NewRouter()
-
-r.Use(
-	routing.AccessLogger(log.Printf),
-	routing.TrailingSlashRemover(http.StatusMovedPermanently),
+import (
+	"log"
+	"net/http"
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/access"
+	"github.com/go-ozzo/ozzo-routing/slash"
+	"github.com/go-ozzo/ozzo-routing/fault"
 )
 
-// ... register routes and handlers
+router := routing.New()
 
-r.Use(routing.NotFoundHandler())
+router.Use(
+	access.Logger(log.Printf),
+	slash.Remover(http.StatusMovedPermanently),
+	fault.Recovery(log.Printf),
+)
 
-r.Error(routing.ErrorHandler(nil))
+...
 ```
-
-Additional handlers related with RESTful API services may be found in the
-[ozzo-rest Go package](https://github.com/go-ozzo/ozzo-rest).
 
 
 ### Third-party Handlers
 
-ozzo-routing supports third-party `http.HandlerFunc` and `http.Handler` handlers. Adapters are provided
-to make using third-party handlers an easy task. For example,
+ozzo-routing provides adapters to support using third-party `http.HandlerFunc` or `http.Handler` handlers. For example,
 
 ```go
-r := routing.NewRouter()
+router := routing.New()
 
 // using http.HandlerFunc
-r.Use(routing.HTTPHandlerFunc(http.NotFound))
+router.Use(routing.HTTPHandlerFunc(http.NotFound))
 
 // using http.Handler
-r.Use(routing.HTTPHandler(http.NotFoundHandler))
+router.Use(routing.HTTPHandler(http.NotFoundHandler))
 ```
 
-## Route Groups
-
-Routes matching the same URL path prefix can be grouped together by calling `Router.Group()`. The support for route
-groups enables modular architecture of your application. For example, you can have an `admin` module which uses
-the group of the routes having `/admin` as their common URL path prefix. The corresponding routing can be set up
-like the following:
-
-```go
-r := routing.NewRouter()
-
-// ...other routes...
-
-// the /admin route group
-r.Group("/admin", function(gr *routing.Router) {
-	gr.Post("/users", func(*routing.Context) { })
-	gr.Delete("/users", func(*routing.Context) { })
-	// ...
-})
-```
-
-Note that when you are creating a route within a route group, the common URL path prefix should be removed
-from the path pattern, like shown in the above example.
-
-You can create multiple levels of route groups. In fact, as we have explained earlier, the whole routing system
-is a tree structure, which allows you to organize your code in a multilevel modular fashion.
 
 ## Serving Static Files
 
-Static files can be served through the `routing.Static` or `routing.StaticFile` handler. The former serves files
-under the specified directory according to the current request, while the latter serves a single file. For example,
+Static files can be served with the help of `file.Server` and `file.Content` handlers. The former serves files
+under the specified directories, while the latter serves the content of a single file. For example,
 
 ```go
-r := routing.NewRouter()
-// serves the files under working-dir/web/assets
-r.To("/assets(/.*)?", routing.Static("web"))
-```
+import (
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/file"
+)
 
+router := routing.NewRouter()
 
-## Error Handling
-
-ozzo-routing supports error handling via error handlers. An error handler is a handler registered
-by calling the `Router.Error()` method. When a panic happens in a handler, the router will recover
-from it and call the error handlers registered after the current route. Any normal handlers in between
-will be skipped.
-
-Error handlers can obtain the error information from `Context.Error`. For example,
-
-```go
-r := routing.NewRouter()
-
-// ...register routes and handlers
-
-r.Error(func(c *routing.Context) {
-	fmt.Println(c.Error)
-})
-```
-
-When there are multiple error handlers, `Context.Next()` may be called in one error handler to
-pass the control to the next error handler.
-
-For convenience, `Context` provides a method named `Panic()` to simplify the way of triggering an HTTP error.
-For example,
-
-```go
-func (c *routing.Context) {
-	c.Panic(http.StatusNotFound)
-	// equivalent to the following code
-	// panic(routing.NewHTTPError(http.StatusNotFound))
-}
+// serve index file
+router.Get("/", file.Content("ui/index.html"))
+// serve files under the "ui" subdirectory
+router.Get("/*", file.Server(file.PathMap{
+	"/": "/ui/",
+}))
 ```
 
 
 ## Credits
 
-ozzo-routing has referenced [Express](http://expressjs.com/), [Martini](https://github.com/go-martini/martini),
-and many other similar projects.
+ozzo-routing has referenced many popular routing frameworks, including [Express](http://expressjs.com/), 
+[Martini](https://github.com/go-martini/martini), [httprouter](https://github.com/julienschmidt/httprouter), and
+[gin](https://github.com/gin-gonic/gin). 

@@ -1,87 +1,159 @@
-// Copyright 2015 Qiang Xue. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package routing
 
 import (
 	"testing"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
-	"encoding/json"
+	"fmt"
 	"errors"
 )
 
-func TestContext_Panic(t *testing.T) {
-	defer func() {
-		err := recover()
-		if err == nil {
-			t.Error("Expected error not found")
-		}
-		if _, ok := err.(HTTPError); !ok {
-			t.Error("Expected HttpError not found")
-		}
-	}()
+func TestSerialize(t *testing.T) {
+	bytes, err := Serialize("abc")
+	assert.Nil(t, err)
+	assert.Equal(t, "abc", string(bytes))
+
+	bytes, err = Serialize([]byte("abc"))
+	assert.Nil(t, err)
+	assert.Equal(t, "abc", string(bytes))
+
+	bytes, err = Serialize(123)
+	assert.Nil(t, err)
+	assert.Equal(t, "123", string(bytes))
+
+	bytes, err = Serialize(nil)
+	assert.Nil(t, err)
+	assert.Nil(t, bytes)
+
+	res := httptest.NewRecorder()
+	c := &Context{}
+	c.init(res, nil)
+	assert.Nil(t, c.Write("abc"))
+	assert.Equal(t, "abc", res.Body.String())
+
+}
+
+func TestContextParam(t *testing.T) {
 	c := NewContext(nil, nil)
-	c.Panic(http.StatusNotFound)
+	values := []string{"a", "b", "c", "d"}
+
+	c.pvalues = values
+	c.pnames = nil
+	assert.Equal(t, "", c.Param(""))
+	assert.Equal(t, "", c.Param("Name"))
+
+	c.pnames = []string{"Name", "Age"}
+	assert.Equal(t, "", c.Param(""))
+	assert.Equal(t, "a", c.Param("Name"))
+	assert.Equal(t, "b", c.Param("Age"))
+	assert.Equal(t, "", c.Param("Xyz"))
 }
 
-type DataResponse struct {
-	*httptest.ResponseRecorder
+func TestContextInit(t *testing.T) {
+	c := NewContext(nil, nil)
+	assert.Nil(t, c.Response)
+	assert.Nil(t, c.Request)
+	assert.Equal(t, 0, len(c.handlers))
+	req, _ := http.NewRequest("GET", "/users/", nil)
+	c.init(httptest.NewRecorder(), req)
+	assert.NotNil(t, c.Response)
+	assert.NotNil(t, c.Request)
+	assert.Equal(t, -1, c.index)
+	assert.Nil(t, c.data)
 }
 
-func (r *DataResponse) WriteData(data interface{}) error {
-	if data == nil {
-		return errors.New("cannot be nil")
+func TestContextURL(t *testing.T) {
+	router := New()
+	router.Get("/users/<id:\\d+>/<action>/*").Name("users")
+	c := &Context{router: router}
+	assert.Equal(t, "/users/123/address/<>", c.URL("users", "id", 123, "action", "address"))
+	assert.Equal(t, "", c.URL("abc", "id", 123, "action", "address"))
+}
+
+func TestContextGetSet(t *testing.T) {
+	c := NewContext(nil, nil)
+	c.init(nil, nil)
+	assert.Nil(t, c.Get("abc"))
+	c.Set("abc", "123")
+	c.Set("xyz", 123)
+	assert.Equal(t, "123", c.Get("abc").(string))
+	assert.Equal(t, 123, c.Get("xyz").(int))
+}
+
+func TestContextNextAbort(t *testing.T) {
+	c, res := testNewContext(
+		testNormalHandler("a"),
+		testNormalHandler("b"),
+		testNormalHandler("c"),
+	)
+	assert.Nil(t, c.Next())
+	assert.Equal(t, "<a/><b/><c/>", res.Body.String())
+
+	c, res = testNewContext(
+		testNextHandler("a"),
+		testNextHandler("b"),
+		testNextHandler("c"),
+	)
+	assert.Nil(t, c.Next())
+	assert.Equal(t, "<a><b><c></c></b></a>", res.Body.String())
+
+	c, res = testNewContext(
+		testNextHandler("a"),
+		testAbortHandler("b"),
+		testNormalHandler("c"),
+	)
+	assert.Nil(t, c.Next())
+	assert.Equal(t, "<a><b/></a>", res.Body.String())
+
+	c, res = testNewContext(
+		testNextHandler("a"),
+		testErrorHandler("b"),
+		testNormalHandler("c"),
+	)
+	err := c.Next()
+	if assert.NotNil(t, err) {
+		assert.Equal(t, "error:b", err.Error())
 	}
-	s, err := json.Marshal(data)
-	if err != nil {
+	assert.Equal(t, "<a><b/></a>", res.Body.String())
+}
+
+func testNewContext(handlers ...Handler) (*Context, *httptest.ResponseRecorder) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
+	c := &Context{}
+	c.init(res, req)
+	c.handlers = handlers
+	return c, res
+}
+
+func testNextHandler(tag string) Handler {
+	return func(c *Context) error {
+		fmt.Fprintf(c.Response, "<%v>", tag)
+		err := c.Next()
+		fmt.Fprintf(c.Response, "</%v>", tag)
 		return err
 	}
-	r.Write(s)
-	return nil
 }
 
-func TestContext_Write(t *testing.T) {
-	res := &DataResponse{httptest.NewRecorder()}
-	c := NewContext(res, nil)
-	c.Write(100)
-	if result := res.Body.String(); result != "100" {
-		t.Errorf("Write(100) = %q, expected %q", result, "100")
+func testAbortHandler(tag string) Handler {
+	return func(c *Context) error {
+		fmt.Fprintf(c.Response, "<%v/>", tag)
+		c.Abort()
+		return nil
 	}
-
-	res.Body.Reset()
-	c.Write("abc")
-	if result := res.Body.String(); result != `"abc"` {
-		t.Errorf("Write(`abc`) = %q, expected %q", result, "abc")
-	}
-
-	defer func() {
-		if e := recover(); e == nil {
-			t.Errorf("Expected panic not occured")
-		}
-	}()
-	res.Body.Reset()
-	c.Write(nil)
 }
 
-func TestContext_Write2(t *testing.T) {
-	res := httptest.NewRecorder()
-	c := NewContext(res, nil)
-	c.Write(100)
-	if result := res.Body.String(); result != "100" {
-		t.Errorf("Write(100) = %q, expected %q", result, "100")
+func testErrorHandler(tag string) Handler {
+	return func(c *Context) error {
+		fmt.Fprintf(c.Response, "<%v/>", tag)
+		return errors.New("error:" + tag)
 	}
+}
 
-	res.Body.Reset()
-	c.Write("abc")
-	if result := res.Body.String(); result != "abc" {
-		t.Errorf("Write(`abc`) = %q, expected %q", result, "abc")
-	}
-
-	res.Body.Reset()
-	c.Write([]byte("abc"))
-	if result := res.Body.String(); result != "abc" {
-		t.Errorf("Write(`abc`) = %q, expected %q", result, "abc")
+func testNormalHandler(tag string) Handler {
+	return func(c *Context) error {
+		fmt.Fprintf(c.Response, "<%v/>", tag)
+		return nil
 	}
 }

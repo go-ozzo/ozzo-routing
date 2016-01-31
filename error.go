@@ -1,4 +1,4 @@
-// Copyright 2015 Qiang Xue. All rights reserved.
+// Copyright 2016 Qiang Xue. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -9,8 +9,8 @@ import "net/http"
 // HTTPError represents an HTTP error with HTTP status code and error message
 type HTTPError interface {
 	error
-	// Code returns the error code (HTTP status code)
-	Code() int
+	// StatusCode returns the HTTP status code of the error
+	StatusCode() int
 }
 
 // Error contains the error information reported by calling Context.Error().
@@ -23,13 +23,10 @@ type httpError struct {
 // If the error message is not given, http.StatusText() will be called
 // to generate the message based on the status code.
 func NewHTTPError(status int, message ...string) HTTPError {
-	var msg string
-	if len(message) == 0 {
-		msg = http.StatusText(status)
-	} else {
-		msg = message[0]
+	if len(message) > 0 {
+		return &httpError{status, message[0]}
 	}
-	return &httpError{status, msg}
+	return &httpError{status, http.StatusText(status)}
 }
 
 // Error returns the error message.
@@ -37,7 +34,7 @@ func (e *httpError) Error() string {
 	return e.Message
 }
 
-// Code returns the HTTP status code.
-func (e *httpError) Code() int {
+// StatusCode returns the HTTP status code.
+func (e *httpError) StatusCode() int {
 	return e.Status
 }
