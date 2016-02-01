@@ -5,10 +5,10 @@
 package routing
 
 import (
-	"testing"
 	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 type mockStore struct {
@@ -70,7 +70,6 @@ func TestRouteURL(t *testing.T) {
 	assert.Equal(t, "/admin/users/123/a%2C%3C%3E%3F%23/<>", r.URL("id", 123, "action", "a,<>?#"), "Route.URL@6 =")
 }
 
-
 func newHandler(tag string, buf *bytes.Buffer) Handler {
 	return func(*Context) error {
 		fmt.Fprintf(buf, tag)
@@ -106,7 +105,7 @@ func TestRouteMethods(t *testing.T) {
 	for _, method := range Methods {
 		store := newMockStore()
 		router.stores[method] = store
-		assert.Equal(t, 0, store.count, "router.stores[" + method + "].count =")
+		assert.Equal(t, 0, store.count, "router.stores["+method+"].count =")
 	}
 	group := newRouteGroup("/admin", router, nil)
 
@@ -136,7 +135,7 @@ func TestRouteMethods(t *testing.T) {
 }
 
 func TestBuildURLTemplate(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		path, expected string
 	}{
 		{"", ""},
@@ -155,6 +154,6 @@ func TestBuildURLTemplate(t *testing.T) {
 	}
 	for _, test := range tests {
 		actual := buildURLTemplate(test.path)
-		assert.Equal(t, test.expected, actual, "buildURLTemplate(" + test.path + ") =")
+		assert.Equal(t, test.expected, actual, "buildURLTemplate("+test.path+") =")
 	}
 }

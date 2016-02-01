@@ -5,11 +5,11 @@
 package content
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
-	"net/http/httptest"
-	"net/http"
 	"github.com/go-ozzo/ozzo-routing"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestJSONFormatter(t *testing.T) {

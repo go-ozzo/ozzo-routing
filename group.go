@@ -18,8 +18,8 @@ type RouteGroup struct {
 // newRouteGroup creates a new RouteGroup with the given path prefix, router, and handlers.
 func newRouteGroup(prefix string, router *Router, handlers []Handler) *RouteGroup {
 	return &RouteGroup{
-		prefix: prefix,
-		router: router,
+		prefix:   prefix,
+		router:   router,
 		handlers: handlers,
 	}
 }
@@ -97,7 +97,7 @@ func (r *RouteGroup) Group(prefix string, handlers ...Handler) *RouteGroup {
 		handlers = make([]Handler, len(r.handlers))
 		copy(handlers, r.handlers)
 	}
-	return newRouteGroup(r.prefix + prefix, r.router, handlers)
+	return newRouteGroup(r.prefix+prefix, r.router, handlers)
 }
 
 // Use registers one or multiple handlers to the current route group.

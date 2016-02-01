@@ -6,9 +6,9 @@
 package auth
 
 import (
-	"net/http"
 	"encoding/base64"
 	"github.com/go-ozzo/ozzo-routing"
+	"net/http"
 	"strings"
 )
 
@@ -66,7 +66,7 @@ func Basic(fn BasicAuthFunc, realm ...string) routing.Handler {
 			c.Set(User, identity)
 			return nil
 		}
-		c.Response.Header().Set("WWW-Authenticate", `Basic realm="` + name + `"`)
+		c.Response.Header().Set("WWW-Authenticate", `Basic realm="`+name+`"`)
 		return routing.NewHTTPError(http.StatusUnauthorized, e.Error())
 	}
 }
@@ -126,7 +126,7 @@ func Bearer(fn TokenAuthFunc, realm ...string) routing.Handler {
 			c.Set(User, identity)
 			return nil
 		}
-		c.Response.Header().Set("WWW-Authenticate", `Bearer realm="` + name + `"`)
+		c.Response.Header().Set("WWW-Authenticate", `Bearer realm="`+name+`"`)
 		return routing.NewHTTPError(http.StatusUnauthorized, e.Error())
 	}
 }

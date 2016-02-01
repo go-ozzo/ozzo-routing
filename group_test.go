@@ -5,9 +5,9 @@
 package routing
 
 import (
-	"testing"
 	"bytes"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestRouteGroupTo(t *testing.T) {
@@ -20,7 +20,7 @@ func TestRouteGroupTo(t *testing.T) {
 
 	group.Any("/users")
 	for _, method := range Methods {
-		assert.Equal(t, 1, router.stores[method].(*mockStore).count, "router.stores[" + method + "].count@1 =")
+		assert.Equal(t, 1, router.stores[method].(*mockStore).count, "router.stores["+method+"].count@1 =")
 	}
 
 	group.To("GET", "/articles")
@@ -37,7 +37,7 @@ func TestRouteGroupMethods(t *testing.T) {
 	for _, method := range Methods {
 		store := newMockStore()
 		router.stores[method] = store
-		assert.Equal(t, 0, store.count, "router.stores[" + method + "].count =")
+		assert.Equal(t, 0, store.count, "router.stores["+method+"].count =")
 	}
 	group := newRouteGroup("/admin", router, nil)
 

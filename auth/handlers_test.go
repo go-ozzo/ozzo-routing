@@ -5,18 +5,18 @@
 package auth
 
 import (
-	"testing"
-	"net/http"
-	"github.com/stretchr/testify/assert"
-	"net/http/httptest"
-	"github.com/go-ozzo/ozzo-routing"
 	"errors"
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestParseBasicAuth(t *testing.T) {
-	tests := []struct{
-		id string
-		header string
+	tests := []struct {
+		id         string
+		header     string
 		user, pass string
 	}{
 		{"t1", "", "", ""},
@@ -60,10 +60,10 @@ func TestBasic(t *testing.T) {
 }
 
 func TestParseBearerToken(t *testing.T) {
-	tests := []struct{
-		id string
+	tests := []struct {
+		id     string
 		header string
-		token string
+		token  string
 	}{
 		{"t1", "", ""},
 		{"t2", "Bearer QWxhZGRpbjpvcGVuIHNlc2FtZQ==", "Aladdin:open sesame"},

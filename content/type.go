@@ -6,16 +6,16 @@
 package content
 
 import (
-	"github.com/go-ozzo/ozzo-routing"
-	"net/http"
-	"github.com/golang/gddo/httputil"
-	"encoding/xml"
 	"encoding/json"
+	"encoding/xml"
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/golang/gddo/httputil"
+	"net/http"
 )
 
 const (
 	JSON = "application/json"
-	XML = "application/xml"
+	XML  = "application/xml"
 	HTML = "text/html"
 )
 
@@ -27,7 +27,7 @@ type Formatter func(http.ResponseWriter) routing.SerializeFunc
 // to customize supported formatters.
 var Formatters = map[string]Formatter{
 	JSON: JSONFormatter,
-	XML: XMLFormatter,
+	XML:  XMLFormatter,
 	HTML: HTMLFormatter,
 }
 

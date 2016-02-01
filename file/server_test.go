@@ -5,18 +5,18 @@
 package file
 
 import (
-	"testing"
+	"github.com/go-ozzo/ozzo-routing"
 	"github.com/stretchr/testify/assert"
-	"strings"
 	"net/http"
 	"net/http/httptest"
-	"github.com/go-ozzo/ozzo-routing"
+	"strings"
+	"testing"
 )
 
 func TestParsePathMap(t *testing.T) {
 	tests := []struct {
-		id string
-		pathMap PathMap
+		id       string
+		pathMap  PathMap
 		from, to string
 	}{
 		{"t1", PathMap{}, "", ""},
@@ -33,10 +33,10 @@ func TestParsePathMap(t *testing.T) {
 
 func TestMatchPath(t *testing.T) {
 	tests := []struct {
-		id string
-		from, to []string
+		id        string
+		from, to  []string
 		url, path string
-		found bool
+		found     bool
 	}{
 		{"t1", []string{}, []string{}, "", "", false},
 
@@ -106,10 +106,10 @@ func TestContent(t *testing.T) {
 func TestServer(t *testing.T) {
 	h := Server(PathMap{"/css": "/testdata/css"})
 	tests := []struct {
-		id string
+		id          string
 		method, url string
-		status int
-		body string
+		status      int
+		body        string
 	}{
 		{"t1", "GET", "/css/main.css", 0, "body {}\n"},
 		{"t2", "HEAD", "/css/main.css", 0, ""},
@@ -133,7 +133,7 @@ func TestServer(t *testing.T) {
 		}
 	}
 
-	h =  Server(PathMap{"/css": "/testdata/css"}, ServerOptions{
+	h = Server(PathMap{"/css": "/testdata/css"}, ServerOptions{
 		IndexFile: "index.html",
 		Allow: func(c *routing.Context, path string) bool {
 			return path != "/testdata/css/main.css"

@@ -5,10 +5,10 @@
 package routing
 
 import (
-	"testing"
-	"net/http"
-	"github.com/stretchr/testify/assert"
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"testing"
 )
 
 func TestNewHttpError(t *testing.T) {

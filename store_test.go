@@ -5,9 +5,9 @@
 package routing
 
 import (
-	"testing"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 type storeTestEntry struct {
@@ -85,9 +85,9 @@ func TestStoreAdd(t *testing.T) {
 		h := newStore()
 		for _, entry := range test.entries {
 			n := h.Add(entry.key, entry.data)
-			assert.Equal(t, entry.params, n, test.id + " > " + entry.key + " > param count =")
+			assert.Equal(t, entry.params, n, test.id+" > "+entry.key+" > param count =")
 		}
-		assert.Equal(t, test.expected, h.String(), test.id + " > store.String() =")
+		assert.Equal(t, test.expected, h.String(), test.id+" > store.String() =")
 	}
 }
 
@@ -123,8 +123,8 @@ func TestStoreGet(t *testing.T) {
 	assert.Equal(t, 2, maxParams, "param count = ")
 
 	tests := []struct {
-		key string
-		value interface{}
+		key    string
+		value  interface{}
 		params string
 	}{
 		{"/gopher/bumper.png", "1", ""},
@@ -151,13 +151,13 @@ func TestStoreGet(t *testing.T) {
 	pvalues := make([]string, maxParams)
 	for _, test := range tests {
 		data, pnames := h.Get(test.key, pvalues)
-		assert.Equal(t, test.value, data, "store.Get(" + test.key + ") =")
+		assert.Equal(t, test.value, data, "store.Get("+test.key+") =")
 		params := ""
 		if len(pnames) > 0 {
 			for i, name := range pnames {
 				params += fmt.Sprintf("%v:%v,", name, pvalues[i])
 			}
 		}
-		assert.Equal(t, test.params, params, "store.Get(" + test.key + ").params =")
+		assert.Equal(t, test.params, params, "store.Get("+test.key+").params =")
 	}
 }

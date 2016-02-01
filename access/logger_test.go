@@ -5,14 +5,14 @@
 package access
 
 import (
-	"testing"
-	"net/http"
-	"github.com/stretchr/testify/assert"
-	"net/http/httptest"
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/go-ozzo/ozzo-routing"
-	"errors"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestLogger(t *testing.T) {

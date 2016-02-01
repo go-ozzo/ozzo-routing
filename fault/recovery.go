@@ -6,9 +6,9 @@
 package fault
 
 import (
-	"github.com/go-ozzo/ozzo-routing"
 	"errors"
 	"fmt"
+	"github.com/go-ozzo/ozzo-routing"
 	"net/http"
 )
 

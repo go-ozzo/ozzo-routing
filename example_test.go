@@ -1,14 +1,14 @@
 package routing_test
 
 import (
-	"log"
-	"net/http"
 	"github.com/go-ozzo/ozzo-routing"
 	"github.com/go-ozzo/ozzo-routing/access"
-	"github.com/go-ozzo/ozzo-routing/slash"
 	"github.com/go-ozzo/ozzo-routing/content"
 	"github.com/go-ozzo/ozzo-routing/fault"
 	"github.com/go-ozzo/ozzo-routing/file"
+	"github.com/go-ozzo/ozzo-routing/slash"
+	"log"
+	"net/http"
 )
 
 func Example() {

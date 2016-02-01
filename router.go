@@ -7,9 +7,9 @@ package routing
 
 import (
 	"net/http"
-	"sync"
 	"sort"
 	"strings"
+	"sync"
 )
 
 type (
@@ -58,8 +58,8 @@ func New() *Router {
 	r.NotFound(MethodNotAllowedHandler, NotFoundHandler)
 	r.pool.New = func() interface{} {
 		return &Context{
-			pvalues:  make([]string, r.maxParams),
-			router: r,
+			pvalues: make([]string, r.maxParams),
+			router:  r,
 		}
 	}
 	return r

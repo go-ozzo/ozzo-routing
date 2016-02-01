@@ -1,12 +1,12 @@
 package routing
 
 import (
-	"testing"
-	"net/http"
-	"net/http/httptest"
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestRouterNotFound(t *testing.T) {

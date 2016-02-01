@@ -7,11 +7,11 @@ package file
 
 import (
 	"github.com/go-ozzo/ozzo-routing"
-	"path/filepath"
 	"net/http"
-	"strings"
 	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 )
 
 // ServerOptions defines the possible options for the Server handler.
@@ -19,7 +19,7 @@ type ServerOptions struct {
 	// The path that all files to be served should be located within. The path map passed to the Server method
 	// are all relative to this path. This property can be specified as an absolute file path or a path relative
 	// to the current working path. If not set, this property defaults to the current working path.
-	RootPath  string
+	RootPath string
 	// The file (e.g. index.html) to be served when the current request corresponds to a directory.
 	// If not set, the handler will return a 404 HTTP error when the request corresponds to a directory.
 	IndexFile string
@@ -27,7 +27,7 @@ type ServerOptions struct {
 	// may do additional work such as setting Expires HTTP header.
 	// The function should return a boolean indicating whether the file should be served or not.
 	// If false, a 404 HTTP error will be returned by the handler.
-	Allow     func(*routing.Context, string) bool
+	Allow func(*routing.Context, string) bool
 }
 
 // PathMap specifies the mapping between URL paths (keys) and file paths (keys).
@@ -40,7 +40,6 @@ var RootPath string
 func init() {
 	RootPath, _ = os.Getwd()
 }
-
 
 // Server returns a handler that serves the files as the response content.
 // The files being served are determined using the current URL path and the specified path map.
@@ -84,9 +83,9 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 		}
 
 		var (
-			file http.File
+			file  http.File
 			fstat os.FileInfo
-			err error
+			err   error
 		)
 
 		if file, err = dir.Open(path); err != nil {

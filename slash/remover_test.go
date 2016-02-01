@@ -5,11 +5,11 @@
 package slash
 
 import (
-	"testing"
-	"net/http"
-	"github.com/stretchr/testify/assert"
-	"net/http/httptest"
 	"github.com/go-ozzo/ozzo-routing"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestRemover(t *testing.T) {

@@ -6,11 +6,11 @@
 package access
 
 import (
+	"fmt"
 	"github.com/go-ozzo/ozzo-routing"
-	"time"
 	"net/http"
 	"strings"
-	"fmt"
+	"time"
 )
 
 // LogFunc logs a message using the given format and optional arguments.

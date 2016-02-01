@@ -5,14 +5,14 @@
 package fault
 
 import (
-	"testing"
-	"net/http/httptest"
-	"net/http"
 	"bytes"
-	"fmt"
 	"errors"
+	"fmt"
 	"github.com/go-ozzo/ozzo-routing"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestHandleError(t *testing.T) {

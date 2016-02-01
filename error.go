@@ -15,7 +15,7 @@ type HTTPError interface {
 
 // Error contains the error information reported by calling Context.Error().
 type httpError struct {
-	Status  int `json:"status" xml:"status"`
+	Status  int    `json:"status" xml:"status"`
 	Message string `json:"message" xml:"message"`
 }
 

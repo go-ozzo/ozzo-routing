@@ -5,8 +5,8 @@
 package routing
 
 import (
-	"net/http"
 	"fmt"
+	"net/http"
 )
 
 // SerializeFunc serializes the given data of arbitrary type into a byte array.
@@ -14,9 +14,9 @@ type SerializeFunc func(data interface{}) ([]byte, error)
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
 type Context struct {
-	Request   *http.Request          // the current request
-	Response  http.ResponseWriter    // the response writer
-	Serialize SerializeFunc          // the function serializing the given data of arbitrary type into a byte array.
+	Request   *http.Request       // the current request
+	Response  http.ResponseWriter // the response writer
+	Serialize SerializeFunc       // the function serializing the given data of arbitrary type into a byte array.
 	router    *Router
 	pnames    []string               // list of route parameter names
 	pvalues   []string               // list of parameter values corresponding to pnames
@@ -30,9 +30,9 @@ type Context struct {
 func NewContext(res http.ResponseWriter, req *http.Request, handlers ...Handler) *Context {
 	c := &Context{
 		Response: res,
-		Request: req,
+		Request:  req,
 		handlers: handlers,
-		index: -1,
+		index:    -1,
 	}
 	c.Serialize = Serialize
 	return c

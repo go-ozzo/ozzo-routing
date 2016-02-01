@@ -5,10 +5,10 @@
 package routing
 
 import (
-	"regexp"
-	"strings"
 	"fmt"
 	"math"
+	"regexp"
+	"strings"
 )
 
 // store is a radix tree that supports storing data with parametric keys and retrieving them back with concrete keys.
@@ -24,11 +24,11 @@ type store struct {
 func newStore() *store {
 	return &store{
 		root: &node{
-			static: true,
-			children: make([]*node, 256),
+			static:    true,
+			children:  make([]*node, 256),
 			pchildren: make([]*node, 0),
-			pindex: -1,
-			pnames: []string{},
+			pindex:    -1,
+			pnames:    []string{},
 		},
 	}
 }
@@ -55,20 +55,20 @@ func (s *store) String() string {
 
 // node represents a radix trie node
 type node struct {
-	static    bool           // whether the node is a static node or param node
+	static bool // whether the node is a static node or param node
 
-	key       string         // the key identifying this node
-	data      interface{}    // the data associated with this node. nil if not a data node.
+	key  string      // the key identifying this node
+	data interface{} // the data associated with this node. nil if not a data node.
 
-	order     int            // the order at which the data was added. used to be pick the first one when matching multiple
-	minOrder  int            // minimum order among all the child nodes and this node
+	order    int // the order at which the data was added. used to be pick the first one when matching multiple
+	minOrder int // minimum order among all the child nodes and this node
 
-	children  []*node        // child static nodes, indexed by the first byte of each child key
-	pchildren []*node        // child param nodes
+	children  []*node // child static nodes, indexed by the first byte of each child key
+	pchildren []*node // child param nodes
 
-	regex     *regexp.Regexp // regular expression for a param node containing regular expression key
-	pindex    int            // the parameter index, meaningful only for param node
-	pnames    []string       // the parameter names collected from the root till this node
+	regex  *regexp.Regexp // regular expression for a param node containing regular expression key
+	pindex int            // the parameter index, meaningful only for param node
+	pnames []string       // the parameter names collected from the root till this node
 }
 
 // add adds a new data item to the tree rooted at the current node.
@@ -120,15 +120,15 @@ func (n *node) add(key string, data interface{}, order int) int {
 
 	// the node key shares a partial prefix with the key: split the node key
 	n1 := &node{
-		static: true,
-		key: n.key[matched:],
-		data: n.data,
-		order: n.order,
-		minOrder: n.minOrder,
+		static:    true,
+		key:       n.key[matched:],
+		data:      n.data,
+		order:     n.order,
+		minOrder:  n.minOrder,
 		pchildren: n.pchildren,
-		children: n.children,
-		pindex: n.pindex,
-		pnames: n.pnames,
+		children:  n.children,
+		pindex:    n.pindex,
+		pnames:    n.pnames,
 	}
 
 	n.key = key[0:matched]
@@ -157,13 +157,13 @@ func (n *node) addChild(key string, data interface{}, order int) int {
 	if p0 > 0 && p1 > 0 || p1 < 0 {
 		// param token occurs after a static string, or no param token: create a static node
 		child := &node{
-			static: true,
-			key: key,
-			minOrder: order,
-			children: make([]*node, 256),
+			static:    true,
+			key:       key,
+			minOrder:  order,
+			children:  make([]*node, 256),
 			pchildren: make([]*node, 0),
-			pindex: n.pindex,
-			pnames: n.pnames,
+			pindex:    n.pindex,
+			pnames:    n.pnames,
 		}
 		n.children[key[0]] = child
 		if p1 > 0 {
@@ -180,20 +180,20 @@ func (n *node) addChild(key string, data interface{}, order int) int {
 
 	// add param node
 	child := &node{
-		static: false,
-		key: key[p0:p1 + 1],
-		minOrder: order,
-		children: make([]*node, 256),
+		static:    false,
+		key:       key[p0 : p1+1],
+		minOrder:  order,
+		children:  make([]*node, 256),
 		pchildren: make([]*node, 0),
-		pindex: n.pindex,
-		pnames: n.pnames,
+		pindex:    n.pindex,
+		pnames:    n.pnames,
 	}
 	pattern := ""
-	pname := key[p0 + 1:p1]
+	pname := key[p0+1 : p1]
 	for i := p0 + 1; i < p1; i++ {
 		if key[i] == ':' {
-			pname = key[p0 + 1:i]
-			pattern = key[i + 1:p1]
+			pname = key[p0+1 : i]
+			pattern = key[i+1 : p1]
 			break
 		}
 	}
@@ -201,14 +201,14 @@ func (n *node) addChild(key string, data interface{}, order int) int {
 		// the param token contains a regular expression
 		child.regex = regexp.MustCompile("^" + pattern)
 	}
-	pnames := make([]string, len(n.pnames) + 1)
+	pnames := make([]string, len(n.pnames)+1)
 	copy(pnames, n.pnames)
 	pnames[len(n.pnames)] = pname
 	child.pnames = pnames
 	child.pindex = len(pnames) - 1
 	n.pchildren = append(n.pchildren, child)
 
-	if p1 == len(key) - 1 {
+	if p1 == len(key)-1 {
 		// the param token is at the end of the key
 		child.data = data
 		child.order = order
@@ -216,14 +216,14 @@ func (n *node) addChild(key string, data interface{}, order int) int {
 	}
 
 	// process the rest of the key
-	return child.addChild(key[p1 + 1:], data, order)
+	return child.addChild(key[p1+1:], data, order)
 }
 
 // get returns the data item with the key matching the tree rooted at the current node
 func (n *node) get(key string, pvalues []string) (data interface{}, pnames []string, order int) {
 	order = math.MaxInt32
 
-	repeat:
+repeat:
 	if n.static {
 		// check if the node key is a prefix of the given key
 		// a slightly optimized version of strings.HasPrefix
@@ -304,7 +304,7 @@ func (n *node) get(key string, pvalues []string) (data interface{}, pnames []str
 }
 
 func (n *node) print(level int) string {
-	r := fmt.Sprintf("%v{key: %v, regex: %v, data: %v, order: %v, minOrder: %v, pindex: %v, pnames: %v}\n", strings.Repeat(" ", level << 2), n.key, n.regex, n.data, n.order, n.minOrder, n.pindex, n.pnames)
+	r := fmt.Sprintf("%v{key: %v, regex: %v, data: %v, order: %v, minOrder: %v, pindex: %v, pnames: %v}\n", strings.Repeat(" ", level<<2), n.key, n.regex, n.data, n.order, n.minOrder, n.pindex, n.pnames)
 	for _, child := range n.children {
 		if child != nil {
 			r += child.print(level + 1)

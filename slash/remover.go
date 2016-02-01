@@ -33,4 +33,3 @@ func Remover(status int) routing.Handler {
 		return nil
 	}
 }
-

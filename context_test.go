@@ -1,12 +1,12 @@
 package routing
 
 import (
-	"testing"
+	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
-	"fmt"
-	"errors"
+	"testing"
 )
 
 func TestSerialize(t *testing.T) {

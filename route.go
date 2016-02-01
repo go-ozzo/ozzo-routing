@@ -5,8 +5,8 @@
 package routing
 
 import (
-	"net/url"
 	"fmt"
+	"net/url"
 	"strings"
 )
 
@@ -24,13 +24,13 @@ func newRoute(path string, group *RouteGroup) *Route {
 
 	// an asterisk at the end matches any number of characters
 	if strings.HasSuffix(path, "*") {
-		path = path[:len(path) - 1] + "<:.*>"
+		path = path[:len(path)-1] + "<:.*>"
 	}
 
 	route := &Route{
-		group: group,
-		name: name,
-		path: path,
+		group:    group,
+		name:     name,
+		path:     path,
 		template: buildURLTemplate(path),
 	}
 	group.router.routes[name] = route
@@ -109,8 +109,8 @@ func (r *Route) URL(pairs ...interface{}) (s string) {
 	for i := 0; i < len(pairs); i += 1 {
 		name := fmt.Sprintf("<%v>", pairs[i])
 		value := ""
-		if i < len(pairs) - 1 {
-			value = url.QueryEscape(fmt.Sprint(pairs[i + 1]))
+		if i < len(pairs)-1 {
+			value = url.QueryEscape(fmt.Sprint(pairs[i+1]))
 		}
 		s = strings.Replace(s, name, value, -1)
 	}
@@ -132,29 +132,29 @@ func buildURLTemplate(path string) string {
 		if path[i] == '<' && start < 0 {
 			start = i
 		} else if path[i] == '>' && start >= 0 {
-			name := path[start+1:i]
+			name := path[start+1 : i]
 			for j := start + 1; j < i; j++ {
 				if path[j] == ':' {
-					name = path[start+1:j]
+					name = path[start+1 : j]
 					break
 				}
 			}
-			template += path[end + 1:start] + "<" + name + ">"
+			template += path[end+1:start] + "<" + name + ">"
 			end = i
 			start = -1
 		}
 	}
 	if end < 0 {
 		template = path
-	} else if end <  len(path) - 1 {
-		template += path[end + 1:]
+	} else if end < len(path)-1 {
+		template += path[end+1:]
 	}
 	return template
 }
 
 // combineHandlers merges two lists of handlers into a new list.
 func combineHandlers(h1 []Handler, h2 []Handler) []Handler {
-	hh := make([]Handler, len(h1) + len(h2))
+	hh := make([]Handler, len(h1)+len(h2))
 	copy(hh, h1)
 	copy(hh[len(h1):], h2)
 	return hh
