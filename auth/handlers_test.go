@@ -13,6 +13,23 @@ import (
 	"errors"
 )
 
+func TestParseBasicAuth(t *testing.T) {
+	tests := []struct{
+		id string
+		header string
+		user, pass string
+	}{
+		{"t1", "", "", ""},
+		{"t2", "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==", "Aladdin", "open sesame"},
+		{"t3", "Basic xyz", "", ""},
+	}
+	for _, test := range tests {
+		user, pass := parseBasicAuth(test.header)
+		assert.Equal(t, test.user, user, test.id)
+		assert.Equal(t, test.pass, pass, test.id)
+	}
+}
+
 func basicAuth(c *routing.Context, username, password string) (Identity, error) {
 	if username == "Aladdin" && password == "open sesame" {
 		return "yes", nil
@@ -40,6 +57,22 @@ func TestBasic(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "", res.Header().Get("WWW-Authenticate"))
 	assert.Equal(t, "yes", c.Get(User))
+}
+
+func TestParseBearerToken(t *testing.T) {
+	tests := []struct{
+		id string
+		header string
+		token string
+	}{
+		{"t1", "", ""},
+		{"t2", "Bearer QWxhZGRpbjpvcGVuIHNlc2FtZQ==", "Aladdin:open sesame"},
+		{"t3", "Bearer xyz", ""},
+	}
+	for _, test := range tests {
+		token := parseBearerAuth(test.header)
+		assert.Equal(t, test.token, token, test.id)
+	}
 }
 
 func bearerAuth(c *routing.Context, token string) (Identity, error) {

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"encoding/base64"
 	"github.com/go-ozzo/ozzo-routing"
+	"strings"
 )
 
 // User is the key used to store and retrieve the user identity information in routing.Context
@@ -59,7 +60,7 @@ func Basic(fn BasicAuthFunc, realm ...string) routing.Handler {
 		name = realm[0]
 	}
 	return func(c *routing.Context) error {
-		username, password, _ := c.Request.BasicAuth()
+		username, password := parseBasicAuth(c.Request.Header.Get("Authorization"))
 		identity, e := fn(c, username, password)
 		if e == nil {
 			c.Set(User, identity)
@@ -68,6 +69,18 @@ func Basic(fn BasicAuthFunc, realm ...string) routing.Handler {
 		c.Response.Header().Set("WWW-Authenticate", `Basic realm="` + name + `"`)
 		return routing.NewHTTPError(http.StatusUnauthorized, e.Error())
 	}
+}
+
+func parseBasicAuth(auth string) (username, password string) {
+	if strings.HasPrefix(auth, "Basic ") {
+		if bytes, err := base64.StdEncoding.DecodeString(auth[6:]); err == nil {
+			str := string(bytes)
+			if i := strings.IndexByte(str, ':'); i >= 0 {
+				return str[:i], str[i+1:]
+			}
+		}
+	}
+	return
 }
 
 // TokenAuthFunc is the function for authenticating a user based on a secret token.
@@ -107,7 +120,7 @@ func Bearer(fn TokenAuthFunc, realm ...string) routing.Handler {
 		name = realm[0]
 	}
 	return func(c *routing.Context) error {
-		token := parseBearerToken(c.Request)
+		token := parseBearerAuth(c.Request.Header.Get("Authorization"))
 		identity, e := fn(c, token)
 		if e == nil {
 			c.Set(User, identity)
@@ -118,15 +131,13 @@ func Bearer(fn TokenAuthFunc, realm ...string) routing.Handler {
 	}
 }
 
-func parseBearerToken(req *http.Request) string {
-	auth := req.Header.Get("Authorization")
-	if len(auth) < 7 || auth[:7] != "Bearer " {
-		return ""
+func parseBearerAuth(auth string) (token string) {
+	if strings.HasPrefix(auth, "Bearer ") {
+		if bearer, err := base64.StdEncoding.DecodeString(auth[7:]); err == nil {
+			return string(bearer)
+		}
 	}
-	if bearer, err := base64.StdEncoding.DecodeString(auth[7:]); err == nil {
-		return string(bearer)
-	}
-	return ""
+	return
 }
 
 // TokenName is the query parameter name for auth token.

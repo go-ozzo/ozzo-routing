@@ -19,7 +19,7 @@ It has the following features:
 
 ## Requirements
 
-Go 1.2 or above.
+Go 1.3 or above.
 
 ## Installation
 
