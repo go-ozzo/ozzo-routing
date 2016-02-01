@@ -153,7 +153,7 @@ func parsePathMap(pathMap PathMap) (from, to []string) {
 	from = make([]string, len(pathMap))
 	to = make([]string, len(pathMap))
 	n := 0
-	for i, _ := range pathMap {
+	for i := range pathMap {
 		from[n] = i
 		n++
 	}

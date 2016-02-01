@@ -13,6 +13,7 @@ import (
 	"net/http"
 )
 
+// MIME types
 const (
 	JSON = "application/json"
 	XML  = "application/xml"

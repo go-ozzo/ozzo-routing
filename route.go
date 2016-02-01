@@ -106,7 +106,7 @@ func (r *Route) To(methods string, handlers ...Handler) *Route {
 // The method will perform URL encoding for all given parameter values.
 func (r *Route) URL(pairs ...interface{}) (s string) {
 	s = r.template
-	for i := 0; i < len(pairs); i += 1 {
+	for i := 0; i < len(pairs); i++ {
 		name := fmt.Sprintf("<%v>", pairs[i])
 		value := ""
 		if i < len(pairs)-1 {
