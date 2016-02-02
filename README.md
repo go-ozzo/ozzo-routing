@@ -281,13 +281,15 @@ handlers are registered with `Router.NotFound()`:
 
 ozzo-routing comes with a few commonly used handlers in its subpackages:
 
-* `fault.Recovery`: a handler that recovers from panics and handles errors returned by handlers
 * `access.Logger`: a handler that records an entry for every incoming request
+* `auth.Basic`, `auth.Bearer`, `auth.Query`: these handlers provide authentication via HTTP Basic, HTTP Bearer, and
+  token-based query parameter.
+* `content.TypeNegotiator`, `content.LanguageNegotiator`: these handlers negotiate the response type and language
+  using the values provided by the Accept and Accept-Language HTTP headers, respectively.
+* `fault.Recovery`: a handler that recovers from panics and handles errors returned by handlers
 * `file.Server`: a handler that serves the files under the specified folder as response content
 * `file.Content`: a handler that serves the content of the specified file as the response
 * `slash.Remover`: a handler removing the trailing slashes from the request URL
-* `auth.Basic`, `auth.Bearer`, `auth.Query`: these handlers provide authentication via HTTP Basic, HTTP Bearer, and 
-  token-based query parameter.
 
 The following code shows how these handlers may be used:
 
