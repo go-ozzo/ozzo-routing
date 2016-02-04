@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	headerOrigin         = "Origin"
+	headerOrigin = "Origin"
+
 	headerRequestMethod  = "Access-Control-Request-Method"
 	headerRequestHeaders = "Access-Control-Request-Headers"
 
@@ -29,18 +30,17 @@ const (
 
 // Options specifies how the CORS handler should respond with appropriate CORS headers.
 type Options struct {
-	// the allowed origins (separated by commas). Use an asterisk (*) to indicate allowing all origins.
-	AllowOrigin string
-	// whether to allow sending auth credentials such as cookies
+	// the allowed origins (separated by commas). Use an asterisk (*) to indicate allowing all origins, "null" to indicate disallowing any.
+	AllowOrigins string
+	// whether the response to request can be exposed when the omit credentials flag is unset, or whether the actual request can include user credentials.
 	AllowCredentials bool
-	// the allowed HTTP methods (separated by commas)
+	// the HTTP methods (separated by commas) that can be used during the actual request. Use an asterisk (*) to indicate allowing any method.
 	AllowMethods string
-	// the allowed HTTP headers in the request (separated by commas).
-	// If not set, it defaults to DefaultAllowHeaders.
+	// the HTTP headers (separated by commas) that can be used during the actual request. Use an asterisk (*) to indicate allowing any header.
 	AllowHeaders string
-	// the HTTP headers that may be read from the response.
+	// the HTTP headers (separated by commas) that are safe to expose to the API of a CORS API specification
 	ExposeHeaders string
-	// Max amount of seconds that CORS headers may be cached by the browser.
+	// Max amount of seconds that the results of a preflight request can be cached in a preflight result cache.
 	MaxAge time.Duration
 
 	allowOriginMap map[string]bool
@@ -48,106 +48,130 @@ type Options struct {
 	allowHeaderMap map[string]bool
 }
 
-// DefaultAllowHeaders gives the default allowed HTTP headers when Options.AllowHeaders is not set
-var DefaultAllowHeaders = "Origin,Accept,Content-Type,Authorization"
-
 // Handlers creates a routing handler that adds appropriate CORS headers according to the specified options and the request.
 func Handler(opts Options) routing.Handler {
 
 	opts.init()
 
-	return func(c *routing.Context) error {
+	return func(c *routing.Context) (err error) {
 		origin := c.Request.Header.Get(headerOrigin)
-		method := c.Request.Header.Get(headerRequestMethod)
-		headers := c.Request.Header.Get(headerRequestHeaders)
-
-		if c.Request.Method == "OPTIONS" && (method != "" || headers != "") {
-			// a preflight request
-			opts.setPreflightHeaders(origin, method, headers, c.Response.Header())
-		} else {
-			opts.setHeaders(origin, c.Response.Header())
+		if origin == "" {
+			// the request is outside the scope of CORS
+			return
 		}
-		return nil
+		if c.Request.Method == "OPTIONS" {
+			// a preflight request
+			method := c.Request.Header.Get(headerRequestMethod)
+			if method == "" {
+				// the request is outside the scope of CORS
+				return
+			}
+			headers := c.Request.Header.Get(headerRequestHeaders)
+			opts.setPreflightHeaders(origin, method, headers, c.Response.Header())
+			c.Abort()
+			return
+		}
+		opts.setActualHeaders(origin, c.Response.Header())
+		return
 	}
 }
 
 func (o *Options) init() {
-	if o.AllowHeaders == "" {
-		o.AllowHeaders = DefaultAllowHeaders
-	}
-	o.allowHeaderMap = buildAllowMap(o.AllowHeaders)
-	o.allowMethodMap = buildAllowMap(o.AllowMethods)
-	o.allowOriginMap = buildAllowMap(o.AllowOrigin)
-}
-
-func buildAllowMap(s string) map[string]bool {
-	m := make(map[string]bool)
-	if len(s) > 0 {
-		for _, p := range strings.Split(s, ",") {
-			p = strings.TrimSpace(p)
-			m[strings.ToUpper(p)] = true
-		}
-	}
-	return m
+	o.allowHeaderMap = buildAllowMap(o.AllowHeaders, false)
+	o.allowMethodMap = buildAllowMap(o.AllowMethods, true)
+	o.allowOriginMap = buildAllowMap(o.AllowOrigins, true)
 }
 
 func (o *Options) isOriginAllowed(origin string) bool {
-	return o.AllowOrigin == "*" || o.allowOriginMap[strings.ToUpper(origin)]
+	if o.AllowOrigins == "null" {
+		return false
+	}
+	return o.AllowOrigins == "*" || o.allowOriginMap[origin]
 }
 
-func (o *Options) setHeaders(origin string, headers http.Header) {
+func (o *Options) setActualHeaders(origin string, headers http.Header) {
 	if !o.isOriginAllowed(origin) {
 		return
 	}
 
-	o.setCommonHeaders(origin, headers)
+	o.setOriginHeader(origin, headers)
 
-	if len(o.AllowMethods) > 0 {
-		headers.Set(headerAllowMethods, o.AllowMethods)
-	}
-
-	if len(o.AllowHeaders) > 0 {
-		headers.Set(headerAllowHeaders, o.AllowHeaders)
+	if o.ExposeHeaders != "" {
+		headers.Set(headerExposeHeaders, o.ExposeHeaders)
 	}
 }
 
 func (o *Options) setPreflightHeaders(origin, method, reqHeaders string, headers http.Header) {
-	if !o.isOriginAllowed(origin) {
+	allowed, allowedHeaders := o.isPreflightAllowed(origin, method, reqHeaders)
+	if !allowed {
 		return
 	}
 
-	o.setCommonHeaders(origin, headers)
-
-	if o.allowMethodMap[strings.ToUpper(method)] {
-		headers.Set(headerAllowMethods, o.AllowMethods)
-	}
-
-	var allowed []string
-	for _, header := range strings.Split(reqHeaders, ",") {
-		header = strings.TrimSpace(header)
-		if o.allowHeaderMap[strings.ToUpper(header)] {
-			allowed = append(allowed, header)
-		}
-	}
-	if len(allowed) > 0 {
-		headers.Set(headerAllowHeaders, strings.Join(allowed, ","))
-	}
-}
-
-func (o *Options) setCommonHeaders(origin string, headers http.Header) {
-	if o.AllowOrigin == "*" {
-		headers.Set(headerAllowOrigin, "*")
-	} else {
-		headers.Set(headerAllowOrigin, origin)
-	}
-
-	headers.Set(headerAllowCredentials, strconv.FormatBool(o.AllowCredentials))
-
-	if len(o.ExposeHeaders) > 0 {
-		headers.Set(headerExposeHeaders, o.ExposeHeaders)
-	}
+	o.setOriginHeader(origin, headers)
 
 	if o.MaxAge > time.Duration(0) {
 		headers.Set(headerMaxAge, strconv.FormatInt(int64(o.MaxAge/time.Second), 10))
 	}
+
+	if o.AllowMethods == "*" {
+		headers.Set(headerAllowMethods, method)
+	} else if o.allowMethodMap[method] {
+		headers.Set(headerAllowMethods, o.AllowMethods)
+	}
+
+	if allowedHeaders != "" {
+		headers.Set(headerAllowHeaders, reqHeaders)
+	}
+}
+
+func (o *Options) isPreflightAllowed(origin, method, reqHeaders string) (allowed bool, allowedHeaders string) {
+	if !o.isOriginAllowed(origin) {
+		return
+	}
+	if o.AllowMethods != "*" && !o.allowMethodMap[method] {
+		return
+	}
+	if o.AllowHeaders == "*" || reqHeaders == "" {
+		return true, reqHeaders
+	}
+
+	headers := []string{}
+	for _, header := range strings.Split(reqHeaders, ",") {
+		header = strings.TrimSpace(header)
+		if o.allowHeaderMap[strings.ToUpper(header)] {
+			headers = append(headers, header)
+		}
+	}
+	if len(headers) > 0 {
+		return true, strings.Join(headers, ",")
+	}
+	return
+}
+
+func (o *Options) setOriginHeader(origin string, headers http.Header) {
+	if o.AllowCredentials {
+		headers.Set(headerAllowOrigin, origin)
+		headers.Set(headerAllowCredentials, "true")
+	} else {
+		if o.AllowOrigins == "*" {
+			headers.Set(headerAllowOrigin, "*")
+		} else {
+			headers.Set(headerAllowOrigin, origin)
+		}
+	}
+}
+
+func buildAllowMap(s string, caseSensitive bool) map[string]bool {
+	m := make(map[string]bool)
+	if len(s) > 0 {
+		for _, p := range strings.Split(s, ",") {
+			p = strings.TrimSpace(p)
+			if caseSensitive {
+				m[p] = true
+			} else {
+				m[strings.ToUpper(p)] = true
+			}
+		}
+	}
+	return m
 }
