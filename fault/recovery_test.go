@@ -8,11 +8,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/go-ozzo/ozzo-routing"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleError(t *testing.T) {
@@ -92,10 +93,8 @@ func handler2(c *routing.Context) error {
 
 func handler3(c *routing.Context) error {
 	panic("xyz")
-	return nil
 }
 
 func handler4(c *routing.Context) error {
 	panic(routing.NewHTTPError(http.StatusBadRequest, "123"))
-	return nil
 }
