@@ -154,7 +154,7 @@ can be used to match any number of arbitrary characters. Below are some examples
 
 * `/users/<username>`: matches `/users/admin`
 * `/users/accnt-<id:\d+>`: matches `/users/accnt-123`, but not `/users/accnt-admin`
-* `/users/<username>/*`: matches `/users/admin/profile`
+* `/users/<username>/*`: matches `/users/admin/profile/address`
 
 When a URL path matches a route, the matching parameters on the URL path can be accessed via `Context.Param()`:
 
@@ -163,6 +163,7 @@ router := routing.New()
 
 router.Get("/users/<username>", func (c *routing.Context) error {
 	fmt.Fprintf(c.Response, "Name: %v", c.Param("username"))
+	return nil
 })
 ```
 
