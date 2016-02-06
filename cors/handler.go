@@ -48,7 +48,7 @@ type Options struct {
 	allowHeaderMap map[string]bool
 }
 
-// Handlers creates a routing handler that adds appropriate CORS headers according to the specified options and the request.
+// Handler creates a routing handler that adds appropriate CORS headers according to the specified options and the request.
 func Handler(opts Options) routing.Handler {
 
 	opts.init()
