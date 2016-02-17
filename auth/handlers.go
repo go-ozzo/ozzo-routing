@@ -7,9 +7,10 @@ package auth
 
 import (
 	"encoding/base64"
-	"github.com/go-ozzo/ozzo-routing"
 	"net/http"
 	"strings"
+
+	"github.com/go-ozzo/ozzo-routing"
 )
 
 // User is the key used to store and retrieve the user identity information in routing.Context
@@ -43,7 +44,7 @@ type BasicAuthFunc func(c *routing.Context, username, password string) (Identity
 //         return auth.Identity(username), nil
 //       }
 //       return nil, errors.New("invalid credential")
-//     })
+//     }))
 //     r.Get("/demo", func(c *routing.Context) error {
 //       fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
 //       return nil
@@ -103,7 +104,7 @@ type TokenAuthFunc func(c *routing.Context, token string) (Identity, error)
 //         return auth.Identity("demo"), nil
 //       }
 //       return nil, errors.New("invalid credential")
-//     })
+//     }))
 //     r.Get("/demo", func(c *routing.Context) error {
 //       fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
 //       return nil
@@ -160,7 +161,7 @@ var TokenName = "access-token"
 //         return auth.Identity("demo"), nil
 //       }
 //       return nil, errors.New("invalid credential")
-//     })
+//     }))
 //     r.Get("/demo", func(c *routing.Context) error {
 //       fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
 //       return nil
