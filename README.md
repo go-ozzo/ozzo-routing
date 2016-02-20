@@ -11,7 +11,8 @@ ozzo-routing is a Go package that provides high performance and powerful HTTP ro
 It has the following features:
 
 * middleware pipeline architecture, similar to that of the [Express framework](http://expressjs.com).
-* extremely fast request routing with zero dynamic memory allocation
+* extremely fast request routing with zero dynamic memory allocation (the performance is comparative to that of [httprouter](https://github.com/julienschmidt/httprouter) and
+[gin](https://github.com/gin-gonic/gin))
 * modular code organization through route grouping
 * flexible URL path matching, supporting URL parameters and regular expressions
 * URL creation according to the predefined routes
