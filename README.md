@@ -206,7 +206,7 @@ router.Use(m1)
 api := router.Group("/api")
 api.Use(m2)
 
-users := group.Group("/users")
+users := api.Group("/users")
 users.Use(m3)
 users.Put("/<id>", h1)
 ```
