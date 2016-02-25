@@ -36,6 +36,8 @@ go get github.com/go-ozzo/ozzo-routing
 Create a `server.go` file with the following content:
 
 ```go
+package main
+
 import (
 	"log"
 	"net/http"
@@ -47,7 +49,7 @@ import (
 	"github.com/go-ozzo/ozzo-routing/file"
 )
 
-func Example() {
+func main() {
 	router := routing.New()
 
 	router.Use(
@@ -85,13 +87,15 @@ func Example() {
 }
 ```
 
+Create an HTML file `ui/index.html` with any content.
+
 Now run the following command to start the Web server:
 
 ```
 go run server.go
 ```
 
-You should be able to access URLs such as `http://localhost:8080`, `http://localhost:8080/users`.
+You should be able to access URLs such as `http://localhost:8080`, `http://localhost:8080/api/users`.
 
 
 ### Routes
