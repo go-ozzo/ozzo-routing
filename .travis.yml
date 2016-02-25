@@ -8,7 +8,6 @@ go:
 
 install:
   - go get golang.org/x/tools/cmd/cover
-  - go get github.com/go-ozzo/ozzo-config
   - go list -f '{{range .Imports}}{{.}} {{end}}' ./... | xargs go get -v
   - go list -f '{{range .TestImports}}{{.}} {{end}}' ./... | xargs go get -v
 
