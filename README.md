@@ -338,6 +338,9 @@ router.Use(routing.HTTPHandlerFunc(http.NotFound))
 router.Use(routing.HTTPHandler(http.NotFoundHandler))
 ```
 
+The following third-party handlers are specifically designed for ozzo-routing:
+
+* [JWT Authorization](https://github.com/vvv-v13/ozzo-jwt)
 
 ## Serving Static Files
 
