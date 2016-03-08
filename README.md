@@ -11,8 +11,8 @@ ozzo-routing is a Go package that provides high performance and powerful HTTP ro
 It has the following features:
 
 * middleware pipeline architecture, similar to that of the [Express framework](http://expressjs.com).
-* extremely fast request routing with zero dynamic memory allocation (the performance is comparative to that of [httprouter](https://github.com/julienschmidt/httprouter) and
-[gin](https://github.com/gin-gonic/gin))
+* extremely fast request routing with zero dynamic memory allocation (the performance is comparable to that of [httprouter](https://github.com/julienschmidt/httprouter) and
+[gin](https://github.com/gin-gonic/gin), see the [performance comparison below](#benchmarks))
 * modular code organization through route grouping
 * flexible URL path matching, supporting URL parameters and regular expressions
 * URL creation according to the predefined routes
@@ -284,21 +284,44 @@ handlers are registered with `Router.NotFound()`:
 * `routing.MethodNotAllowedHandler`: a handler that sends an `Allow` HTTP header indicating the allowed HTTP methods for a requested URL
 * `routing.NotFoundHandler`: a handler triggering 404 HTTP error
 
+## Serving Static Files
 
-### Handlers in Subpackages
+Static files can be served with the help of `file.Server` and `file.Content` handlers. The former serves files
+under the specified directories, while the latter serves the content of a single file. For example,
+
+```go
+import (
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/file"
+)
+
+router := routing.NewRouter()
+
+// serve index file
+router.Get("/", file.Content("ui/index.html"))
+// serve files under the "ui" subdirectory
+router.Get("/*", file.Server(file.PathMap{
+	"/": "/ui/",
+}))
+```
+
+## Handlers
 
 ozzo-routing comes with a few commonly used handlers in its subpackages:
 
-* `access.Logger`: records an entry for every incoming request
-* `auth.Basic`, `auth.Bearer`, `auth.Query`: these handlers provide authentication via HTTP Basic, HTTP Bearer, and
-  token-based query parameter.
-* `content.TypeNegotiator`, `content.LanguageNegotiator`: these handlers negotiate the response type and language
-  using the values provided by the Accept and Accept-Language HTTP headers, respectively
-* `cors.Handler`: implements the CORS (Cross Origin Resource Sharing) specification from the W3C
-* `fault.Recovery`: recovers from panics and handles errors returned by handlers
-* `file.Server`: serves the files under the specified folder as response content
-* `file.Content`: serves the content of the specified file as the response
-* `slash.Remover`: removes the trailing slashes from the request URL and redirects to the proper URL
+Handler name 					| Description
+--------------------------------|--------------------------------------------
+[access.Logger](https://godoc.org/github.com/go-ozzo/ozzo-routing/access) | records an entry for every incoming request
+[auth.Basic](https://godoc.org/github.com/go-ozzo/ozzo-routing/auth) | provides authentication via HTTP Basic
+[auth.Bearer](https://godoc.org/github.com/go-ozzo/ozzo-routing/auth) | provides authentication via HTTP Bearer
+[auth.Query](https://godoc.org/github.com/go-ozzo/ozzo-routing/auth) | provides authentication via token-based query parameter
+[content.TypeNegotiator](https://godoc.org/github.com/go-ozzo/ozzo-routing/content) | supports content negotiation by response types
+[content.LanguageNegotiator](https://godoc.org/github.com/go-ozzo/ozzo-routing/content) | supports content negotiation by accepted languages
+[cors.Handler](https://godoc.org/github.com/go-ozzo/ozzo-routing/cors) | implements the CORS (Cross Origin Resource Sharing) specification from the W3C
+[fault.Recovery](https://godoc.org/github.com/go-ozzo/ozzo-routing/fault) | recovers from panics and handles errors returned by handlers
+[file.Server](https://godoc.org/github.com/go-ozzo/ozzo-routing/file) | serves the files under the specified folder as response content
+[file.Content](https://godoc.org/github.com/go-ozzo/ozzo-routing/file) | serves the content of the specified file as the response
+[slash.Remover](https://godoc.org/github.com/go-ozzo/ozzo-routing/slash) | removes the trailing slashes from the request URL and redirects to the proper URL
 
 The following code shows how these handlers may be used:
 
@@ -323,10 +346,18 @@ router.Use(
 ...
 ```
 
-
 ### Third-party Handlers
 
-ozzo-routing provides adapters to support using third-party `http.HandlerFunc` or `http.Handler` handlers. For example,
+
+The following third-party handlers are specifically designed for ozzo-routing:
+
+Handler name 					| Description
+--------------------------------|--------------------------------------------
+[jwt.JWT](https://github.com/vvv-v13/ozzo-jwt) | supports JWT Authorization
+
+
+ozzo-routing also provides adapters to support using third-party `http.HandlerFunc` or `http.Handler` handlers. 
+For example,
 
 ```go
 router := routing.New()
@@ -339,27 +370,28 @@ router.Use(routing.HTTPHandler(http.NotFoundHandler))
 ```
 
 
-## Serving Static Files
+## Benchmarks
 
-Static files can be served with the help of `file.Server` and `file.Content` handlers. The former serves files
-under the specified directories, while the latter serves the content of a single file. For example,
+Ozzo-routing is very fast, thanks to the radix tree data structure and the usage of `sync.Pool` (the idea was
+originally from HttpRouter and Gin). The following table (by running [go-http-routing-benchmark](https://github.com/qiangxue/go-http-routing-benchmark))
+shows how ozzo-routing compares with Gin, HttpRouter, and Martini in performance.
 
-```go
-import (
-	"github.com/go-ozzo/ozzo-routing"
-	"github.com/go-ozzo/ozzo-routing/file"
-)
-
-router := routing.NewRouter()
-
-// serve index file
-router.Get("/", file.Content("ui/index.html"))
-// serve files under the "ui" subdirectory
-router.Get("/*", file.Server(file.PathMap{
-	"/": "/ui/",
-}))
 ```
+BenchmarkOzzo_GithubAll            30000     45493 ns/op       0 B/op       0 allocs/op
+BenchmarkHttpRouter_GithubAll      30000     54640 ns/op   13792 B/op     167 allocs/op
+BenchmarkGin_GithubAll             50000     34384 ns/op       0 B/op       0 allocs/op
+BenchmarkMartini_GithubAll           300   4733748 ns/op  228216 B/op    2483 allocs/op
 
+BenchmarkOzzo_GPlusAll           1000000      2279 ns/op       0 B/op       0 allocs/op
+BenchmarkHttpRouter_GPlusAll     1000000      2444 ns/op     640 B/op      11 allocs/op
+BenchmarkGin_GPlusAll            1000000      1668 ns/op       0 B/op       0 allocs/op
+BenchmarkMartini_GPlusAll          20000     73015 ns/op   14448 B/op     165 allocs/op
+
+BenchmarkOzzo_ParseAll            300000      4246 ns/op       0 B/op       0 allocs/op
+BenchmarkHttpRouter_ParseAll      500000      3517 ns/op     640 B/op      16 allocs/op
+BenchmarkGin_ParseAll             500000      3081 ns/op       0 B/op       0 allocs/op
+BenchmarkMartini_ParseAll          10000    110324 ns/op   25600 B/op     276 allocs/op
+```
 
 ## Credits
 
