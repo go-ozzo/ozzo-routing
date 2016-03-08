@@ -369,10 +369,6 @@ router.Use(routing.HTTPHandlerFunc(http.NotFound))
 router.Use(routing.HTTPHandler(http.NotFoundHandler))
 ```
 
-The following third-party handlers are specifically designed for ozzo-routing:
-
-* [JWT Authorization](https://github.com/vvv-v13/ozzo-jwt)
-
 ## Benchmarks
 
 Ozzo-routing is very fast, thanks to the radix tree data structure and the usage of `sync.Pool` (the idea was
