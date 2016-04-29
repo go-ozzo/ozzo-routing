@@ -369,6 +369,10 @@ router.Use(routing.HTTPHandlerFunc(http.NotFound))
 router.Use(routing.HTTPHandler(http.NotFoundHandler))
 ```
 
+## Usage Examples
+
+* [ozzo examples](https://github.com/marshyski/go-ozzo-examples)
+
 ## Benchmarks
 
 Ozzo-routing is very fast, thanks to the radix tree data structure and the usage of `sync.Pool` (the idea was
