@@ -267,6 +267,9 @@ the identity information by calling `Context.Get()`.
 Context also provides a handy `Write()` method that can be used to write data of arbitrary type to the response.
 The `Write()` method can also be overridden (by replacement) to achieve more versatile response data writing. 
 
+Context provides a few shortcut methods to simplify the access to query parameters. The `Context.Query()` returns
+the named URL query parameter value; the `Context.PostForm()` returns the named parameter value in the POST or
+PUT body parameters; and the `Context.Form()` returns the value from either POST/PUT or URL query parameters.
 
 ### Error Handling
 

@@ -3,10 +3,12 @@ package routing
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSerialize(t *testing.T) {
@@ -79,6 +81,24 @@ func TestContextGetSet(t *testing.T) {
 	c.Set("xyz", 123)
 	assert.Equal(t, "123", c.Get("abc").(string))
 	assert.Equal(t, 123, c.Get("xyz").(int))
+}
+
+func TestContextQueryForm(t *testing.T) {
+	req, _ := http.NewRequest("POST", "http://www.google.com/search?q=foo&q=bar&both=x&prio=1&empty=not",
+		strings.NewReader("z=post&both=y&prio=2&empty="))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
+	c := NewContext(nil, req)
+	assert.Equal(t, "foo", c.Query("q"))
+	assert.Equal(t, "", c.Query("z"))
+	assert.Equal(t, "123", c.Query("z", "123"))
+	assert.Equal(t, "not", c.Query("empty", "123"))
+	assert.Equal(t, "post", c.PostForm("z"))
+	assert.Equal(t, "", c.PostForm("x"))
+	assert.Equal(t, "123", c.PostForm("q", "123"))
+	assert.Equal(t, "", c.PostForm("empty", "123"))
+	assert.Equal(t, "y", c.Form("both"))
+	assert.Equal(t, "", c.Form("x"))
+	assert.Equal(t, "123", c.Form("x", "123"))
 }
 
 func TestContextNextAbort(t *testing.T) {

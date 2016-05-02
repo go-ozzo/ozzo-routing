@@ -68,6 +68,50 @@ func (c *Context) Set(name string, value interface{}) {
 	c.data[name] = value
 }
 
+// Query returns the first value for the named component of the URL query parameters.
+// If key is not present, it returns the specified default value or an empty string.
+func (c *Context) Query(name string, defaultValue ...string) string {
+	if vs, _ := c.Request.URL.Query()[name]; len(vs) > 0 {
+		return vs[0]
+	}
+	if len(defaultValue) > 0 {
+		return defaultValue[0]
+	}
+	return ""
+}
+
+// Form returns the first value for the named component of the query.
+// Form reads the value from POST and PUT body parameters as well as URL query parameters.
+// The form takes precedence over the latter.
+// If key is not present, it returns the specified default value or an empty string.
+func (c *Context) Form(key string, defaultValue ...string) string {
+	r := c.Request
+	r.ParseMultipartForm(32 << 20)
+	if vs := r.Form[key]; len(vs) > 0 {
+		return vs[0]
+	}
+
+	if len(defaultValue) > 0 {
+		return defaultValue[0]
+	}
+	return ""
+}
+
+// PostForm returns the first value for the named component from POST and PUT body parameters.
+// If key is not present, it returns the specified default value or an empty string.
+func (c *Context) PostForm(key string, defaultValue ...string) string {
+	r := c.Request
+	r.ParseMultipartForm(32 << 20)
+	if vs := r.PostForm[key]; len(vs) > 0 {
+		return vs[0]
+	}
+
+	if len(defaultValue) > 0 {
+		return defaultValue[0]
+	}
+	return ""
+}
+
 // Next calls the rest of the handlers associated with the current route.
 // If any of these handlers returns an error, Next will return the error and skip the following handlers.
 // Next is normally used when a handler needs to do some postprocessing after the rest of the handlers
