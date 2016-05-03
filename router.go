@@ -20,7 +20,8 @@ type (
 	Router struct {
 		RouteGroup
 		pool             sync.Pool
-		routes           map[string]*Route
+		routes           []*Route
+		namedRoutes      map[string]*Route
 		stores           map[string]routeStore
 		maxParams        int
 		notFound         []Handler
@@ -51,8 +52,9 @@ var Methods = []string{
 // New creates a new Router object.
 func New() *Router {
 	r := &Router{
-		routes: make(map[string]*Route),
-		stores: make(map[string]routeStore),
+		routes:      make([]*Route, 0),
+		namedRoutes: make(map[string]*Route),
+		stores:      make(map[string]routeStore),
 	}
 	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0))
 	r.NotFound(MethodNotAllowedHandler, NotFoundHandler)
@@ -80,7 +82,12 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 // Route returns the named route.
 // Nil is returned if the named route cannot be found.
 func (r *Router) Route(name string) *Route {
-	return r.routes[name]
+	return r.namedRoutes[name]
+}
+
+// Routes returns all routes managed by the router.
+func (r *Router) Routes() []*Route {
+	return r.routes
 }
 
 // Use appends the specified handlers to the router and shares them with all routes.
@@ -105,12 +112,22 @@ func (r *Router) handleError(c *Context, err error) {
 	}
 }
 
-func (r *Router) add(method, path string, handlers []Handler) {
-	store := r.stores[method]
+func (r *Router) addRoute(route *Route, handlers []Handler) {
+	path := route.group.prefix + route.path
+
+	r.routes = append(r.routes, route)
+
+	store := r.stores[route.method]
 	if store == nil {
 		store = newStore()
-		r.stores[method] = store
+		r.stores[route.method] = store
 	}
+
+	// an asterisk at the end matches any number of characters
+	if strings.HasSuffix(path, "*") {
+		path = path[:len(path)-1] + "<:.*>"
+	}
+
 	if n := store.Add(path, handlers); n > r.maxParams {
 		r.maxParams = n
 	}

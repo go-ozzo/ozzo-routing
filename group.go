@@ -4,9 +4,7 @@
 
 package routing
 
-import (
-	"strings"
-)
+import "strings"
 
 // RouteGroup represents a group of routes that share the same path prefix.
 type RouteGroup struct {
@@ -25,83 +23,102 @@ func newRouteGroup(prefix string, router *Router, handlers []Handler) *RouteGrou
 }
 
 // Get adds a GET route to the router with the given route path and handlers.
-func (r *RouteGroup) Get(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Get(handlers...)
+func (rg *RouteGroup) Get(path string, handlers ...Handler) *Route {
+	return rg.add("GET", path, handlers)
 }
 
 // Post adds a POST route to the router with the given route path and handlers.
-func (r *RouteGroup) Post(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Post(handlers...)
+func (rg *RouteGroup) Post(path string, handlers ...Handler) *Route {
+	return rg.add("POST", path, handlers)
 }
 
 // Put adds a PUT route to the router with the given route path and handlers.
-func (r *RouteGroup) Put(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Put(handlers...)
+func (rg *RouteGroup) Put(path string, handlers ...Handler) *Route {
+	return rg.add("PUT", path, handlers)
 }
 
 // Patch adds a PATCH route to the router with the given route path and handlers.
-func (r *RouteGroup) Patch(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Patch(handlers...)
+func (rg *RouteGroup) Patch(path string, handlers ...Handler) *Route {
+	return rg.add("PATCH", path, handlers)
 }
 
 // Delete adds a DELETE route to the router with the given route path and handlers.
-func (r *RouteGroup) Delete(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Delete(handlers...)
+func (rg *RouteGroup) Delete(path string, handlers ...Handler) *Route {
+	return rg.add("DELETE", path, handlers)
 }
 
 // Connect adds a CONNECT route to the router with the given route path and handlers.
-func (r *RouteGroup) Connect(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Connect(handlers...)
+func (rg *RouteGroup) Connect(path string, handlers ...Handler) *Route {
+	return rg.add("CONNECT", path, handlers)
 }
 
 // Head adds a HEAD route to the router with the given route path and handlers.
-func (r *RouteGroup) Head(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Head(handlers...)
+func (rg *RouteGroup) Head(path string, handlers ...Handler) *Route {
+	return rg.add("HEAD", path, handlers)
 }
 
 // Options adds an OPTIONS route to the router with the given route path and handlers.
-func (r *RouteGroup) Options(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Options(handlers...)
+func (rg *RouteGroup) Options(path string, handlers ...Handler) *Route {
+	return rg.add("OPTIONS", path, handlers)
 }
 
 // Trace adds a TRACE route to the router with the given route path and handlers.
-func (r *RouteGroup) Trace(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).Trace(handlers...)
+func (rg *RouteGroup) Trace(path string, handlers ...Handler) *Route {
+	return rg.add("TRACE", path, handlers)
 }
 
 // Any adds a route with the given route, handlers, and the HTTP methods as listed in routing.Methods.
-func (r *RouteGroup) Any(path string, handlers ...Handler) *Route {
-	route := newRoute(path, r)
+func (rg *RouteGroup) Any(path string, handlers ...Handler) *Route {
 	for _, method := range Methods {
-		route.add(method, handlers)
+		rg.add(method, path, handlers)
 	}
-	return route
+	return rg.newRoute(strings.Join(Methods, ","), path)
 }
 
 // To adds a route to the router with the given HTTP methods, route path, and handlers.
 // Multiple HTTP methods should be separated by commas (without any surrounding spaces).
-func (r *RouteGroup) To(methods, path string, handlers ...Handler) *Route {
-	route := newRoute(path, r)
-	for _, method := range strings.Split(methods, ",") {
-		route.add(method, handlers)
+func (rg *RouteGroup) To(methods, path string, handlers ...Handler) *Route {
+	mm := strings.Split(methods, ",")
+	if len(mm) == 1 {
+		return rg.add(methods, path, handlers)
 	}
-	return route
+
+	for _, method := range mm {
+		rg.add(method, path, handlers)
+	}
+	return rg.newRoute(methods, path)
 }
 
 // Group creates a RouteGroup with the given route path prefix and handlers.
 // The new group will combine the existing path prefix with the new one.
 // If no handler is provided, the new group will inherit the handlers registered
 // with the current group.
-func (r *RouteGroup) Group(prefix string, handlers ...Handler) *RouteGroup {
+func (rg *RouteGroup) Group(prefix string, handlers ...Handler) *RouteGroup {
 	if len(handlers) == 0 {
-		handlers = make([]Handler, len(r.handlers))
-		copy(handlers, r.handlers)
+		handlers = make([]Handler, len(rg.handlers))
+		copy(handlers, rg.handlers)
 	}
-	return newRouteGroup(r.prefix+prefix, r.router, handlers)
+	return newRouteGroup(rg.prefix+prefix, rg.router, handlers)
 }
 
 // Use registers one or multiple handlers to the current route group.
 // These handlers will be shared by all routes belong to this group and its subgroups.
-func (r *RouteGroup) Use(handlers ...Handler) {
-	r.handlers = append(r.handlers, handlers...)
+func (rg *RouteGroup) Use(handlers ...Handler) {
+	rg.handlers = append(rg.handlers, handlers...)
+}
+
+func (rg *RouteGroup) add(method, path string, handlers []Handler) *Route {
+	r := rg.newRoute(method, path)
+	rg.router.addRoute(r, combineHandlers(rg.handlers, handlers))
+	return r
+}
+
+// newRoute creates a new Route with the given route path and route group.
+func (rg *RouteGroup) newRoute(method, path string) *Route {
+	return &Route{
+		group:    rg,
+		method:   method,
+		path:     path,
+		template: buildURLTemplate(rg.prefix + path),
+	}
 }

@@ -69,7 +69,7 @@ func TestContextURL(t *testing.T) {
 	router := New()
 	router.Get("/users/<id:\\d+>/<action>/*").Name("users")
 	c := &Context{router: router}
-	assert.Equal(t, "/users/123/address/<>", c.URL("users", "id", 123, "action", "address"))
+	assert.Equal(t, "/users/123/address/", c.URL("users", "id", 123, "action", "address"))
 	assert.Equal(t, "", c.URL("abc", "id", 123, "action", "address"))
 }
 

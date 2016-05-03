@@ -139,7 +139,7 @@ func (c *Context) Abort() {
 // Parameter values will be properly URL encoded.
 // The method returns an empty string if the URL creation fails.
 func (c *Context) URL(route string, pairs ...interface{}) string {
-	if r := c.router.routes[route]; r != nil {
+	if r := c.router.namedRoutes[route]; r != nil {
 		return r.URL(pairs...)
 	}
 	return ""

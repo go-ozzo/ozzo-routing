@@ -12,38 +12,32 @@ import (
 
 // Route represents a URL path pattern that can be used to match requested URLs.
 type Route struct {
-	group      *RouteGroup
-	name, path string
-	template   string
-}
-
-// newRoute creates a new Route with the given route path and route group.
-func newRoute(path string, group *RouteGroup) *Route {
-	path = group.prefix + path
-	name := path
-
-	// an asterisk at the end matches any number of characters
-	if strings.HasSuffix(path, "*") {
-		path = path[:len(path)-1] + "<:.*>"
-	}
-
-	route := &Route{
-		group:    group,
-		name:     name,
-		path:     path,
-		template: buildURLTemplate(path),
-	}
-	group.router.routes[name] = route
-
-	return route
+	group          *RouteGroup
+	method, path   string
+	name, template string
+	tags           []interface{}
 }
 
 // Name sets the name of the route.
 // This method will update the registration of the route in the router as well.
 func (r *Route) Name(name string) *Route {
 	r.name = name
-	r.group.router.routes[name] = r
+	r.group.router.namedRoutes[name] = r
 	return r
+}
+
+// Tag associates some custom data with the route.
+func (r *Route) Tag(value interface{}) *Route {
+	if r.tags == nil {
+		r.tags = []interface{}{}
+	}
+	r.tags = append(r.tags, value)
+	return r
+}
+
+// Tags returns all custom data associated with the route.
+func (r *Route) Tags() []interface{} {
+	return r.tags
 }
 
 // Get adds the route to the router using the GET HTTP method.
@@ -94,10 +88,15 @@ func (r *Route) Trace(handlers ...Handler) *Route {
 // To adds the route to the router with the given HTTP methods and handlers.
 // Multiple HTTP methods should be separated by commas (without any surrounding spaces).
 func (r *Route) To(methods string, handlers ...Handler) *Route {
-	for _, method := range strings.Split(methods, ",") {
+	mm := strings.Split(methods, ",")
+	if len(mm) == 1 {
+		return r.add(methods, handlers)
+	}
+
+	for _, method := range mm {
 		r.add(method, handlers)
 	}
-	return r
+	return r.group.newRoute(methods, r.path)
 }
 
 // URL creates a URL using the current route and the given parameters.
@@ -120,13 +119,14 @@ func (r *Route) URL(pairs ...interface{}) (s string) {
 // add registers the route, the specified HTTP method and the handlers to the router.
 // The handlers will be combined with the handlers of the route group.
 func (r *Route) add(method string, handlers []Handler) *Route {
-	hh := combineHandlers(r.group.handlers, handlers)
-	r.group.router.add(method, r.path, hh)
+	r = r.group.newRoute(method, r.path)
+	r.group.router.addRoute(r, combineHandlers(r.group.handlers, handlers))
 	return r
 }
 
 // buildURLTemplate converts a route pattern into a URL template by removing regular expressions in parameter tokens.
 func buildURLTemplate(path string) string {
+	path = strings.TrimRight(path, "*")
 	template, start, end := "", -1, -1
 	for i := 0; i < len(path); i++ {
 		if path[i] == '<' && start < 0 {
