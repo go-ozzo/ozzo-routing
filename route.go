@@ -16,6 +16,7 @@ type Route struct {
 	method, path   string
 	name, template string
 	tags           []interface{}
+	routes         []*Route
 }
 
 // Name sets the name of the route.
@@ -28,6 +29,13 @@ func (r *Route) Name(name string) *Route {
 
 // Tag associates some custom data with the route.
 func (r *Route) Tag(value interface{}) *Route {
+	if len(r.routes) > 0 {
+		// this route is a composite one (a path with multiple methods)
+		for _, route := range r.routes {
+			route.Tag(value)
+		}
+		return r
+	}
 	if r.tags == nil {
 		r.tags = []interface{}{}
 	}
@@ -42,61 +50,53 @@ func (r *Route) Tags() []interface{} {
 
 // Get adds the route to the router using the GET HTTP method.
 func (r *Route) Get(handlers ...Handler) *Route {
-	return r.add("GET", handlers)
+	return r.group.add("GET", r.path, handlers)
 }
 
 // Post adds the route to the router using the POST HTTP method.
 func (r *Route) Post(handlers ...Handler) *Route {
-	return r.add("POST", handlers)
+	return r.group.add("POST", r.path, handlers)
 }
 
 // Put adds the route to the router using the PUT HTTP method.
 func (r *Route) Put(handlers ...Handler) *Route {
-	return r.add("PUT", handlers)
+	return r.group.add("PUT", r.path, handlers)
 }
 
 // Patch adds the route to the router using the PATCH HTTP method.
 func (r *Route) Patch(handlers ...Handler) *Route {
-	return r.add("PATCH", handlers)
+	return r.group.add("PATCH", r.path, handlers)
 }
 
 // Delete adds the route to the router using the DELETE HTTP method.
 func (r *Route) Delete(handlers ...Handler) *Route {
-	return r.add("DELETE", handlers)
+	return r.group.add("DELETE", r.path, handlers)
 }
 
 // Connect adds the route to the router using the CONNECT HTTP method.
 func (r *Route) Connect(handlers ...Handler) *Route {
-	return r.add("CONNECT", handlers)
+	return r.group.add("CONNECT", r.path, handlers)
 }
 
 // Head adds the route to the router using the HEAD HTTP method.
 func (r *Route) Head(handlers ...Handler) *Route {
-	return r.add("HEAD", handlers)
+	return r.group.add("HEAD", r.path, handlers)
 }
 
 // Options adds the route to the router using the OPTIONS HTTP method.
 func (r *Route) Options(handlers ...Handler) *Route {
-	return r.add("OPTIONS", handlers)
+	return r.group.add("OPTIONS", r.path, handlers)
 }
 
 // Trace adds the route to the router using the TRACE HTTP method.
 func (r *Route) Trace(handlers ...Handler) *Route {
-	return r.add("TRACE", handlers)
+	return r.group.add("TRACE", r.path, handlers)
 }
 
 // To adds the route to the router with the given HTTP methods and handlers.
 // Multiple HTTP methods should be separated by commas (without any surrounding spaces).
 func (r *Route) To(methods string, handlers ...Handler) *Route {
-	mm := strings.Split(methods, ",")
-	if len(mm) == 1 {
-		return r.add(methods, handlers)
-	}
-
-	for _, method := range mm {
-		r.add(method, handlers)
-	}
-	return r.group.newRoute(methods, r.path)
+	return r.group.To(methods, r.path, handlers...)
 }
 
 // URL creates a URL using the current route and the given parameters.
@@ -114,48 +114,4 @@ func (r *Route) URL(pairs ...interface{}) (s string) {
 		s = strings.Replace(s, name, value, -1)
 	}
 	return
-}
-
-// add registers the route, the specified HTTP method and the handlers to the router.
-// The handlers will be combined with the handlers of the route group.
-func (r *Route) add(method string, handlers []Handler) *Route {
-	r = r.group.newRoute(method, r.path)
-	r.group.router.addRoute(r, combineHandlers(r.group.handlers, handlers))
-	return r
-}
-
-// buildURLTemplate converts a route pattern into a URL template by removing regular expressions in parameter tokens.
-func buildURLTemplate(path string) string {
-	path = strings.TrimRight(path, "*")
-	template, start, end := "", -1, -1
-	for i := 0; i < len(path); i++ {
-		if path[i] == '<' && start < 0 {
-			start = i
-		} else if path[i] == '>' && start >= 0 {
-			name := path[start+1 : i]
-			for j := start + 1; j < i; j++ {
-				if path[j] == ':' {
-					name = path[start+1 : j]
-					break
-				}
-			}
-			template += path[end+1:start] + "<" + name + ">"
-			end = i
-			start = -1
-		}
-	}
-	if end < 0 {
-		template = path
-	} else if end < len(path)-1 {
-		template += path[end+1:]
-	}
-	return template
-}
-
-// combineHandlers merges two lists of handlers into a new list.
-func combineHandlers(h1 []Handler, h2 []Handler) []Handler {
-	hh := make([]Handler, len(h1)+len(h2))
-	copy(hh, h1)
-	copy(hh[len(h1):], h2)
-	return hh
 }

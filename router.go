@@ -52,7 +52,6 @@ var Methods = []string{
 // New creates a new Router object.
 func New() *Router {
 	r := &Router{
-		routes:      make([]*Route, 0),
 		namedRoutes: make(map[string]*Route),
 		stores:      make(map[string]routeStore),
 	}

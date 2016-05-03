@@ -69,10 +69,7 @@ func (rg *RouteGroup) Trace(path string, handlers ...Handler) *Route {
 
 // Any adds a route with the given route, handlers, and the HTTP methods as listed in routing.Methods.
 func (rg *RouteGroup) Any(path string, handlers ...Handler) *Route {
-	for _, method := range Methods {
-		rg.add(method, path, handlers)
-	}
-	return rg.newRoute(strings.Join(Methods, ","), path)
+	return rg.To(strings.Join(Methods, ","), path, handlers...)
 }
 
 // To adds a route to the router with the given HTTP methods, route path, and handlers.
@@ -83,10 +80,11 @@ func (rg *RouteGroup) To(methods, path string, handlers ...Handler) *Route {
 		return rg.add(methods, path, handlers)
 	}
 
+	r := rg.newRoute(methods, path)
 	for _, method := range mm {
-		rg.add(method, path, handlers)
+		r.routes = append(r.routes, rg.add(method, path, handlers))
 	}
-	return rg.newRoute(methods, path)
+	return r
 }
 
 // Group creates a RouteGroup with the given route path prefix and handlers.
@@ -121,4 +119,40 @@ func (rg *RouteGroup) newRoute(method, path string) *Route {
 		path:     path,
 		template: buildURLTemplate(rg.prefix + path),
 	}
+}
+
+// combineHandlers merges two lists of handlers into a new list.
+func combineHandlers(h1 []Handler, h2 []Handler) []Handler {
+	hh := make([]Handler, len(h1)+len(h2))
+	copy(hh, h1)
+	copy(hh[len(h1):], h2)
+	return hh
+}
+
+// buildURLTemplate converts a route pattern into a URL template by removing regular expressions in parameter tokens.
+func buildURLTemplate(path string) string {
+	path = strings.TrimRight(path, "*")
+	template, start, end := "", -1, -1
+	for i := 0; i < len(path); i++ {
+		if path[i] == '<' && start < 0 {
+			start = i
+		} else if path[i] == '>' && start >= 0 {
+			name := path[start+1 : i]
+			for j := start + 1; j < i; j++ {
+				if path[j] == ':' {
+					name = path[start+1 : j]
+					break
+				}
+			}
+			template += path[end+1:start] + "<" + name + ">"
+			end = i
+			start = -1
+		}
+	}
+	if end < 0 {
+		template = path
+	} else if end < len(path)-1 {
+		template += path[end+1:]
+	}
+	return template
 }

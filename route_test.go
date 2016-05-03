@@ -100,9 +100,31 @@ func TestRouteAdd(t *testing.T) {
 
 func TestRouteTag(t *testing.T) {
 	router := New()
-	group := newRouteGroup("/admin", router, nil)
-	r := group.newRoute("GET", "/users").Tag("123")
-	assert.Equal(t, "123", r.Tags()[0].(string))
+	router.Get("/posts").Tag("posts")
+	router.Any("/users").Tag("users")
+	router.To("PUT,PATCH", "/comments").Tag("comments")
+	router.Get("/orders").Tag("GET orders").Post().Tag("POST orders")
+	routes := router.Routes()
+	for _, route := range routes {
+		if !assert.True(t, len(route.Tags()) > 0, route.method+" "+route.path+" should have a tag") {
+			continue
+		}
+		tag := route.Tags()[0].(string)
+		switch route.path {
+		case "/posts":
+			assert.Equal(t, "posts", tag)
+		case "/users":
+			assert.Equal(t, "users", tag)
+		case "/comments":
+			assert.Equal(t, "comments", tag)
+		case "/orders":
+			if route.method == "GET" {
+				assert.Equal(t, "GET orders", tag)
+			} else {
+				assert.Equal(t, "POST orders", tag)
+			}
+		}
+	}
 }
 
 func TestRouteMethods(t *testing.T) {
