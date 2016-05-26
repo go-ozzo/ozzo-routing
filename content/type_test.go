@@ -5,38 +5,39 @@
 package content
 
 import (
-	"github.com/go-ozzo/ozzo-routing"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestJSONFormatter(t *testing.T) {
 	res := httptest.NewRecorder()
-	w := JSONFormatter(res)
-	bytes, err := w("xyz")
+	w := &JSONDataWriter{}
+	err := w.Write(res, "xyz")
 	assert.Nil(t, err)
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-	assert.Equal(t, "\"xyz\"", string(bytes))
+	assert.Equal(t, "\"xyz\"", res.Body.String())
 }
 
 func TestXMLFormatter(t *testing.T) {
 	res := httptest.NewRecorder()
-	w := XMLFormatter(res)
-	bytes, err := w("xyz")
+	w := &XMLDataWriter{}
+	err := w.Write(res, "xyz")
 	assert.Nil(t, err)
 	assert.Equal(t, "application/xml; charset=UTF-8", res.Header().Get("Content-Type"))
-	assert.Equal(t, "<string>xyz</string>", string(bytes))
+	assert.Equal(t, "<string>xyz</string>", res.Body.String())
 }
 
 func TestHTMLFormatter(t *testing.T) {
 	res := httptest.NewRecorder()
-	w := HTMLFormatter(res)
-	bytes, err := w("xyz")
+	w := &HTMLDataWriter{}
+	err := w.Write(res, "xyz")
 	assert.Nil(t, err)
 	assert.Equal(t, "text/html; charset=UTF-8", res.Header().Get("Content-Type"))
-	assert.Equal(t, "xyz", string(bytes))
+	assert.Equal(t, "xyz", res.Body.String())
 }
 
 func TestTypeNegotiator(t *testing.T) {

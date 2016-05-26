@@ -8,38 +8,38 @@ package content
 import (
 	"encoding/json"
 	"encoding/xml"
+	"net/http"
+
 	"github.com/go-ozzo/ozzo-routing"
 	"github.com/golang/gddo/httputil"
-	"net/http"
 )
 
 // MIME types
 const (
-	JSON = "application/json"
-	XML  = "application/xml"
-	HTML = "text/html"
+	JSON = routing.JSON
+	XML  = routing.XML
+	XML2 = routing.XML2
+	HTML = routing.HTML
 )
 
-// Formatter is a function setting response content type and returning a routing.SerializeFunc for writing data.
-type Formatter func(http.ResponseWriter) routing.SerializeFunc
-
-// Formatters lists all supported content types and the corresponding formatters.
+// DataWriters lists all supported content types and the corresponding data writers.
 // By default, JSON, XML, and HTML are supported. You may modify this variable before calling TypeNegotiator
-// to customize supported formatters.
-var Formatters = map[string]Formatter{
-	JSON: JSONFormatter,
-	XML:  XMLFormatter,
-	HTML: HTMLFormatter,
+// to customize supported data writers.
+var DataWriters = map[string]routing.DataWriter{
+	JSON: &JSONDataWriter{},
+	XML:  &XMLDataWriter{},
+	XML2: &XMLDataWriter{},
+	HTML: &HTMLDataWriter{},
 }
 
 // TypeNegotiator returns a content type negotiation handler.
 //
 // The method takes a list of response MIME types that are supported by the application.
-// The negotiator will determine the best response MIME type to use by checking the Accept request header.
+// The negotiator will determine the best response MIME type to use by checking the "Accept" HTTP header.
 // If no match is found, the first MIME type will be used.
 //
-// The negotiator will set the "Content-Type" response header as the chosen MIME type. It will also set
-// routing.Context.Write to be the function that would serialize the given data in the appropriate format.
+// The negotiator will set the "Content-Type" response header as the chosen MIME type. It will call routing.Context.SetDataWriter()
+// to set the appropriate data writer that can write data in the negotiated format.
 //
 // If you do not specify any supported MIME types, the negotiator will use "text/html" as the response MIME type.
 func TypeNegotiator(formats ...string) routing.Handler {
@@ -47,33 +47,48 @@ func TypeNegotiator(formats ...string) routing.Handler {
 		formats = []string{HTML}
 	}
 	for _, format := range formats {
-		if _, ok := Formatters[format]; !ok {
+		if _, ok := DataWriters[format]; !ok {
 			panic(format + " is not supported")
 		}
 	}
-	defaultFormat := formats[0]
 
 	return func(c *routing.Context) error {
-		format := httputil.NegotiateContentType(c.Request, formats, defaultFormat)
-		c.Serialize = Formatters[format](c.Response)
+		format := httputil.NegotiateContentType(c.Request, formats, formats[0])
+		c.SetDataWriter(DataWriters[format])
 		return nil
 	}
 }
 
-// JSONFormatter sets the "Content-Type" response header as "application/json" and returns a routing.WriteFunc that writes the given data in JSON format.
-func JSONFormatter(res http.ResponseWriter) routing.SerializeFunc {
+// JSONDataWriter sets the "Content-Type" response header as "application/json" and writes the given data in JSON format to the response.
+type JSONDataWriter struct{}
+
+func (w *JSONDataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
 	res.Header().Set("Content-Type", "application/json")
-	return json.Marshal
+	var bytes []byte
+	if bytes, err = json.Marshal(data); err != nil {
+		return
+	}
+	_, err = res.Write(bytes)
+	return
 }
 
-// XMLFormatter sets the "Content-Type" response header as "application/xml; charset=UTF-8" and returns a routing.WriteFunc that writes the given data in XML format.
-func XMLFormatter(res http.ResponseWriter) routing.SerializeFunc {
+// XMLDataWriter sets the "Content-Type" response header as "application/xml; charset=UTF-8" and writes the given data in XML format to the response.
+type XMLDataWriter struct{}
+
+func (w *XMLDataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
 	res.Header().Set("Content-Type", "application/xml; charset=UTF-8")
-	return xml.Marshal
+	var bytes []byte
+	if bytes, err = xml.Marshal(data); err != nil {
+		return
+	}
+	_, err = res.Write(bytes)
+	return
 }
 
-// HTMLFormatter sets the "Content-Type" response header as "text/html; charset=UTF-8" and returns a routing.WriteFunc that writes the given data in a byte stream.
-func HTMLFormatter(res http.ResponseWriter) routing.SerializeFunc {
+// HTMLDataWriter sets the "Content-Type" response header as "text/html; charset=UTF-8" and calls routing.DefaultDataWriter to write the given data to the response.
+type HTMLDataWriter struct{}
+
+func (w *HTMLDataWriter) Write(res http.ResponseWriter, data interface{}) error {
 	res.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	return routing.Serialize
+	return routing.DefaultDataWriter.Write(res, data)
 }

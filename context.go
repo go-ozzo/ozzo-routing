@@ -5,36 +5,43 @@
 package routing
 
 import (
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 )
 
-// SerializeFunc serializes the given data of arbitrary type into a byte array.
-type SerializeFunc func(data interface{}) ([]byte, error)
-
 // Context represents the contextual data and environment while processing an incoming HTTP request.
 type Context struct {
-	Request   *http.Request       // the current request
-	Response  http.ResponseWriter // the response writer
-	Serialize SerializeFunc       // the function serializing the given data of arbitrary type into a byte array.
-	router    *Router
-	pnames    []string               // list of route parameter names
-	pvalues   []string               // list of parameter values corresponding to pnames
-	data      map[string]interface{} // data items managed by Get and Set
-	index     int                    // the index of the currently executing handler in handlers
-	handlers  []Handler              // the handlers associated with the current route
+	Request  *http.Request       // the current request
+	Response http.ResponseWriter // the response writer
+	router   *Router
+	pnames   []string               // list of route parameter names
+	pvalues  []string               // list of parameter values corresponding to pnames
+	data     map[string]interface{} // data items managed by Get and Set
+	index    int                    // the index of the currently executing handler in handlers
+	handlers []Handler              // the handlers associated with the current route
+	writer   DataWriter
+	reader   DataReader
+}
+
+// DataWriter is used by Context.Write() to write arbitrary data into an HTTP response.
+type DataWriter interface {
+	// Write writes the given data into the response.
+	Write(http.ResponseWriter, interface{}) error
+}
+
+// DataReader is used by Context.Read() to read data from an HTTP request.
+type DataReader interface {
+	// Read reads from the given HTTP request and populate the specified data.
+	Read(*http.Request, interface{}) error
 }
 
 // NewContext creates a new Context object with the given response, request, and the handlers.
 // This method is primarily provided for writing unit tests for handlers.
 func NewContext(res http.ResponseWriter, req *http.Request, handlers ...Handler) *Context {
-	c := &Context{
-		Response: res,
-		Request:  req,
-		handlers: handlers,
-		index:    -1,
-	}
-	c.Serialize = Serialize
+	c := &Context{handlers: handlers}
+	c.init(res, req)
 	return c
 }
 
@@ -146,14 +153,24 @@ func (c *Context) URL(route string, pairs ...interface{}) string {
 }
 
 // Write writes the given data of arbitrary type to the response.
-// The method calls the Serialize() method to convert the data into a byte array and then writes
-// the byte array to the response.
-func (c *Context) Write(data interface{}) (err error) {
-	var bytes []byte
-	if bytes, err = c.Serialize(data); err == nil {
-		_, err = c.Response.Write(bytes)
-	}
-	return
+// The method calls the data writer set via SetDataWriter() to do the actual writing.
+// By default, the DefaultDataWriter will be used.
+func (c *Context) Write(data interface{}) error {
+	return c.writer.Write(c.Response, data)
+}
+
+func (c *Context) Read(data interface{}) error {
+	return c.reader.Read(c.Request, data)
+}
+
+// SetDataWriter sets the data writer that will be used by Write().
+func (c *Context) SetDataWriter(writer DataWriter) {
+	c.writer = writer
+}
+
+// SetDataReader sets the data reader that will be used by Read().
+func (c *Context) SetDataReader(reader DataReader) {
+	c.reader = reader
 }
 
 // init sets the request and response of the context and resets all other properties.
@@ -162,21 +179,64 @@ func (c *Context) init(response http.ResponseWriter, request *http.Request) {
 	c.Request = request
 	c.data = nil
 	c.index = -1
-	c.Serialize = Serialize
+	c.writer = DefaultDataWriter
 }
 
-// Serialize converts the given data into a byte array.
-// If the data is neither a byte array nor a string, it will call fmt.Sprint to convert it into a string.
-func Serialize(data interface{}) (bytes []byte, err error) {
+// DefaultDataWriter writes the given data in an HTTP response.
+// If the data is neither string nor byte array, it will use fmt.Fprint() to write it into the response.
+var DefaultDataWriter DataWriter = &dataWriter{}
+
+type dataWriter struct{}
+
+func (w *dataWriter) Write(res http.ResponseWriter, data interface{}) error {
+	var bytes []byte
 	switch data.(type) {
 	case []byte:
-		return data.([]byte), nil
+		bytes = data.([]byte)
 	case string:
-		return []byte(data.(string)), nil
+		bytes = []byte(data.(string))
 	default:
 		if data != nil {
-			return []byte(fmt.Sprint(data)), nil
+			_, err := fmt.Fprint(res, data)
+			return err
 		}
 	}
-	return nil, nil
+	_, err := res.Write(bytes)
+	return err
+}
+
+const (
+	JSON = "application/json"
+	XML  = "application/xml"
+	XML2 = "text/xml"
+	HTML = "text/html"
+)
+
+type dataReader struct{}
+
+func (r *dataReader) Read(req *http.Request, data interface{}) error {
+	if req.Method != "GET" {
+		switch getContentType(req) {
+		case JSON:
+			return json.NewDecoder(req.Body).Decode(data)
+		case XML, XML2:
+			return xml.NewDecoder(req.Body).Decode(data)
+		}
+	}
+
+	// read from query and post (body)
+	if err := req.ParseMultipartForm(32 << 20); err != nil {
+		return err
+	}
+	return ReadForm(req.Form, data)
+}
+
+func getContentType(req *http.Request) string {
+	t := req.Header.Get("Content-Type")
+	for i, c := range t {
+		if c == ' ' || c == ';' {
+			return t[:i]
+		}
+	}
+	return t
 }

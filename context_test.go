@@ -11,24 +11,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSerialize(t *testing.T) {
-	bytes, err := Serialize("abc")
-	assert.Nil(t, err)
-	assert.Equal(t, "abc", string(bytes))
-
-	bytes, err = Serialize([]byte("abc"))
-	assert.Nil(t, err)
-	assert.Equal(t, "abc", string(bytes))
-
-	bytes, err = Serialize(123)
-	assert.Nil(t, err)
-	assert.Equal(t, "123", string(bytes))
-
-	bytes, err = Serialize(nil)
-	assert.Nil(t, err)
-	assert.Nil(t, bytes)
-
+func TestDefaultDataWriter(t *testing.T) {
 	res := httptest.NewRecorder()
+	err := DefaultDataWriter.Write(res, "abc")
+	assert.Nil(t, err)
+	assert.Equal(t, "abc", res.Body.String())
+
+	res = httptest.NewRecorder()
+	err = DefaultDataWriter.Write(res, []byte("abc"))
+	assert.Nil(t, err)
+	assert.Equal(t, "abc", res.Body.String())
+
+	res = httptest.NewRecorder()
+	err = DefaultDataWriter.Write(res, 123)
+	assert.Nil(t, err)
+	assert.Equal(t, "123", res.Body.String())
+
+	res = httptest.NewRecorder()
+	err = DefaultDataWriter.Write(res, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, "", res.Body.String())
+
+	res = httptest.NewRecorder()
 	c := &Context{}
 	c.init(res, nil)
 	assert.Nil(t, c.Write("abc"))
