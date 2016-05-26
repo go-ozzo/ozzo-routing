@@ -3,6 +3,7 @@ package routing
 import (
 	"errors"
 	"reflect"
+	"strconv"
 )
 
 const formTag = "form"
@@ -21,8 +22,9 @@ func ReadForm(form map[string][]string, data interface{}) error {
 }
 
 func readForm(form map[string][]string, prefix string, rv reflect.Value) error {
-	n := rv.NumField()
+	rv = indirect(rv)
 	rt := rv.Type()
+	n := rt.NumField()
 	for i := 0; i < n; i++ {
 		field := rt.Field(i)
 		tag := field.Tag.Get(formTag)
@@ -46,7 +48,7 @@ func readForm(form map[string][]string, prefix string, rv reflect.Value) error {
 		}
 
 		if ft.Kind() != reflect.Struct {
-			if err := setField(rv.Field(i), form, name); err != nil {
+			if err := readFormField(form, name, rv.Field(i)); err != nil {
 				return err
 			}
 			continue
@@ -62,20 +64,20 @@ func readForm(form map[string][]string, prefix string, rv reflect.Value) error {
 	return nil
 }
 
-func setField(rv reflect.Value, form map[string][]string, name string) error {
+func readFormField(form map[string][]string, name string, rv reflect.Value) error {
 	value, ok := form[name]
 	if !ok {
 		return nil
 	}
 	rv = indirect(rv)
 	if rv.Kind() != reflect.Slice {
-		return setValue(rv, value[0])
+		return setFormFieldValue(rv, value[0])
 	}
 
 	n := len(value)
 	slice := reflect.MakeSlice(rv.Type(), n, n)
 	for i := 0; i < n; i++ {
-		if err := setValue(slice.Index(i), value[i]); err != nil {
+		if err := setFormFieldValue(slice.Index(i), value[i]); err != nil {
 			return err
 		}
 	}
@@ -83,8 +85,50 @@ func setField(rv reflect.Value, form map[string][]string, name string) error {
 	return nil
 }
 
-func setValue(rv reflect.Value, value string) error {
-	return nil
+func setFormFieldValue(rv reflect.Value, value string) error {
+	switch rv.Kind() {
+	case reflect.Bool:
+		if value == "" {
+			value = "false"
+		}
+		v, err := strconv.ParseBool(value)
+		if err == nil {
+			rv.SetBool(v)
+		}
+		return err
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if value == "" {
+			value = "0"
+		}
+		v, err := strconv.ParseInt(value, 10, 64)
+		if err == nil {
+			rv.SetInt(v)
+		}
+		return err
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if value == "" {
+			value = "0"
+		}
+		v, err := strconv.ParseUint(value, 10, 64)
+		if err == nil {
+			rv.SetUint(v)
+		}
+		return err
+	case reflect.Float32, reflect.Float64:
+		if value == "" {
+			value = "0"
+		}
+		v, err := strconv.ParseFloat(value, 64)
+		if err == nil {
+			rv.SetFloat(v)
+		}
+		return err
+	case reflect.String:
+		rv.SetString(value)
+		return nil
+	default:
+		return errors.New("Unknown type: " + rv.Kind().String())
+	}
 }
 
 // indirect dereferences pointers and returns the actual value it points to.
