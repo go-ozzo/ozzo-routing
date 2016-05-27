@@ -4,12 +4,7 @@
 
 package routing
 
-import (
-	"encoding/json"
-	"encoding/xml"
-	"fmt"
-	"net/http"
-)
+import "net/http"
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
 type Context struct {
@@ -22,19 +17,6 @@ type Context struct {
 	index    int                    // the index of the currently executing handler in handlers
 	handlers []Handler              // the handlers associated with the current route
 	writer   DataWriter
-	reader   DataReader
-}
-
-// DataWriter is used by Context.Write() to write arbitrary data into an HTTP response.
-type DataWriter interface {
-	// Write writes the given data into the response.
-	Write(http.ResponseWriter, interface{}) error
-}
-
-// DataReader is used by Context.Read() to read data from an HTTP request.
-type DataReader interface {
-	// Read reads from the given HTTP request and populate the specified data.
-	Read(*http.Request, interface{}) error
 }
 
 // NewContext creates a new Context object with the given response, request, and the handlers.
@@ -152,6 +134,22 @@ func (c *Context) URL(route string, pairs ...interface{}) string {
 	return ""
 }
 
+// Read populates the given struct variable with the data from the current request.
+// If the request is NOT a GET request, it will check the "Content-Type" header
+// and find a matching reader from DataReaders to read the request data.
+// If there is no match or if the request is a GET request, it will use DefaultFormDataReader
+// to read the request data.
+func (c *Context) Read(data interface{}) error {
+	if c.Request.Method != "GET" {
+		t := getContentType(c.Request)
+		if reader, ok := DataReaders[t]; ok {
+			return reader.Read(c.Request, data)
+		}
+	}
+
+	return DefaultFormDataReader.Read(c.Request, data)
+}
+
 // Write writes the given data of arbitrary type to the response.
 // The method calls the data writer set via SetDataWriter() to do the actual writing.
 // By default, the DefaultDataWriter will be used.
@@ -159,18 +157,9 @@ func (c *Context) Write(data interface{}) error {
 	return c.writer.Write(c.Response, data)
 }
 
-func (c *Context) Read(data interface{}) error {
-	return c.reader.Read(c.Request, data)
-}
-
 // SetDataWriter sets the data writer that will be used by Write().
 func (c *Context) SetDataWriter(writer DataWriter) {
 	c.writer = writer
-}
-
-// SetDataReader sets the data reader that will be used by Read().
-func (c *Context) SetDataReader(reader DataReader) {
-	c.reader = reader
 }
 
 // init sets the request and response of the context and resets all other properties.
@@ -180,55 +169,6 @@ func (c *Context) init(response http.ResponseWriter, request *http.Request) {
 	c.data = nil
 	c.index = -1
 	c.writer = DefaultDataWriter
-}
-
-// DefaultDataWriter writes the given data in an HTTP response.
-// If the data is neither string nor byte array, it will use fmt.Fprint() to write it into the response.
-var DefaultDataWriter DataWriter = &dataWriter{}
-
-type dataWriter struct{}
-
-func (w *dataWriter) Write(res http.ResponseWriter, data interface{}) error {
-	var bytes []byte
-	switch data.(type) {
-	case []byte:
-		bytes = data.([]byte)
-	case string:
-		bytes = []byte(data.(string))
-	default:
-		if data != nil {
-			_, err := fmt.Fprint(res, data)
-			return err
-		}
-	}
-	_, err := res.Write(bytes)
-	return err
-}
-
-const (
-	JSON = "application/json"
-	XML  = "application/xml"
-	XML2 = "text/xml"
-	HTML = "text/html"
-)
-
-type dataReader struct{}
-
-func (r *dataReader) Read(req *http.Request, data interface{}) error {
-	if req.Method != "GET" {
-		switch getContentType(req) {
-		case JSON:
-			return json.NewDecoder(req.Body).Decode(data)
-		case XML, XML2:
-			return xml.NewDecoder(req.Body).Decode(data)
-		}
-	}
-
-	// read from query and post (body)
-	if err := req.ParseMultipartForm(32 << 20); err != nil {
-		return err
-	}
-	return ReadForm(req.Form, data)
 }
 
 func getContentType(req *http.Request) string {

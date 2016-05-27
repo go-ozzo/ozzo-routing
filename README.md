@@ -264,12 +264,50 @@ Using `Context.Get()` and `Context.Set()`, handlers can share data between each 
 handler can store the authenticated user identity by calling `Context.Set()`, and other handlers can retrieve back
 the identity information by calling `Context.Get()`.
 
-Context also provides a handy `Write()` method that can be used to write data of arbitrary type to the response.
-The `Write()` method can also be overridden (by replacement) to achieve more versatile response data writing. 
 
-Context provides a few shortcut methods to simplify the access to query parameters. The `Context.Query()` returns
-the named URL query parameter value; the `Context.PostForm()` returns the named parameter value in the POST or
-PUT body parameters; and the `Context.Form()` returns the value from either POST/PUT or URL query parameters.
+### Reading Request Data
+
+Context provides a few shortcut methods to read query parameters. The `Context.Query()`  method returns
+the named URL query parameter value; the `Context.PostForm()` method returns the named parameter value in the POST or
+PUT body parameters; and the `Context.Form()` method returns the value from either POST/PUT or URL query parameters.
+
+The `Context.Read()` method supports reading data from the request body and populating it into an object.
+The method will check the `Content-Type` HTTP header and parse the body data as the corresponding format.
+For example, if `Content-Type` is `application/json`, the request body will be parsed as JSON data.
+The public fields in the object being populated will receive the parsed data if the data contains the same named fields.
+For example,
+
+```go
+func foo(c *routing.Context) error {
+    data := &struct{
+        A string
+        B bool
+    }{}
+
+    // assume the body data is: {"A":"abc", "B":true}
+    // data will be populated as: {A: "abc", B: true}
+    if err := c.Read(&data); err != nil {
+        return err
+    }
+}
+```
+
+By default, `Context` supports reading data that are in JSON, XML, form, and multipart-form data.
+You may modify `routing.DataReaders` to add support for other data formats.
+
+Note that when the data is read as form data, you may use struct tag named `form` to customize
+the name of the corresponding field in the form data. The form data reader also supports populating
+data into embedded objects which are either named or anonymous.
+
+### Writing Response Data
+
+The `Context.Write()` method can be used to write data of arbitrary type to the response.
+By default, if the data being written is neither a string nor a byte array, the method will
+will call `fmt.Fprint()` to write the data into the response.
+
+You can call `Context.SetWriter()` to replace the default data writer with a customized one.
+For example, the `content.TypeNegotiator` will negotiate the content response type and set the data
+writer with an appropriate one.
 
 ### Error Handling
 

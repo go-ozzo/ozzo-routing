@@ -1,14 +1,74 @@
 package routing
 
 import (
+	"encoding/json"
+	"encoding/xml"
 	"errors"
+	"net/http"
 	"reflect"
 	"strconv"
 )
 
+// MIME types used when doing request data reading and response data writing.
+const (
+	MIME_JSON           = "application/json"
+	MIME_XML            = "application/xml"
+	MIME_XML2           = "text/xml"
+	MIME_HTML           = "text/html"
+	MIME_FORM           = "application/x-www-form-urlencoded"
+	MIME_MULTIPART_FORM = "multipart/form-data"
+)
+
+// DataReader is used by Context.Read() to read data from an HTTP request.
+type DataReader interface {
+	// Read reads from the given HTTP request and populate the specified data.
+	Read(*http.Request, interface{}) error
+}
+
+var (
+	// DataReaders lists all supported content types and the corresponding data readers.
+	// Context.Read() will choose a matching reader from this list according to the "Content-Type"
+	// header from the current request.
+	// You may modify this variable to add new supported content types.
+	DataReaders = map[string]DataReader{
+		MIME_FORM:           &FormDataReader{},
+		MIME_MULTIPART_FORM: &FormDataReader{},
+		MIME_JSON:           &JSONDataReader{},
+		MIME_XML:            &XMLDataReader{},
+		MIME_XML2:           &XMLDataReader{},
+	}
+	// DefaultFormDataReader is the reader used when there is no matching reader in DataReaders
+	// or if the current request is a GET request.
+	DefaultFormDataReader DataReader = &FormDataReader{}
+)
+
+// JSONDataReader reads the request body as JSON-formatted data.
+type JSONDataReader struct{}
+
+func (r *JSONDataReader) Read(req *http.Request, data interface{}) error {
+	return json.NewDecoder(req.Body).Decode(data)
+}
+
+// XMLDataReader reads the request body as XML-formatted data.
+type XMLDataReader struct{}
+
+func (r *XMLDataReader) Read(req *http.Request, data interface{}) error {
+	return xml.NewDecoder(req.Body).Decode(data)
+}
+
+// FormDataReader reads the query parameters and request body as form data.
+type FormDataReader struct{}
+
+func (r *FormDataReader) Read(req *http.Request, data interface{}) error {
+	// Do not check return result. Otherwise GET request will cause problem.
+	req.ParseMultipartForm(32 << 20)
+	return ReadFormData(req.Form, data)
+}
+
 const formTag = "form"
 
-func ReadForm(form map[string][]string, data interface{}) error {
+// ReadFormData populates the data variable with the data from the given form values.
+func ReadFormData(form map[string][]string, data interface{}) error {
 	rv := reflect.ValueOf(data)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.New("data must be a pointer")

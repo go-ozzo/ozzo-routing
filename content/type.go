@@ -16,10 +16,12 @@ import (
 
 // MIME types
 const (
-	JSON = routing.JSON
-	XML  = routing.XML
-	XML2 = routing.XML2
-	HTML = routing.HTML
+	JSON           = routing.MIME_JSON
+	XML            = routing.MIME_XML
+	XML2           = routing.MIME_XML2
+	HTML           = routing.MIME_HTML
+	FORM           = routing.MIME_FORM
+	MULTIPART_FORM = routing.MIME_MULTIPART_FORM
 )
 
 // DataWriters lists all supported content types and the corresponding data writers.
