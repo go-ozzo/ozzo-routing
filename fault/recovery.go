@@ -8,14 +8,20 @@ package fault
 import (
 	"errors"
 	"fmt"
-	"github.com/go-ozzo/ozzo-routing"
 	"net/http"
+
+	"github.com/go-ozzo/ozzo-routing"
 )
 
-// LogFunc logs a message using the given format and optional arguments.
-// The usage of format and arguments is similar to that for fmt.Printf().
-// LogFunc should be thread safe.
-type LogFunc func(format string, a ...interface{})
+type (
+	// LogFunc logs a message using the given format and optional arguments.
+	// The usage of format and arguments is similar to that for fmt.Printf().
+	// LogFunc should be thread safe.
+	LogFunc func(format string, a ...interface{})
+
+	// ErrorHandler is called whenever a panic or error is captured by the middleware.
+	ErrorHandler func(c *routing.Context, err error, log LogFunc)
+)
 
 // Recovery returns a handler that handles panics and errors occurred while servicing an HTTP request.
 //
@@ -33,21 +39,25 @@ type LogFunc func(format string, a ...interface{})
 //
 //     r := routing.New()
 //     r.Use(fault.Recovery(log.Printf))
-func Recovery(log LogFunc) routing.Handler {
+func Recovery(log LogFunc, errorHandler ...ErrorHandler) routing.Handler {
+	handler := handleError
+	if len(errorHandler) > 0 {
+		handler = errorHandler[0]
+	}
 	return func(c *routing.Context) error {
 		defer func() {
 			if err := recover(); err != nil {
 				if e, ok := err.(error); ok {
-					handleError(c, e, log)
+					handler(c, e, log)
 				} else {
-					handleError(c, errors.New(fmt.Sprint(err)), log)
+					handler(c, errors.New(fmt.Sprint(err)), log)
 				}
 				c.Abort()
 			}
 		}()
 
 		if err := c.Next(); err != nil {
-			handleError(c, err, log)
+			handler(c, err, log)
 			c.Abort()
 		}
 
