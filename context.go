@@ -4,7 +4,12 @@
 
 package routing
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+
+	"golang.org/x/net/context"
+)
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
 type Context struct {
@@ -18,6 +23,8 @@ type Context struct {
 	handlers []Handler              // the handlers associated with the current route
 	writer   DataWriter
 }
+
+var _ context.Context = &Context{}
 
 // NewContext creates a new Context object with the given response, request, and the handlers.
 // This method is primarily provided for writing unit tests for handlers.
@@ -160,6 +167,33 @@ func (c *Context) Write(data interface{}) error {
 // SetDataWriter sets the data writer that will be used by Write().
 func (c *Context) SetDataWriter(writer DataWriter) {
 	c.writer = writer
+}
+
+// Value is part of context.Context which returns the value corresponding to the specified key.
+// If the key does not exist, nil will be returned. Only string-typed keys are supported.
+func (c *Context) Value(key interface{}) interface{} {
+	if k, ok := key.(string); ok {
+		return c.Get(k)
+	}
+	return nil
+}
+
+// Deadline is part of context.Context.
+// The default implementation simply returns nils.
+func (c *Context) Deadline() (deadline time.Time, ok bool) {
+	return
+}
+
+// Done is part of context.Context.
+// The default implementation simply returns nil.
+func (c *Context) Done() <-chan struct{} {
+	return nil
+}
+
+// Err is part of context.Context.
+// The default implementation simply returns nil.
+func (c *Context) Err() error {
+	return nil
 }
 
 // init sets the request and response of the context and resets all other properties.
