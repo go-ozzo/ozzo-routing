@@ -8,11 +8,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/go-ozzo/ozzo-routing"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLogger(t *testing.T) {
@@ -28,13 +29,13 @@ func TestLogger(t *testing.T) {
 
 func TestLogResponseWriter(t *testing.T) {
 	res := httptest.NewRecorder()
-	w := &logResponseWriter{res, 0, 0}
+	w := &LogResponseWriter{res, 0, 0}
 	w.WriteHeader(http.StatusBadRequest)
 	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, http.StatusBadRequest, w.status)
+	assert.Equal(t, http.StatusBadRequest, w.Status)
 	n, _ := w.Write([]byte("test"))
 	assert.Equal(t, 4, n)
-	assert.Equal(t, int64(4), w.bytesWritten)
+	assert.Equal(t, int64(4), w.BytesWritten)
 	assert.Equal(t, "test", res.Body.String())
 }
 

@@ -7,10 +7,11 @@ package access
 
 import (
 	"fmt"
-	"github.com/go-ozzo/ozzo-routing"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-ozzo/ozzo-routing"
 )
 
 // LogFunc logs a message using the given format and optional arguments.
@@ -35,7 +36,7 @@ func Logger(log LogFunc) routing.Handler {
 		startTime := time.Now()
 
 		req := c.Request
-		rw := &logResponseWriter{c.Response, http.StatusOK, 0}
+		rw := &LogResponseWriter{c.Response, http.StatusOK, 0}
 		c.Response = rw
 
 		err := c.Next()
@@ -43,26 +44,27 @@ func Logger(log LogFunc) routing.Handler {
 		clientIP := getClientIP(req)
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
 		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.Path, req.Proto)
-		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.status, rw.bytesWritten)
+		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
 
 		return err
 	}
 }
 
-type logResponseWriter struct {
+// LogResponseWriter wraps http.ResponseWriter in order to capture HTTP status and response length information.
+type LogResponseWriter struct {
 	http.ResponseWriter
-	status       int
-	bytesWritten int64
+	Status       int
+	BytesWritten int64
 }
 
-func (r *logResponseWriter) Write(p []byte) (int, error) {
+func (r *LogResponseWriter) Write(p []byte) (int, error) {
 	written, err := r.ResponseWriter.Write(p)
-	r.bytesWritten += int64(written)
+	r.BytesWritten += int64(written)
 	return written, err
 }
 
-func (r *logResponseWriter) WriteHeader(status int) {
-	r.status = status
+func (r *LogResponseWriter) WriteHeader(status int) {
+	r.Status = status
 	r.ResponseWriter.WriteHeader(status)
 }
 
