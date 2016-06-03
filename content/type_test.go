@@ -16,6 +16,7 @@ import (
 func TestJSONFormatter(t *testing.T) {
 	res := httptest.NewRecorder()
 	w := &JSONDataWriter{}
+	w.SetHeader(res)
 	err := w.Write(res, "xyz")
 	assert.Nil(t, err)
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
@@ -25,6 +26,7 @@ func TestJSONFormatter(t *testing.T) {
 func TestXMLFormatter(t *testing.T) {
 	res := httptest.NewRecorder()
 	w := &XMLDataWriter{}
+	w.SetHeader(res)
 	err := w.Write(res, "xyz")
 	assert.Nil(t, err)
 	assert.Equal(t, "application/xml; charset=UTF-8", res.Header().Get("Content-Type"))
@@ -34,6 +36,7 @@ func TestXMLFormatter(t *testing.T) {
 func TestHTMLFormatter(t *testing.T) {
 	res := httptest.NewRecorder()
 	w := &HTMLDataWriter{}
+	w.SetHeader(res)
 	err := w.Write(res, "xyz")
 	assert.Nil(t, err)
 	assert.Equal(t, "text/html; charset=UTF-8", res.Header().Get("Content-Type"))

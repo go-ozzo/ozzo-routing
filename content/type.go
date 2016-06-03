@@ -54,6 +54,7 @@ func TypeNegotiator(formats ...string) routing.Handler {
 
 	return func(c *routing.Context) error {
 		format := httputil.NegotiateContentType(c.Request, formats, formats[0])
+		DataWriters[format].SetHeader(c.Response)
 		c.SetDataWriter(DataWriters[format])
 		return nil
 	}
@@ -62,8 +63,11 @@ func TypeNegotiator(formats ...string) routing.Handler {
 // JSONDataWriter sets the "Content-Type" response header as "application/json" and writes the given data in JSON format to the response.
 type JSONDataWriter struct{}
 
-func (w *JSONDataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
+func (w *JSONDataWriter) SetHeader(res http.ResponseWriter) {
 	res.Header().Set("Content-Type", "application/json")
+}
+
+func (w *JSONDataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
 	var bytes []byte
 	if bytes, err = json.Marshal(data); err != nil {
 		return
@@ -75,8 +79,11 @@ func (w *JSONDataWriter) Write(res http.ResponseWriter, data interface{}) (err e
 // XMLDataWriter sets the "Content-Type" response header as "application/xml; charset=UTF-8" and writes the given data in XML format to the response.
 type XMLDataWriter struct{}
 
-func (w *XMLDataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
+func (w *XMLDataWriter) SetHeader(res http.ResponseWriter) {
 	res.Header().Set("Content-Type", "application/xml; charset=UTF-8")
+}
+
+func (w *XMLDataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
 	var bytes []byte
 	if bytes, err = xml.Marshal(data); err != nil {
 		return
@@ -88,7 +95,10 @@ func (w *XMLDataWriter) Write(res http.ResponseWriter, data interface{}) (err er
 // HTMLDataWriter sets the "Content-Type" response header as "text/html; charset=UTF-8" and calls routing.DefaultDataWriter to write the given data to the response.
 type HTMLDataWriter struct{}
 
-func (w *HTMLDataWriter) Write(res http.ResponseWriter, data interface{}) error {
+func (w *HTMLDataWriter) SetHeader(res http.ResponseWriter) {
 	res.Header().Set("Content-Type", "text/html; charset=UTF-8")
+}
+
+func (w *HTMLDataWriter) Write(res http.ResponseWriter, data interface{}) error {
 	return routing.DefaultDataWriter.Write(res, data)
 }

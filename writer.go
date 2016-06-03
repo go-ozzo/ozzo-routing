@@ -7,6 +7,8 @@ import (
 
 // DataWriter is used by Context.Write() to write arbitrary data into an HTTP response.
 type DataWriter interface {
+	// SetHeader sets necessary response headers.
+	SetHeader(http.ResponseWriter)
 	// Write writes the given data into the response.
 	Write(http.ResponseWriter, interface{}) error
 }
@@ -16,6 +18,8 @@ type DataWriter interface {
 var DefaultDataWriter DataWriter = &dataWriter{}
 
 type dataWriter struct{}
+
+func (w *dataWriter) SetHeader(res http.ResponseWriter) {}
 
 func (w *dataWriter) Write(res http.ResponseWriter, data interface{}) error {
 	var bytes []byte
