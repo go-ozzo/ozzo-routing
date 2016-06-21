@@ -1,14 +1,15 @@
 // Copyright 2016 Qiang Xue. All rights reserved.
-// Use of this source code is governed by a BSD-style
+// Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package routing
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewHttpError(t *testing.T) {

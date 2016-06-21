@@ -1,14 +1,15 @@
 // Copyright 2016 Qiang Xue. All rights reserved.
-// Use of this source code is governed by a BSD-style
+// Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 // Package slash provides a trailing slash remover handler for the ozzo routing package.
 package slash
 
 import (
-	"github.com/go-ozzo/ozzo-routing"
 	"net/http"
 	"strings"
+
+	"github.com/go-ozzo/ozzo-routing"
 )
 
 // Remover returns a handler that removes the trailing slash (if any) from the requested URL.

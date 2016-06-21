@@ -1,17 +1,18 @@
 // Copyright 2016 Qiang Xue. All rights reserved.
-// Use of this source code is governed by a BSD-style
+// Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 // Package file provides handlers that serve static files for the ozzo routing package.
 package file
 
 import (
-	"github.com/go-ozzo/ozzo-routing"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/go-ozzo/ozzo-routing"
 )
 
 // ServerOptions defines the possible options for the Server handler.
