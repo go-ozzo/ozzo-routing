@@ -2,8 +2,8 @@
 
 [![GoDoc](https://godoc.org/github.com/go-ozzo/ozzo-routing?status.png)](http://godoc.org/github.com/go-ozzo/ozzo-routing)
 [![Build Status](https://travis-ci.org/go-ozzo/ozzo-routing.svg?branch=master)](https://travis-ci.org/go-ozzo/ozzo-routing)
-[![Coverage](http://gocover.io/_badge/github.com/go-ozzo/ozzo-routing)](http://gocover.io/github.com/go-ozzo/ozzo-routing)
-[![Go Report](http://goreportcard.com/badge/go-ozzo/ozzo-routing)](http://goreportcard.com/report/go-ozzo/ozzo-routing)
+[![Coverage Status](https://coveralls.io/repos/github/go-ozzo/ozzo-routing/badge.svg?branch=master)](https://coveralls.io/github/go-ozzo/ozzo-routing?branch=master)
+[![Go Report](https://goreportcard.com/badge/github.com/go-ozzo/ozzo-routing)](https://goreportcard.com/report/github.com/go-ozzo/ozzo-routing)
 
 ## Description
 
