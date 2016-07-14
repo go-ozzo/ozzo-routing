@@ -41,10 +41,17 @@ func Logger(log LogFunc) routing.Handler {
 
 		err := c.Next()
 
+		var statusCode int
+		if httpError, ok := err.(routing.HTTPError); ok {
+			statusCode = httpError.StatusCode()
+		} else {
+			statusCode = rw.Status
+		}
+
 		clientIP := getClientIP(req)
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
 		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.Path, req.Proto)
-		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
+		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, statusCode, rw.BytesWritten)
 
 		return err
 	}
