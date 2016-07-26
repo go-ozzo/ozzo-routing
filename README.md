@@ -33,6 +33,12 @@ Run the following command to install the package:
 go get github.com/go-ozzo/ozzo-routing
 ```
 
+You may also get specified release of the package by:
+
+```
+go get gopkg.in/go-ozzo/ozzo-routing.v1
+```
+
 ## Getting Started
 
 Create a `server.go` file with the following content:
