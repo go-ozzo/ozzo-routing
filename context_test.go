@@ -60,7 +60,7 @@ func TestContextGetSet(t *testing.T) {
 	assert.Nil(t, c.Value("abcd"))
 	assert.Nil(t, c.Value(123))
 	deadline, ok := c.Deadline()
-	assert.Nil(t, deadline)
+	assert.Zero(t, deadline)
 	assert.False(t, ok)
 	assert.Nil(t, c.Done())
 	assert.Nil(t, c.Err())

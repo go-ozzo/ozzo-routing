@@ -13,8 +13,8 @@ type (
 	// LogFunc should be thread safe.
 	LogFunc func(format string, a ...interface{})
 
-	// HandleErrorFunc is called whenever a panic or error is captured by the middleware.
-	HandleErrorFunc func(c *routing.Context, err error, log LogFunc)
+	// ConvertErrorFunc converts an error into a different format so that it is more appropriate for rendering purpose.
+	ConvertErrorFunc func(*routing.Context, error) error
 )
 
 // Recovery returns a handler that handles both panics and errors occurred while servicing an HTTP request.
@@ -27,6 +27,9 @@ type (
 //
 // A log function can be provided to log a message whenever an error is handled. If nil, no message will be logged.
 //
+// An optional error conversion function can also be provided to convert an error into a normalized one
+// before sending it to the response.
+//
 //     import (
 //         "log"
 //         "github.com/go-ozzo/ozzo-routing"
@@ -35,12 +38,15 @@ type (
 //
 //     r := routing.New()
 //     r.Use(fault.Recovery(log.Printf))
-func Recovery(logf LogFunc) routing.Handler {
+func Recovery(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 	handlePanic := PanicHandler(logf)
 	return func(c *routing.Context) error {
 		if err := handlePanic(c); err != nil {
 			if logf != nil {
 				logf("%v", err)
+			}
+			if len(errorf) > 0 {
+				err = errorf[0](c, err)
 			}
 			writeError(c, err)
 			c.Abort()

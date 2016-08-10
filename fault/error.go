@@ -11,11 +11,6 @@ import (
 	"github.com/go-ozzo/ozzo-routing"
 )
 
-type (
-	// ConvertErrorFunc converts an error into a different format so that it is more appropriate for rendering purpose.
-	ConvertErrorFunc func(*routing.Context, error) error
-)
-
 // ErrorHandler returns a handler that handles errors returned by the handlers following this one.
 // If the error implements routing.HTTPError, the handler will set the HTTP status code accordingly.
 // Otherwise the HTTP status is set as http.StatusInternalServerError. The handler will also write the error

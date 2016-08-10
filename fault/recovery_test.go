@@ -56,6 +56,27 @@ func TestRecovery(t *testing.T) {
 	assert.Equal(t, "123", res.Body.String())
 	assert.Contains(t, buf.String(), "recovery_test.go")
 	assert.Contains(t, buf.String(), "123")
+
+	buf.Reset()
+	h = Recovery(getLogger(&buf), convertError)
+	res = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/users/", nil)
+	c = routing.NewContext(res, req, h, handler3, handler2)
+	assert.Nil(t, c.Next())
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
+	assert.Equal(t, "123", res.Body.String())
+	assert.Contains(t, buf.String(), "recovery_test.go")
+	assert.Contains(t, buf.String(), "xyz")
+
+	buf.Reset()
+	h = Recovery(getLogger(&buf), convertError)
+	res = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/users/", nil)
+	c = routing.NewContext(res, req, h, handler1, handler2)
+	assert.Nil(t, c.Next())
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
+	assert.Equal(t, "123", res.Body.String())
+	assert.Equal(t, "abc", buf.String())
 }
 
 func getLogger(buf *bytes.Buffer) LogFunc {
