@@ -16,26 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHandleError(t *testing.T) {
-	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/users/", nil)
-	c := routing.NewContext(res, req)
-	var buf bytes.Buffer
-	handleError(c, errors.New("abc"), getLogger(&buf))
-	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	assert.Equal(t, "abc", res.Body.String())
-	assert.Equal(t, "abc", buf.String())
-
-	buf.Reset()
-	res = httptest.NewRecorder()
-	req, _ = http.NewRequest("GET", "/users/", nil)
-	c = routing.NewContext(res, req)
-	handleError(c, routing.NewHTTPError(http.StatusNotFound, "xyz"), nil)
-	assert.Equal(t, http.StatusNotFound, res.Code)
-	assert.Equal(t, "xyz", res.Body.String())
-	assert.Equal(t, "", buf.String())
-}
-
 func TestRecovery(t *testing.T) {
 	var buf bytes.Buffer
 	h := Recovery(getLogger(&buf))
@@ -64,7 +44,8 @@ func TestRecovery(t *testing.T) {
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "xyz", res.Body.String())
-	assert.Equal(t, "xyz", buf.String())
+	assert.Contains(t, buf.String(), "recovery_test.go")
+	assert.Contains(t, buf.String(), "xyz")
 
 	buf.Reset()
 	res = httptest.NewRecorder()
@@ -73,7 +54,8 @@ func TestRecovery(t *testing.T) {
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusBadRequest, res.Code)
 	assert.Equal(t, "123", res.Body.String())
-	assert.Equal(t, "123", buf.String())
+	assert.Contains(t, buf.String(), "recovery_test.go")
+	assert.Contains(t, buf.String(), "123")
 }
 
 func getLogger(buf *bytes.Buffer) LogFunc {

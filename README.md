@@ -366,6 +366,8 @@ Handler name 					| Description
 [content.LanguageNegotiator](https://godoc.org/github.com/go-ozzo/ozzo-routing/content) | supports content negotiation by accepted languages
 [cors.Handler](https://godoc.org/github.com/go-ozzo/ozzo-routing/cors) | implements the CORS (Cross Origin Resource Sharing) specification from the W3C
 [fault.Recovery](https://godoc.org/github.com/go-ozzo/ozzo-routing/fault) | recovers from panics and handles errors returned by handlers
+[fault.PanicHandler](https://godoc.org/github.com/go-ozzo/ozzo-routing/fault) | recovers from panics happened in the handlers
+[fault.ErrorHandler](https://godoc.org/github.com/go-ozzo/ozzo-routing/fault) | handles errors returned by handlers by writing them in an appropriate format to the response
 [file.Server](https://godoc.org/github.com/go-ozzo/ozzo-routing/file) | serves the files under the specified folder as response content
 [file.Content](https://godoc.org/github.com/go-ozzo/ozzo-routing/file) | serves the content of the specified file as the response
 [slash.Remover](https://godoc.org/github.com/go-ozzo/ozzo-routing/slash) | removes the trailing slashes from the request URL and redirects to the proper URL
