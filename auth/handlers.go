@@ -277,6 +277,8 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 	}
 }
 
+// NewJWT creates a new JWT token and returns it as a signed string that may be sent to the client side.
+// The signingMethod parameter is optional. It defaults to the HS256 algorithm.
 func NewJWT(claims jwt.MapClaims, signingKey string, signingMethod ...jwt.SigningMethod) (string, error) {
 	var sm jwt.SigningMethod = jwt.SigningMethodHS256
 	if len(signingMethod) > 0 {
