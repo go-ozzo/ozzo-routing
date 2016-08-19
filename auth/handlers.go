@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-ozzo/ozzo-routing"
 )
 
@@ -54,7 +55,7 @@ type BasicAuthFunc func(c *routing.Context, username, password string) (Identity
 // By default, the auth realm is named as "API". You may customize it by specifying the realm parameter.
 //
 // When authentication fails, a "WWW-Authenticate" header will be sent, and an http.StatusUnauthorized
-// error will be reported via routing.Context.Error().
+// error will be returned.
 func Basic(fn BasicAuthFunc, realm ...string) routing.Handler {
 	name := DefaultRealm
 	if len(realm) > 0 {
@@ -114,7 +115,7 @@ type TokenAuthFunc func(c *routing.Context, token string) (Identity, error)
 // By default, the auth realm is named as "API". You may customize it by specifying the realm parameter.
 //
 // When authentication fails, a "WWW-Authenticate" header will be sent, and an http.StatusUnauthorized
-// error will be reported via routing.Context.Error().
+// error will be returned.
 func Bearer(fn TokenAuthFunc, realm ...string) routing.Handler {
 	name := DefaultRealm
 	if len(realm) > 0 {
@@ -132,13 +133,13 @@ func Bearer(fn TokenAuthFunc, realm ...string) routing.Handler {
 	}
 }
 
-func parseBearerAuth(auth string) (token string) {
+func parseBearerAuth(auth string) string {
 	if strings.HasPrefix(auth, "Bearer ") {
 		if bearer, err := base64.StdEncoding.DecodeString(auth[7:]); err == nil {
 			return string(bearer)
 		}
 	}
-	return
+	return ""
 }
 
 // TokenName is the query parameter name for auth token.
@@ -168,7 +169,7 @@ var TokenName = "access-token"
 //     })
 //   }
 //
-// When authentication fails, an http.StatusUnauthorized error will be reported via routing.Context.Error().
+// When authentication fails, an http.StatusUnauthorized error will be returned.
 func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
 	name := TokenName
 	if len(tokenName) > 0 {
@@ -182,5 +183,88 @@ func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
 		}
 		c.Set(User, identity)
 		return nil
+	}
+}
+
+// JWTTokenHandler handles the parsed JWT token.
+type JWTTokenHandler func(*routing.Context, *jwt.Token) error
+
+// JWTOptions represents the options that can be used with the JWT handler.
+type JWTOptions struct {
+	// auth realm. Defaults to "API".
+	Realm string
+	// valid signing methods. If set, JWT parser will use it to check if the method given in the token is in this list.
+	ValidSigningMethods []string
+	// a function that handles the parsed JWT token. Defaults to DefaultJWTTokenHandler, which stores the token in the routing context with the key "JWT".
+	TokenHandler JWTTokenHandler
+}
+
+// DefaultJWTTokenHandler stores the parsed JWT token in the routing context with the key named "JWT".
+func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
+	c.Set("JWT", token)
+	return nil
+}
+
+// JWT returns a JWT (JSON Web Token) handler which attempts to parse the Bearer header into a JWT token and validate it.
+// If both are successful, it will call a JWTTokenHandler to further handle the token. By default, the token
+// will be stored in the routing context with the key named "JWT". Other handlers can retrieve this token to obtain
+// the user identity information.
+// If the parsing or validation fails, a "WWW-Authenticate" header will be sent, and an http.StatusUnauthorized
+// error will be returned.
+//
+// JWT can be used like the following:
+//
+//   import (
+//     "errors"
+//     "fmt"
+//     "net/http"
+//     "github.com/dgrijalva/jwt-go"
+//     "github.com/go-ozzo/ozzo-routing"
+//     "github.com/go-ozzo/ozzo-routing/auth"
+//   )
+//   func main() {
+//     signingKey := "secret-key"
+//     r := routing.New()
+//
+//     r.Get("/login", func(c *routing.Context) error {
+//       token := jwt.New(jwt.SigningMethodHS256)
+//       // ...perform authentication here...
+//       token.Claims["name"] = "Qiang"
+//       token.Claims["admin"] = true
+//       bearer, _ := token.SignedString([]byte(signingKey))
+//       return c.Write(bearer)
+//     })
+//
+//     r.Use(auth.JWT(signingKey))
+//     r.Get("/restricted", func(c *routing.Context) error {
+//       claims := c.Get("JWT").(*jwt.Token).Claims
+//       return c.Write(fmt.Sprint("Welcome, %v!", claims["name"])
+//     })
+//   }
+func JWT(signingKey string, options ...JWTOptions) routing.Handler {
+	var opt JWTOptions
+	if len(options) > 0 {
+		opt = options[0]
+	}
+	if opt.Realm == "" {
+		opt.Realm = DefaultRealm
+	}
+	if opt.TokenHandler == nil {
+		opt.TokenHandler = DefaultJWTTokenHandler
+	}
+	parser := &jwt.Parser{
+		ValidMethods: opt.ValidSigningMethods,
+	}
+	return func(c *routing.Context) error {
+		header := c.Request.Header.Get("Authorization")
+		if strings.HasPrefix(header, "Bearer ") {
+			token, err := parser.Parse(header[7:], func(t *jwt.Token) (interface{}, error) { return []byte(signingKey), nil })
+			if err == nil && token.Valid {
+				return opt.TokenHandler(c, token)
+			}
+		}
+
+		c.Response.Header().Set("WWW-Authenticate", `Bearer realm="`+opt.Realm+`"`)
+		return routing.NewHTTPError(http.StatusUnauthorized)
 	}
 }

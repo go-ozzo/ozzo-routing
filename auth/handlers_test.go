@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-ozzo/ozzo-routing"
 	"github.com/stretchr/testify/assert"
 )
@@ -134,4 +135,56 @@ func TestQuery(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "", res.Header().Get("WWW-Authenticate"))
 	assert.Equal(t, "yes", c.Get(User))
+}
+
+func TestJWT(t *testing.T) {
+	{
+		// valid token
+		token := jwt.New(jwt.SigningMethodHS256)
+		token.Claims["name"] = "Qiang"
+		token.Claims["admin"] = true
+		bearer, _ := token.SignedString([]byte("secret"))
+
+		h := JWT("secret")
+		res := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/users/", nil)
+		req.Header.Set("Authorization", "Bearer "+bearer)
+		c := routing.NewContext(res, req)
+		err := h(c)
+		assert.Nil(t, err)
+		token2 := c.Get("JWT")
+		if assert.NotNil(t, token2) {
+			token = token2.(*jwt.Token)
+			assert.Equal(t, "Qiang", token.Claims["name"])
+			assert.True(t, token.Claims["admin"].(bool))
+		}
+	}
+
+	{
+		// invalid token
+		h := JWT("secret")
+		res := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/users/", nil)
+		req.Header.Set("Authorization", "Bearer QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
+		c := routing.NewContext(res, req)
+		err := h(c)
+		assert.NotNil(t, err)
+		assert.Equal(t, `Bearer realm="API"`, res.Header().Get("WWW-Authenticate"))
+		assert.Nil(t, c.Get("JWT"))
+	}
+
+	{
+		// invalid token with options
+		h := JWT("secret", JWTOptions{
+			Realm: "App",
+		})
+		res := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/users/", nil)
+		req.Header.Set("Authorization", "Bearer QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
+		c := routing.NewContext(res, req)
+		err := h(c)
+		assert.NotNil(t, err)
+		assert.Equal(t, `Bearer realm="App"`, res.Header().Get("WWW-Authenticate"))
+		assert.Nil(t, c.Get("JWT"))
+	}
 }
