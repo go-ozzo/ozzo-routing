@@ -193,8 +193,8 @@ type JWTTokenHandler func(*routing.Context, *jwt.Token) error
 type JWTOptions struct {
 	// auth realm. Defaults to "API".
 	Realm string
-	// valid signing methods. If set, JWT parser will use it to check if the method given in the token is in this list.
-	ValidSigningMethods []string
+	// the allowed signing method. This is required and should be the actual method that you use to create JWT token. It defaults to "HS256".
+	SigningMethod string
 	// a function that handles the parsed JWT token. Defaults to DefaultJWTTokenHandler, which stores the token in the routing context with the key "JWT".
 	TokenHandler JWTTokenHandler
 }
@@ -227,21 +227,26 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 //     r := routing.New()
 //
 //     r.Get("/login", func(c *routing.Context) error {
-//       token := jwt.New(jwt.SigningMethodHS256)
-//       // ...perform authentication here...
-//       token.Claims["name"] = "Qiang"
-//       token.Claims["admin"] = true
-//       bearer, _ := token.SignedString([]byte(signingKey))
-//       return c.Write(bearer)
+//       id, err := authenticate(c)
+//       if err != nil {
+//         return err
+//       }
+//       token, err := auth.NewJWT(jwt.StandardClaims{
+//         Id: id
+//       }, signingKey)
+//       if err != nil {
+//         return err
+//       }
+//       return c.Write(token)
 //     })
 //
 //     r.Use(auth.JWT(signingKey))
 //     r.Get("/restricted", func(c *routing.Context) error {
-//       claims := c.Get("JWT").(*jwt.Token).Claims
-//       return c.Write(fmt.Sprint("Welcome, %v!", claims["name"])
+//       claims := c.Get("JWT").(*jwt.Token).Claims.(jwt.StandardClaims)
+//       return c.Write(fmt.Sprint("Welcome, %v!", claims.Id)
 //     })
 //   }
-func JWT(signingKey string, options ...JWTOptions) routing.Handler {
+func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 	var opt JWTOptions
 	if len(options) > 0 {
 		opt = options[0]
@@ -249,16 +254,19 @@ func JWT(signingKey string, options ...JWTOptions) routing.Handler {
 	if opt.Realm == "" {
 		opt.Realm = DefaultRealm
 	}
+	if opt.SigningMethod == "" {
+		opt.SigningMethod = "HS256"
+	}
 	if opt.TokenHandler == nil {
 		opt.TokenHandler = DefaultJWTTokenHandler
 	}
 	parser := &jwt.Parser{
-		ValidMethods: opt.ValidSigningMethods,
+		ValidMethods: []string{opt.SigningMethod},
 	}
 	return func(c *routing.Context) error {
 		header := c.Request.Header.Get("Authorization")
 		if strings.HasPrefix(header, "Bearer ") {
-			token, err := parser.Parse(header[7:], func(t *jwt.Token) (interface{}, error) { return []byte(signingKey), nil })
+			token, err := parser.Parse(header[7:], func(t *jwt.Token) (interface{}, error) { return []byte(verificationKey), nil })
 			if err == nil && token.Valid {
 				return opt.TokenHandler(c, token)
 			}
@@ -267,4 +275,12 @@ func JWT(signingKey string, options ...JWTOptions) routing.Handler {
 		c.Response.Header().Set("WWW-Authenticate", `Bearer realm="`+opt.Realm+`"`)
 		return routing.NewHTTPError(http.StatusUnauthorized)
 	}
+}
+
+func NewJWT(claims jwt.MapClaims, signingKey string, signingMethod ...jwt.SigningMethod) (string, error) {
+	var sm jwt.SigningMethod = jwt.SigningMethodHS256
+	if len(signingMethod) > 0 {
+		sm = signingMethod[0]
+	}
+	return jwt.NewWithClaims(sm, claims).SignedString([]byte(signingKey))
 }

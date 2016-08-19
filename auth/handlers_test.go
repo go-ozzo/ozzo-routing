@@ -138,26 +138,44 @@ func TestQuery(t *testing.T) {
 }
 
 func TestJWT(t *testing.T) {
+	secret := "secret-key"
 	{
 		// valid token
+		tokenString, err := NewJWT(jwt.MapClaims{
+			"id": "100",
+		}, secret)
+		assert.Nil(t, err)
+
+		h := JWT(secret)
+		res := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/users/", nil)
+		req.Header.Set("Authorization", "Bearer "+tokenString)
+		c := routing.NewContext(res, req)
+		err = h(c)
+		assert.Nil(t, err)
+		token := c.Get("JWT")
+		if assert.NotNil(t, token) {
+			assert.Equal(t, "100", token.(*jwt.Token).Claims.(jwt.MapClaims)["id"])
+		}
+	}
+
+	{
+		// invalid signing method
 		token := jwt.New(jwt.SigningMethodHS256)
-		token.Claims["name"] = "Qiang"
-		token.Claims["admin"] = true
+		claims := token.Claims.(jwt.MapClaims)
+		claims["name"] = "Qiang"
+		claims["admin"] = true
 		bearer, _ := token.SignedString([]byte("secret"))
 
-		h := JWT("secret")
+		h := JWT("secret", JWTOptions{
+			SigningMethod: "HS512",
+		})
 		res := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/users/", nil)
 		req.Header.Set("Authorization", "Bearer "+bearer)
 		c := routing.NewContext(res, req)
 		err := h(c)
-		assert.Nil(t, err)
-		token2 := c.Get("JWT")
-		if assert.NotNil(t, token2) {
-			token = token2.(*jwt.Token)
-			assert.Equal(t, "Qiang", token.Claims["name"])
-			assert.True(t, token.Claims["admin"].(bool))
-		}
+		assert.NotNil(t, err)
 	}
 
 	{
