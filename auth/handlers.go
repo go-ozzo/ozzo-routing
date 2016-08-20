@@ -265,14 +265,22 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 	}
 	return func(c *routing.Context) error {
 		header := c.Request.Header.Get("Authorization")
+		message := ""
 		if strings.HasPrefix(header, "Bearer ") {
 			token, err := parser.Parse(header[7:], func(t *jwt.Token) (interface{}, error) { return []byte(verificationKey), nil })
 			if err == nil && token.Valid {
-				return opt.TokenHandler(c, token)
+				err = opt.TokenHandler(c, token)
 			}
+			if err == nil {
+				return nil
+			}
+			message = err.Error()
 		}
 
 		c.Response.Header().Set("WWW-Authenticate", `Bearer realm="`+opt.Realm+`"`)
+		if message != "" {
+			return routing.NewHTTPError(http.StatusUnauthorized, message)
+		}
 		return routing.NewHTTPError(http.StatusUnauthorized)
 	}
 }
