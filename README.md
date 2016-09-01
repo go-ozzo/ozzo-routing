@@ -23,7 +23,7 @@ If you are using [fasthttp](https://github.com/valyala/fasthttp), you may use a 
 
 ## Requirements
 
-Go 1.3 or above.
+Go 1.7 or above.
 
 ## Installation
 

@@ -20,7 +20,7 @@ func TestJSONFormatter(t *testing.T) {
 	err := w.Write(res, "xyz")
 	assert.Nil(t, err)
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-	assert.Equal(t, "\"xyz\"", res.Body.String())
+	assert.Equal(t, "\"xyz\"\n", res.Body.String())
 }
 
 func TestXMLFormatter(t *testing.T) {
@@ -72,7 +72,7 @@ func TestTypeNegotiator(t *testing.T) {
 	assert.Nil(t, h(c))
 	assert.Nil(t, c.Write("xyz"))
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-	assert.Equal(t, "\"xyz\"", res.Body.String())
+	assert.Equal(t, "\"xyz\"\n", res.Body.String())
 
 	assert.Panics(t, func() {
 		TypeNegotiator("unknown")
