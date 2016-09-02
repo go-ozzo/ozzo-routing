@@ -56,14 +56,6 @@ func TestContextGetSet(t *testing.T) {
 	c.Set("xyz", 123)
 	assert.Equal(t, "123", c.Get("abc").(string))
 	assert.Equal(t, 123, c.Get("xyz").(int))
-	assert.Equal(t, "123", c.Value("abc"))
-	assert.Nil(t, c.Value("abcd"))
-	assert.Nil(t, c.Value(123))
-	deadline, ok := c.Deadline()
-	assert.Zero(t, deadline)
-	assert.False(t, ok)
-	assert.Nil(t, c.Done())
-	assert.Nil(t, c.Err())
 }
 
 func TestContextQueryForm(t *testing.T) {
