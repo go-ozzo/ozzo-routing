@@ -243,7 +243,7 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 //     r.Use(auth.JWT(signingKey))
 //     r.Get("/restricted", func(c *routing.Context) error {
 //       claims := c.Get("JWT").(*jwt.Token).Claims.(jwt.StandardClaims)
-//       return c.Write(fmt.Sprint("Welcome, %v!", claims.Id)
+//       return c.Write(fmt.Sprint("Welcome, %v!", claims.Id))
 //     })
 //   }
 func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
