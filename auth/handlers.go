@@ -231,8 +231,8 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 //       if err != nil {
 //         return err
 //       }
-//       token, err := auth.NewJWT(jwt.StandardClaims{
-//         Id: id
+//       token, err := auth.NewJWT(jwt.MapClaims{
+//         "id": id
 //       }, signingKey)
 //       if err != nil {
 //         return err
@@ -242,8 +242,8 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 //
 //     r.Use(auth.JWT(signingKey))
 //     r.Get("/restricted", func(c *routing.Context) error {
-//       claims := c.Get("JWT").(*jwt.Token).Claims.(jwt.StandardClaims)
-//       return c.Write(fmt.Sprint("Welcome, %v!", claims.Id))
+//       claims := c.Get("JWT").(*jwt.Token).Claims.(jwt.MapClaims)
+//       return c.Write(fmt.Sprint("Welcome, %v!", claims["id"]))
 //     })
 //   }
 func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
