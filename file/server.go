@@ -60,7 +60,7 @@ func init() {
 //     r.Get("/*", file.Server(file.PathMap{
 //          "/css": "/ui/dist/css",
 //          "/js": "/ui/dist/js",
-//     })
+//     }))
 func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	var options ServerOptions
 	if len(opts) > 0 {
