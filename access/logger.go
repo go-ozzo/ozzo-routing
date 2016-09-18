@@ -43,7 +43,7 @@ func Logger(log LogFunc) routing.Handler {
 
 		clientIP := getClientIP(req)
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
-		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.Path, req.Proto)
+		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.String(), req.Proto)
 		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
 
 		return err
