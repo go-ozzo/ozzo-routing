@@ -23,7 +23,12 @@ type ServerOptions struct {
 	RootPath string
 	// The file (e.g. index.html) to be served when the current request corresponds to a directory.
 	// If not set, the handler will return a 404 HTTP error when the request corresponds to a directory.
+	// This should only be a file name without the directory part.
 	IndexFile string
+	// The file to be served when no file or directory matches the current request.
+	// If not set, the handler will return a 404 HTTP error when no file/directory matches the request.
+	// The path of this file is relative to RootPath
+	CatchAllFile string
 	// A function that checks if the requested file path is allowed. If allowed, the function
 	// may do additional work such as setting Expires HTTP header.
 	// The function should return a boolean indicating whether the file should be served or not.
@@ -90,6 +95,9 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 		)
 
 		if file, err = dir.Open(path); err != nil {
+			if options.CatchAllFile != "" {
+				return serveFile(c, dir, options.CatchAllFile)
+			}
 			return routing.NewHTTPError(http.StatusNotFound, err.Error())
 		}
 		defer file.Close()
@@ -102,24 +110,28 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			if options.IndexFile == "" {
 				return routing.NewHTTPError(http.StatusNotFound)
 			}
-			path = filepath.Join(path, options.IndexFile)
-			if file, err = dir.Open(path); err != nil {
-				return routing.NewHTTPError(http.StatusNotFound, err.Error())
-			}
-			defer file.Close()
-
-			fstat, err = file.Stat()
-
-			if err != nil {
-				return routing.NewHTTPError(http.StatusNotFound, err.Error())
-			} else if fstat.IsDir() {
-				return routing.NewHTTPError(http.StatusNotFound)
-			}
+			return serveFile(c, dir, filepath.Join(path, options.IndexFile))
 		}
 
 		http.ServeContent(c.Response, c.Request, path, fstat.ModTime(), file)
 		return nil
 	}
+}
+
+func serveFile(c *routing.Context, dir http.Dir, path string) error {
+	file, err := dir.Open(path)
+	if err != nil {
+		return routing.NewHTTPError(http.StatusNotFound, err.Error())
+	}
+	defer file.Close()
+	fstat, err := file.Stat()
+	if err != nil {
+		return routing.NewHTTPError(http.StatusNotFound, err.Error())
+	} else if fstat.IsDir() {
+		return routing.NewHTTPError(http.StatusNotFound)
+	}
+	http.ServeContent(c.Response, c.Request, path, fstat.ModTime(), file)
+	return nil
 }
 
 // Content returns a handler that serves the content of the specified file as the response.

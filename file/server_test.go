@@ -153,4 +153,35 @@ func TestServer(t *testing.T) {
 	err = h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "css.html\n", res.Body.String())
+
+	{
+		// with CatchAll option
+		h = Server(PathMap{"/css": "/testdata/css"}, ServerOptions{
+			IndexFile:    "index.html",
+			CatchAllFile: "testdata/index.html",
+			Allow: func(c *routing.Context, path string) bool {
+				return path != "/testdata/css/main.css"
+			},
+		})
+
+		req, _ := http.NewRequest("GET", "/css/main.css", nil)
+		res := httptest.NewRecorder()
+		c := routing.NewContext(res, req)
+		err := h(c)
+		assert.NotNil(t, err)
+
+		req, _ = http.NewRequest("GET", "/css", nil)
+		res = httptest.NewRecorder()
+		c = routing.NewContext(res, req)
+		err = h(c)
+		assert.Nil(t, err)
+		assert.Equal(t, "css.html\n", res.Body.String())
+
+		req, _ = http.NewRequest("GET", "/css2", nil)
+		res = httptest.NewRecorder()
+		c = routing.NewContext(res, req)
+		err = h(c)
+		assert.Nil(t, err)
+		assert.Equal(t, "hello\n", res.Body.String())
+	}
 }

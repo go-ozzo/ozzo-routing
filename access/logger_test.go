@@ -24,7 +24,7 @@ func TestLogger(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
 	c := routing.NewContext(res, req, h, handler1)
 	assert.NotNil(t, c.Next())
-	assert.Contains(t, buf.String(), "GET /users")
+	assert.Contains(t, buf.String(), "GET http://127.0.0.1/users")
 }
 
 func TestLogResponseWriter(t *testing.T) {
