@@ -19,7 +19,7 @@ It has the following features:
 * compatible with `http.Handler` and `http.HandlerFunc`
 * ready-to-use handlers sufficient for building RESTful APIs
 
-If you are using [fasthttp](https://github.com/valyala/fasthttp), you may use a similar routing package [fasthttp-routing](https://github.com/qiangxue/fasthttp-routing) which is adpated from ozzo-routing.
+If you are using [fasthttp](https://github.com/valyala/fasthttp), you may use a similar routing package [fasthttp-routing](https://github.com/qiangxue/fasthttp-routing) which is adapted from ozzo-routing.
 
 ## Requirements
 
