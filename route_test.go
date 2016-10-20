@@ -189,3 +189,21 @@ func TestBuildURLTemplate(t *testing.T) {
 		assert.Equal(t, test.expected, actual, "buildURLTemplate("+test.path+") =")
 	}
 }
+
+func TestRouteString(t *testing.T) {
+	router := New()
+	router.Get("/users/<id>")
+	router.To("GET,POST", "/users/<id>/profile")
+	group := router.Group("/admin")
+	group.Post("/users")
+	s := ""
+	for _, route := range router.Routes() {
+		s += fmt.Sprintln(route)
+	}
+
+	assert.Equal(t, `GET /users/<id>
+GET /users/<id>/profile
+POST /users/<id>/profile
+POST /admin/users
+`, s)
+}

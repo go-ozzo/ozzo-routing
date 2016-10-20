@@ -43,6 +43,16 @@ func (r *Route) Tag(value interface{}) *Route {
 	return r
 }
 
+// Method returns the HTTP method that this route is associated with.
+func (r *Route) Method() string {
+	return r.method
+}
+
+// Path returns the request path that this route should match.
+func (r *Route) Path() string {
+	return r.group.prefix + r.path
+}
+
 // Tags returns all custom data associated with the route.
 func (r *Route) Tags() []interface{} {
 	return r.tags
@@ -114,4 +124,9 @@ func (r *Route) URL(pairs ...interface{}) (s string) {
 		s = strings.Replace(s, name, value, -1)
 	}
 	return
+}
+
+// String returns the string representation of the route.
+func (r *Route) String() string {
+	return r.method + " " + r.group.prefix + r.path
 }
