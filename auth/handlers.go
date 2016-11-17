@@ -189,6 +189,9 @@ func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
 // JWTTokenHandler handles the parsed JWT token.
 type JWTTokenHandler func(*routing.Context, *jwt.Token) error
 
+//Get a dynamic VerificationKey
+type VerificationKeyHandler func(*routing.Context) string
+
 // JWTOptions represents the options that can be used with the JWT handler.
 type JWTOptions struct {
 	// auth realm. Defaults to "API".
@@ -197,6 +200,8 @@ type JWTOptions struct {
 	SigningMethod string
 	// a function that handles the parsed JWT token. Defaults to DefaultJWTTokenHandler, which stores the token in the routing context with the key "JWT".
 	TokenHandler JWTTokenHandler
+	// a function to get a dynamic VerificationKey
+	GetVerificationKey VerificationKeyHandler
 }
 
 // DefaultJWTTokenHandler stores the parsed JWT token in the routing context with the key named "JWT".
@@ -266,6 +271,9 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 	return func(c *routing.Context) error {
 		header := c.Request.Header.Get("Authorization")
 		message := ""
+		if opt.GetVerificationKey != nil {
+			verificationKey = opt.GetVerificationKey(c)
+		}
 		if strings.HasPrefix(header, "Bearer ") {
 			token, err := parser.Parse(header[7:], func(t *jwt.Token) (interface{}, error) { return []byte(verificationKey), nil })
 			if err == nil && token.Valid {
