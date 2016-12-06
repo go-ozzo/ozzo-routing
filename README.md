@@ -41,6 +41,8 @@ go get gopkg.in/go-ozzo/ozzo-routing.v1
 
 ## Getting Started
 
+For a complete RESTful application boilerplate based on ozzo-routing, please refer to the [golang-restful-starter-kit](https://github.com/qiangxue/golang-restful-starter-kit). Below we describe how to create a simple REST API using ozzo-routing.
+
 Create a `server.go` file with the following content:
 
 ```go
@@ -104,8 +106,6 @@ go run server.go
 ```
 
 You should be able to access URLs such as `http://localhost:8080`, `http://localhost:8080/api/users`.
-
-For a complete RESTful application boilerplate based on ozzo-routing, please refer to the [golang-restful-starter-kit](https://github.com/qiangxue/golang-restful-starter-kit)
 
 
 ### Routes
