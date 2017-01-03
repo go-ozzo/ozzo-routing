@@ -11,7 +11,6 @@ import (
 	"net/http"
 
 	"github.com/go-ozzo/ozzo-routing"
-	"github.com/golang/gddo/httputil"
 )
 
 // MIME types
@@ -53,7 +52,7 @@ func TypeNegotiator(formats ...string) routing.Handler {
 	}
 
 	return func(c *routing.Context) error {
-		format := httputil.NegotiateContentType(c.Request, formats, formats[0])
+		format := NegotiateContentType(c.Request, formats, formats[0])
 		DataWriters[format].SetHeader(c.Response)
 		c.SetDataWriter(DataWriters[format])
 		return nil
