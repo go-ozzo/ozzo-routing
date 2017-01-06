@@ -5,6 +5,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/go-ozzo/ozzo-routing/badge.svg?branch=master)](https://coveralls.io/github/go-ozzo/ozzo-routing?branch=master)
 [![Go Report](https://goreportcard.com/badge/github.com/go-ozzo/ozzo-routing)](https://goreportcard.com/report/github.com/go-ozzo/ozzo-routing)
 
+**You may consider using [golang-restful-starter-kit](https://github.com/qiangxue/golang-restful-starter-kit) to jumpstart your new RESTful applications with ozzo-routing.**
+
 ## Description
 
 ozzo-routing is a Go package that provides high performance and powerful HTTP routing capabilities for Web applications.
@@ -426,6 +428,8 @@ router.Use(routing.HTTPHandler(http.NotFoundHandler))
 * [ozzo examples](https://github.com/marshyski/go-ozzo-examples)
 
 ## Benchmarks
+
+*Last updated on Jan 6, 2017*
 
 Ozzo-routing is very fast, thanks to the radix tree data structure and the usage of `sync.Pool` (the idea was
 originally from HttpRouter and Gin). The following table (by running [go-http-routing-benchmark](https://github.com/qiangxue/go-http-routing-benchmark))
