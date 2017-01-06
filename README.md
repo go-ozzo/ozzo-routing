@@ -432,20 +432,23 @@ originally from HttpRouter and Gin). The following table (by running [go-http-ro
 shows how ozzo-routing compares with Gin, HttpRouter, and Martini in performance.
 
 ```
-BenchmarkOzzo_GithubAll            30000     45493 ns/op       0 B/op       0 allocs/op
-BenchmarkHttpRouter_GithubAll      30000     54640 ns/op   13792 B/op     167 allocs/op
-BenchmarkGin_GithubAll             50000     34384 ns/op       0 B/op       0 allocs/op
-BenchmarkMartini_GithubAll           300   4733748 ns/op  228216 B/op    2483 allocs/op
+BenchmarkOzzo_GithubAll                    50000             37989 ns/op               0 B/op          0 allocs/op
+BenchmarkEcho_GithubAll                    20000             91003 ns/op            6496 B/op        203 allocs/op
+BenchmarkGin_GithubAll                     50000             26717 ns/op               0 B/op          0 allocs/op
+BenchmarkHttpRouter_GithubAll              50000             36052 ns/op           13792 B/op        167 allocs/op
+BenchmarkMartini_GithubAll                   300           4162283 ns/op          228216 B/op       2483 allocs/op
 
-BenchmarkOzzo_GPlusAll           1000000      2279 ns/op       0 B/op       0 allocs/op
-BenchmarkHttpRouter_GPlusAll     1000000      2444 ns/op     640 B/op      11 allocs/op
-BenchmarkGin_GPlusAll            1000000      1668 ns/op       0 B/op       0 allocs/op
-BenchmarkMartini_GPlusAll          20000     73015 ns/op   14448 B/op     165 allocs/op
+BenchmarkOzzo_GPlusAll                   1000000              1732 ns/op               0 B/op          0 allocs/op
+BenchmarkEcho_GPlusAll                    300000              4523 ns/op             416 B/op         13 allocs/op
+BenchmarkGin_GPlusAll                    1000000              1171 ns/op               0 B/op          0 allocs/op
+BenchmarkHttpRouter_GPlusAll             1000000              1533 ns/op             640 B/op         11 allocs/op
+BenchmarkMartini_GPlusAll                  20000             75634 ns/op           14448 B/op        165 allocs/op
 
-BenchmarkOzzo_ParseAll            300000      4246 ns/op       0 B/op       0 allocs/op
-BenchmarkHttpRouter_ParseAll      500000      3517 ns/op     640 B/op      16 allocs/op
-BenchmarkGin_ParseAll             500000      3081 ns/op       0 B/op       0 allocs/op
-BenchmarkMartini_ParseAll          10000    110324 ns/op   25600 B/op     276 allocs/op
+BenchmarkOzzo_ParseAll                    500000              3318 ns/op               0 B/op          0 allocs/op
+BenchmarkEcho_ParseAll                    200000              7336 ns/op             832 B/op         26 allocs/op
+BenchmarkGin_ParseAll                    1000000              2075 ns/op               0 B/op          0 allocs/op
+BenchmarkHttpRouter_ParseAll             1000000              2034 ns/op             640 B/op         16 allocs/op
+BenchmarkMartini_ParseAll                  10000            122002 ns/op           25600 B/op        276 allocs/op
 ```
 
 ## Credits
