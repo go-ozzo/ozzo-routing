@@ -75,7 +75,7 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 //     r.Use(access.Logger(log.Printf))
 func Logger(log LogFunc) routing.Handler {
 	var logger = func(req *http.Request, rw *LogResponseWriter, elapsed float64) {
-		clientIP := getClientIP(req)
+		clientIP := GetClientIP(req)
 		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.String(), req.Proto)
 		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
 
@@ -101,7 +101,7 @@ func (r *LogResponseWriter) WriteHeader(status int) {
 	r.ResponseWriter.WriteHeader(status)
 }
 
-func getClientIP(req *http.Request) string {
+func GetClientIP(req *http.Request) string {
 	ip := req.Header.Get("X-Real-IP")
 	if ip == "" {
 		ip = req.Header.Get("X-Forwarded-For")
