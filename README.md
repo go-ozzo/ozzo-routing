@@ -423,8 +423,9 @@ router.Use(routing.HTTPHandlerFunc(http.NotFound))
 router.Use(routing.HTTPHandler(http.NotFoundHandler))
 ```
 
-## Usage Examples
+## 3rd-Party Extensions and Code Examples
 
+* [Simple Standard Service Endpoints (SE4)](https://github.com/jdamick/ozzo-se4)
 * [ozzo examples](https://github.com/marshyski/go-ozzo-examples)
 
 ## Benchmarks
