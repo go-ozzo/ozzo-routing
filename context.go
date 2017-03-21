@@ -143,6 +143,9 @@ func (c *Context) URL(route string, pairs ...interface{}) string {
 // to read the request data.
 func (c *Context) Read(data interface{}) error {
 	if c.Request.Method != "GET" {
+		if c.Request.Body == nil {
+			return NewHTTPError(http.StatusBadRequest, "No request body.")
+		}
 		t := getContentType(c.Request)
 		if reader, ok := DataReaders[t]; ok {
 			return reader.Read(c.Request, data)
