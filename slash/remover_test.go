@@ -36,4 +36,11 @@ func TestRemover(t *testing.T) {
 	err = h(c)
 	assert.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "", res.Header().Get("Location"))
+
+	res = httptest.NewRecorder()
+	req, _ = http.NewRequest("POST", "/users/", nil)
+	c = routing.NewContext(res, req)
+	err = h(c)
+	assert.Equal(t, http.StatusTemporaryRedirect, res.Code)
+	assert.Equal(t, "/users", res.Header().Get("Location"))
 }
