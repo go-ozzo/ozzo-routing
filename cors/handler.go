@@ -48,6 +48,13 @@ type Options struct {
 	allowHeaderMap map[string]bool
 }
 
+// AllowAll is the option that allows all origins, headers, and methods.
+var AllowAll = Options{
+	AllowOrigins: "*",
+	AllowHeaders: "*",
+	AllowMethods: "*",
+}
+
 // Handler creates a routing handler that adds appropriate CORS headers according to the specified options and the request.
 func Handler(opts Options) routing.Handler {
 
