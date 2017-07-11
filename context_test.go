@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+    "time"
 )
 
 func TestContextParam(t *testing.T) {
@@ -88,6 +89,14 @@ func TestContextQueryForm(t *testing.T) {
 	assert.Equal(t, "123", c.Form("x", "123"))
 }
 
+func TestContextDeadline(t *testing.T) {
+	c, res := testNewContext(
+		testTimeoutHandler(),
+	)
+	assert.Nil(t, c.Next())
+	assert.Equal(t, "timeout", res.Body.String())
+}
+
 func TestContextNextAbort(t *testing.T) {
 	c, res := testNewContext(
 		testNormalHandler("a"),
@@ -130,6 +139,10 @@ func testNewContext(handlers ...Handler) (*Context, *httptest.ResponseRecorder) 
 	req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
 	c := &Context{}
 	c.init(res, req)
+	c.WithTimeout(1*time.Second, func(c *Context) error {
+		fmt.Fprintf(c.Response, "timeout")
+		return nil
+	})
 	c.handlers = handlers
 	return c, res
 }
@@ -155,6 +168,13 @@ func testErrorHandler(tag string) Handler {
 	return func(c *Context) error {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
 		return errors.New("error:" + tag)
+	}
+}
+
+func testTimeoutHandler() Handler {
+	return func(c *Context) error {
+		time.Sleep(2*time.Second)
+		return nil
 	}
 }
 

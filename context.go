@@ -5,20 +5,23 @@
 package routing
 
 import (
+	"context"
 	"net/http"
+	"time"
 )
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
 type Context struct {
-	Request  *http.Request       // the current request
-	Response http.ResponseWriter // the response writer
-	router   *Router
-	pnames   []string               // list of route parameter names
-	pvalues  []string               // list of parameter values corresponding to pnames
-	data     map[string]interface{} // data items managed by Get and Set
-	index    int                    // the index of the currently executing handler in handlers
-	handlers []Handler              // the handlers associated with the current route
-	writer   DataWriter
+	Request        *http.Request       // the current request
+	Response       http.ResponseWriter // the response writer
+	router         *Router
+	pnames         []string               // list of route parameter names
+	pvalues        []string               // list of parameter values corresponding to pnames
+	data           map[string]interface{} // data items managed by Get and Set
+	index          int                    // the index of the currently executing handler in handlers
+	handlers       []Handler              // the handlers associated with the current route
+	writer         DataWriter
+	requestContext context.Context
 }
 
 // NewContext creates a new Context object with the given response, request, and the handlers.
@@ -177,8 +180,35 @@ func (c *Context) SetDataWriter(writer DataWriter) {
 	c.writer = writer
 }
 
+// Timeout specifies the handlers that should be invoked when a request execution timeout.
+func (c *Context) WithTimeout(timeoutDuration time.Duration, handler Handler) (cancel context.CancelFunc) {
+	if timeoutDuration != 0*time.Second {
+		c.requestContext, cancel = context.WithTimeout(c.requestContext, timeoutDuration)
+	} else {
+		c.requestContext, cancel = context.WithCancel(c.requestContext)
+	}
+	go func(ctx context.Context, c *Context) {
+		select {
+		case <-ctx.Done():
+			if handler != nil {
+				handler(c)
+			}
+		}
+	}(c.requestContext, c)
+	// Set Deadline for Request
+	c.Request.WithContext(c.requestContext)
+	return cancel
+}
+
+func (c *Context) WithCancel(handler Handler) (cancel context.CancelFunc) {
+	c.requestContext, cancel = context.WithCancel(c.requestContext)
+	c.Request.WithContext(c.requestContext)
+	return cancel
+}
+
 // init sets the request and response of the context and resets all other properties.
 func (c *Context) init(response http.ResponseWriter, request *http.Request) {
+	c.requestContext = context.Background()
 	c.Response = response
 	c.Request = request
 	c.data = nil
