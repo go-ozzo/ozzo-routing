@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
     "time"
+	"context"
 )
 
 func TestContextParam(t *testing.T) {
@@ -69,16 +70,6 @@ func TestContextGetSet(t *testing.T) {
 	c.Set("xyz", 123)
 	assert.Equal(t, "123", c.Get("abc").(string))
 	assert.Equal(t, 123, c.Get("xyz").(int))
-}
-
-func TestContextBackgroundValue(t *testing.T) {
-	c := NewContext(nil, nil)
-	c.init(nil, nil)
-	assert.Nil(t, c.BackgroundValue("abc"))
-	c.WithBackgroundValue("abc", "123")
-	c.WithBackgroundValue("xyz", 123)
-	assert.Equal(t, "123", c.BackgroundValue("abc").(string))
-	assert.Equal(t, 123, c.BackgroundValue("xyz").(int))
 }
 
 func TestContextQueryForm(t *testing.T) {
@@ -149,7 +140,7 @@ func testNewContext(handlers ...Handler) (*Context, *httptest.ResponseRecorder) 
 	req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
 	c := &Context{}
 	c.init(res, req)
-	c.WithTimeout(1*time.Second, func(c *Context) error {
+	c.WithTimeout(context.Background(), 1*time.Second, func(c *Context) error {
 		fmt.Fprintf(c.Response, "timeout")
 		return nil
 	})
