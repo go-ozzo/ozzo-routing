@@ -71,6 +71,16 @@ func TestContextGetSet(t *testing.T) {
 	assert.Equal(t, 123, c.Get("xyz").(int))
 }
 
+func TestContextBackgroundValue(t *testing.T) {
+	c := NewContext(nil, nil)
+	c.init(nil, nil)
+	assert.Nil(t, c.BackgroundValue("abc"))
+	c.WithBackgroundValue("abc", "123")
+	c.WithBackgroundValue("xyz", 123)
+	assert.Equal(t, "123", c.BackgroundValue("abc").(string))
+	assert.Equal(t, 123, c.BackgroundValue("xyz").(int))
+}
+
 func TestContextQueryForm(t *testing.T) {
 	req, _ := http.NewRequest("POST", "http://www.google.com/search?q=foo&q=bar&both=x&prio=1&empty=not",
 		strings.NewReader("z=post&both=y&prio=2&empty="))
