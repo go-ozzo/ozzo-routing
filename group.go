@@ -4,13 +4,18 @@
 
 package routing
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 // RouteGroup represents a group of routes that share the same path prefix.
 type RouteGroup struct {
-	prefix   string
-	router   *Router
-	handlers []Handler
+	prefix          string
+	router          *Router
+	handlers        []Handler
+	timeoutDuration time.Duration
+    timeoutHandlers []Handler
 }
 
 // newRouteGroup creates a new RouteGroup with the given path prefix, router, and handlers.
@@ -103,6 +108,12 @@ func (rg *RouteGroup) Group(prefix string, handlers ...Handler) *RouteGroup {
 // These handlers will be shared by all routes belong to this group and its subgroups.
 func (rg *RouteGroup) Use(handlers ...Handler) {
 	rg.handlers = append(rg.handlers, handlers...)
+}
+
+// Timeout specifies the handlers that should be invoked when a request execution timeout.
+func (rg *RouteGroup) Timeout(timeoutDuration time.Duration, timeoutHandlers ...Handler) {
+	rg.timeoutDuration = timeoutDuration
+	rg.timeoutHandlers = timeoutHandlers
 }
 
 func (rg *RouteGroup) add(method, path string, handlers []Handler) *Route {

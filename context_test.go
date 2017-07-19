@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-    "time"
 	"context"
+	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestContextParam(t *testing.T) {
@@ -55,7 +55,7 @@ func TestContextInit(t *testing.T) {
 }
 
 func TestContextURL(t *testing.T) {
-	router := New()
+	router := New(context.Background())
 	router.Get("/users/<id:\\d+>/<action>/*").Name("users")
 	c := &Context{router: router}
 	assert.Equal(t, "/users/123/address/", c.URL("users", "id", 123, "action", "address"))
@@ -90,21 +90,14 @@ func TestContextQueryForm(t *testing.T) {
 	assert.Equal(t, "123", c.Form("x", "123"))
 }
 
-func TestContextDeadline(t *testing.T) {
-	c, res := testNewContext(
-		testTimeoutHandler(),
-	)
-	assert.Nil(t, c.Next())
-	assert.Equal(t, "timeout", res.Body.String())
-}
-
 func TestContextNextAbort(t *testing.T) {
+	ctx := context.Background()
 	c, res := testNewContext(
 		testNormalHandler("a"),
 		testNormalHandler("b"),
 		testNormalHandler("c"),
 	)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(ctx))
 	assert.Equal(t, "<a/><b/><c/>", res.Body.String())
 
 	c, res = testNewContext(
@@ -112,7 +105,7 @@ func TestContextNextAbort(t *testing.T) {
 		testNextHandler("b"),
 		testNextHandler("c"),
 	)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(ctx))
 	assert.Equal(t, "<a><b><c></c></b></a>", res.Body.String())
 
 	c, res = testNewContext(
@@ -120,7 +113,7 @@ func TestContextNextAbort(t *testing.T) {
 		testAbortHandler("b"),
 		testNormalHandler("c"),
 	)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(ctx))
 	assert.Equal(t, "<a><b/></a>", res.Body.String())
 
 	c, res = testNewContext(
@@ -128,7 +121,7 @@ func TestContextNextAbort(t *testing.T) {
 		testErrorHandler("b"),
 		testNormalHandler("c"),
 	)
-	err := c.Next()
+	err := c.Next(ctx)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "error:b", err.Error())
 	}
@@ -140,25 +133,21 @@ func testNewContext(handlers ...Handler) (*Context, *httptest.ResponseRecorder) 
 	req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
 	c := &Context{}
 	c.init(res, req)
-	c.WithTimeout(context.Background(), 1*time.Second, func(c *Context) error {
-		fmt.Fprintf(c.Response, "timeout")
-		return nil
-	})
 	c.handlers = handlers
 	return c, res
 }
 
 func testNextHandler(tag string) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) error {
 		fmt.Fprintf(c.Response, "<%v>", tag)
-		err := c.Next()
+		err := c.Next(context.Background())
 		fmt.Fprintf(c.Response, "</%v>", tag)
 		return err
 	}
 }
 
 func testAbortHandler(tag string) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) error {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
 		c.Abort()
 		return nil
@@ -166,21 +155,21 @@ func testAbortHandler(tag string) Handler {
 }
 
 func testErrorHandler(tag string) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) error {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
 		return errors.New("error:" + tag)
 	}
 }
 
 func testTimeoutHandler() Handler {
-	return func(c *Context) error {
-		time.Sleep(2*time.Second)
+	return func(ctx context.Context, c *Context) error {
+		time.Sleep(2 * time.Second)
 		return nil
 	}
 }
 
 func testNormalHandler(tag string) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) error {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
 		return nil
 	}

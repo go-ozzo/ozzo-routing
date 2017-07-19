@@ -7,20 +7,20 @@ package routing
 import (
 	"context"
 	"net/http"
-	"time"
 )
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
 type Context struct {
-	Request       *http.Request       // the current request
-	Response      http.ResponseWriter // the response writer
-	router        *Router
-	pnames        []string               // list of route parameter names
-	pvalues       []string               // list of parameter values corresponding to pnames
-	data          map[string]interface{} // data items managed by Get and Set
-	index         int                    // the index of the currently executing handler in handlers
-	handlers      []Handler              // the handlers associated with the current route
-	writer        DataWriter
+	Request         *http.Request       // the current request
+	Response        http.ResponseWriter // the response writer
+	router          *Router
+	pnames          []string               // list of route parameter names
+	pvalues         []string               // list of parameter values corresponding to pnames
+	data            map[string]interface{} // data items managed by Get and Set
+	index           int                    // the index of the currently executing handler in handlers
+	handlers        []Handler              // the handlers associated with the current route
+	timeoutHandlers []Handler
+	writer          DataWriter
 }
 
 // NewContext creates a new Context object with the given response, request, and the handlers.
@@ -122,10 +122,25 @@ func (c *Context) PostForm(key string, defaultValue ...string) string {
 // If any of these handlers returns an error, Next will return the error and skip the following handlers.
 // Next is normally used when a handler needs to do some postprocessing after the rest of the handlers
 // are executed.
-func (c *Context) Next() error {
+func (c *Context) Next(ctx context.Context) error {
 	c.index++
 	for n := len(c.handlers); c.index < n; c.index++ {
-		if err := c.handlers[c.index](c); err != nil {
+		go func(ctx context.Context, c *Context) {
+			select {
+			case <-ctx.Done():
+				switch ctx.Err() {
+				case context.DeadlineExceeded:
+					index := 0
+					for n := len(c.timeoutHandlers); index < n; index++ {
+						c.timeoutHandlers[index](ctx, c)
+					}
+					c.Abort()
+                case context.Canceled:
+
+				}
+			}
+		}(ctx, c)
+		if err := c.handlers[c.index](ctx, c); err != nil {
 			return err
 		}
 	}
@@ -177,32 +192,6 @@ func (c *Context) Write(data interface{}) error {
 // SetDataWriter sets the data writer that will be used by Write().
 func (c *Context) SetDataWriter(writer DataWriter) {
 	c.writer = writer
-}
-
-// Timeout specifies the handlers that should be invoked when a request execution timeout.
-func (c *Context) WithTimeout(ctx context.Context, timeoutDuration time.Duration, handler Handler) (cancel context.CancelFunc) {
-	if timeoutDuration != 0*time.Second {
-		ctx, cancel = context.WithTimeout(ctx, timeoutDuration)
-	} else {
-		ctx, cancel = context.WithCancel(ctx)
-	}
-	go func(ctx context.Context, c *Context) {
-		select {
-		case <-ctx.Done():
-			if handler != nil {
-				handler(c)
-			}
-		}
-	}(ctx, c)
-	// Set Deadline for Request
-	c.Request.WithContext(ctx)
-	return cancel
-}
-
-func (c *Context) WithCancel(ctx context.Context, handler Handler) (cancel context.CancelFunc) {
-	ctx, cancel = context.WithCancel(ctx)
-	c.Request.WithContext(ctx)
-	return cancel
 }
 
 // init sets the request and response of the context and resets all other properties.

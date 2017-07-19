@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"context"
 )
 
 type mockStore struct {
@@ -23,13 +24,13 @@ func newMockStore() *mockStore {
 
 func (s *mockStore) Add(key string, data interface{}) int {
 	for _, handler := range data.([]Handler) {
-		handler(nil)
+		handler(nil, nil)
 	}
 	return s.store.Add(key, data)
 }
 
 func TestRouteNew(t *testing.T) {
-	router := New()
+	router := New(context.Background())
 	group := newRouteGroup("/admin", router, nil)
 
 	r1 := group.newRoute("GET", "/users").Get()
@@ -45,7 +46,7 @@ func TestRouteNew(t *testing.T) {
 }
 
 func TestRouteName(t *testing.T) {
-	router := New()
+	router := New(context.Background())
 	group := newRouteGroup("/admin", router, nil)
 
 	r1 := group.newRoute("GET", "/users")
@@ -57,7 +58,7 @@ func TestRouteName(t *testing.T) {
 }
 
 func TestRouteURL(t *testing.T) {
-	router := New()
+	router := New(context.Background())
 	group := newRouteGroup("/admin", router, nil)
 	r := group.newRoute("GET", "/users/<id:\\d+>/<action>/*")
 	assert.Equal(t, "/admin/users/123/address/", r.URL("id", 123, "action", "address"))
@@ -69,7 +70,7 @@ func TestRouteURL(t *testing.T) {
 }
 
 func newHandler(tag string, buf *bytes.Buffer) Handler {
-	return func(*Context) error {
+	return func(context.Context, *Context) error {
 		fmt.Fprintf(buf, tag)
 		return nil
 	}
@@ -77,7 +78,7 @@ func newHandler(tag string, buf *bytes.Buffer) Handler {
 
 func TestRouteAdd(t *testing.T) {
 	store := newMockStore()
-	router := New()
+	router := New(context.Background())
 	router.stores["GET"] = store
 	assert.Equal(t, 0, store.count, "router.stores[GET].count =")
 
@@ -99,7 +100,7 @@ func TestRouteAdd(t *testing.T) {
 }
 
 func TestRouteTag(t *testing.T) {
-	router := New()
+	router := New(context.Background())
 	router.Get("/posts").Tag("posts")
 	router.Any("/users").Tag("users")
 	router.To("PUT,PATCH", "/comments").Tag("comments")
@@ -128,7 +129,7 @@ func TestRouteTag(t *testing.T) {
 }
 
 func TestRouteMethods(t *testing.T) {
-	router := New()
+	router := New(context.Background())
 	for _, method := range Methods {
 		store := newMockStore()
 		router.stores[method] = store
@@ -191,7 +192,7 @@ func TestBuildURLTemplate(t *testing.T) {
 }
 
 func TestRouteString(t *testing.T) {
-	router := New()
+	router := New(context.Background())
 	router.Get("/users/<id>")
 	router.To("GET,POST", "/users/<id>/profile")
 	group := router.Group("/admin")

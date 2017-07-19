@@ -6,20 +6,22 @@
 package routing
 
 import (
+	"context"
 	"net/http"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 type (
 	// Handler is the function for handling HTTP requests.
-	Handler func(*Context) error
+	Handler func(context.Context, *Context) error
 
 	// Router manages routes and dispatches HTTP requests to the handlers of the matching routes.
 	Router struct {
 		RouteGroup
-		IgnoreTrailingSlash bool  // whether to ignore trailing slashes in the end of the request URL
+		IgnoreTrailingSlash bool // whether to ignore trailing slashes in the end of the request URL
 		pool                sync.Pool
 		routes              []*Route
 		namedRoutes         map[string]*Route
@@ -27,6 +29,9 @@ type (
 		maxParams           int
 		notFound            []Handler
 		notFoundHandlers    []Handler
+		context             context.Context
+		timeoutDuration     time.Duration
+		timeoutHandlers     []Handler
 	}
 
 	// routeStore stores route paths and the corresponding handlers.
@@ -51,13 +56,15 @@ var Methods = []string{
 }
 
 // New creates a new Router object.
-func New() *Router {
+func New(ctx context.Context) *Router {
 	r := &Router{
 		namedRoutes: make(map[string]*Route),
 		stores:      make(map[string]routeStore),
+		context:     ctx,
 	}
 	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0))
 	r.NotFound(MethodNotAllowedHandler, NotFoundHandler)
+	r.Timeout(0*time.Second, TimeoutHandler)
 	r.pool.New = func() interface{} {
 		return &Context{
 			pvalues: make([]string, r.maxParams),
@@ -70,10 +77,29 @@ func New() *Router {
 // ServeHTTP handles the HTTP request.
 // It is required by http.Handler
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
 	c := r.pool.Get().(*Context)
 	c.init(res, req)
 	c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
-	if err := c.Next(); err != nil {
+	// timeout duration
+	timeoutDuration := r.timeoutDuration
+	if r.RouteGroup.timeoutDuration != 0*time.Second {
+		timeoutDuration = r.RouteGroup.timeoutDuration
+	}
+	if timeoutDuration != 0*time.Second {
+		ctx, cancel = context.WithTimeout(r.context, timeoutDuration)
+	} else {
+		ctx, cancel = context.WithCancel(r.context)
+	}
+	req.WithContext(ctx)
+	defer cancel()
+	// timeout handlers
+	c.timeoutHandlers = combineHandlers(r.timeoutHandlers, r.RouteGroup.timeoutHandlers)
+    // next
+	if err := c.Next(ctx); err != nil {
 		r.handleError(c, err)
 	}
 	r.pool.Put(c)
@@ -101,6 +127,14 @@ func (r *Router) Use(handlers ...Handler) {
 func (r *Router) NotFound(handlers ...Handler) {
 	r.notFound = handlers
 	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
+}
+
+// Timeout specifies the handlers that should be invoked when a request execution timeout.
+func (r *Router) Timeout(timeoutDuration time.Duration, timeoutHandlers ...Handler) {
+	r.timeoutDuration = timeoutDuration
+    if len(timeoutHandlers) > 0  {
+        r.timeoutHandlers = timeoutHandlers
+    }
 }
 
 // handleError is the error handler for handling any unhandled errors.
@@ -156,10 +190,10 @@ func (r *Router) findAllowedMethods(path string) map[string]bool {
 }
 
 func (r *Router) normalizeRequestPath(path string) string {
-	if r.IgnoreTrailingSlash && len(path)>1 && path[len(path)-1] == '/'{
-		for i:=len(path)-2; i>0; i-- {
+	if r.IgnoreTrailingSlash && len(path) > 1 && path[len(path)-1] == '/' {
+		for i := len(path) - 2; i > 0; i-- {
 			if path[i] != '/' {
-				return path[0:i+1]
+				return path[0 : i+1]
 			}
 		}
 		return path[0:1]
@@ -168,14 +202,20 @@ func (r *Router) normalizeRequestPath(path string) string {
 }
 
 // NotFoundHandler returns a 404 HTTP error indicating a request has no matching route.
-func NotFoundHandler(*Context) error {
+func TimeoutHandler(ctx context.Context, c *Context) error {
+	c.Response.WriteHeader(http.StatusRequestTimeout)
+	return nil
+}
+
+// NotFoundHandler returns a 404 HTTP error indicating a request has no matching route.
+func NotFoundHandler(context.Context, *Context) error {
 	return NewHTTPError(http.StatusNotFound)
 }
 
 // MethodNotAllowedHandler handles the situation when a request has matching route without matching HTTP method.
 // In this case, the handler will respond with an Allow HTTP header listing the allowed HTTP methods.
 // Otherwise, the handler will do nothing and let the next handler (usually a NotFoundHandler) to handle the problem.
-func MethodNotAllowedHandler(c *Context) error {
+func MethodNotAllowedHandler(ctx context.Context, c *Context) error {
 	methods := c.Router().findAllowedMethods(c.Request.URL.Path)
 	if len(methods) == 0 {
 		return nil
@@ -198,7 +238,7 @@ func MethodNotAllowedHandler(c *Context) error {
 
 // HTTPHandlerFunc adapts a http.HandlerFunc into a routing.Handler.
 func HTTPHandlerFunc(h http.HandlerFunc) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) error {
 		h(c.Response, c.Request)
 		return nil
 	}
@@ -206,7 +246,7 @@ func HTTPHandlerFunc(h http.HandlerFunc) Handler {
 
 // HTTPHandler adapts a http.Handler into a routing.Handler.
 func HTTPHandler(h http.Handler) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) error {
 		h.ServeHTTP(c.Response, c.Request)
 		return nil
 	}
