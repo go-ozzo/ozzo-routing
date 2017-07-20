@@ -44,7 +44,7 @@ type (
 func Recovery(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 	handlePanic := PanicHandler(logf)
 	return func(ctx context.Context, c *routing.Context) error {
-		if err := handlePanic(c); err != nil {
+		if err := handlePanic(ctx, c); err != nil {
 			if logf != nil {
 				logf("%v", err)
 			}

@@ -38,7 +38,7 @@ func PanicHandler(logf LogFunc) routing.Handler {
 			}
 		}()
 
-		return c.Next()
+		return c.Next(ctx)
 	}
 }
 

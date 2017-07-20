@@ -33,7 +33,7 @@ import (
 //     r.Use(fault.PanicHandler(log.Printf))
 func ErrorHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 	return func(ctx context.Context, c *routing.Context) error {
-		err := c.Next()
+		err := c.Next(ctx)
 		if err == nil {
 			return nil
 		}

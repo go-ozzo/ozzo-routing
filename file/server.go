@@ -143,7 +143,7 @@ func Content(path string) routing.Handler {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(RootPath, path)
 	}
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) error {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
 			return routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}

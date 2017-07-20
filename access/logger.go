@@ -52,7 +52,7 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 		rw := &LogResponseWriter{c.Response, http.StatusOK, 0}
 		c.Response = rw
 
-		err := c.Next()
+		err := c.Next(ctx)
 
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
 		loggerFunc(req, rw, elapsed)
