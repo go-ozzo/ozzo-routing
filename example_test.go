@@ -1,12 +1,12 @@
 package routing_test
 
 import (
-	"github.com/go-ozzo/ozzo-routing"
-	"github.com/go-ozzo/ozzo-routing/access"
-	"github.com/go-ozzo/ozzo-routing/content"
-	"github.com/go-ozzo/ozzo-routing/fault"
-	"github.com/go-ozzo/ozzo-routing/file"
-	"github.com/go-ozzo/ozzo-routing/slash"
+	"github.com/ltick/tick-routing"
+	"github.com/ltick/tick-routing/access"
+	"github.com/ltick/tick-routing/content"
+	"github.com/ltick/tick-routing/fault"
+	"github.com/ltick/tick-routing/file"
+	"github.com/ltick/tick-routing/slash"
 	"log"
 	"net/http"
 )

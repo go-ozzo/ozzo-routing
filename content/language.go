@@ -7,7 +7,7 @@ package content
 import (
 	"net/http"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/ltick/tick-routing"
 	"github.com/golang/gddo/httputil/header"
 )
 

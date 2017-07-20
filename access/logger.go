@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/ltick/tick-routing"
 )
 
 // LogFunc logs a message using the given format and optional arguments.
@@ -33,8 +33,8 @@ type LogWriterFunc func(req *http.Request, res *LogResponseWriter, elapsed float
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/access"
+//         "github.com/ltick/tick-routing"
+//         "github.com/ltick/tick-routing/access"
 //         "net/http"
 //     )
 //
@@ -67,8 +67,8 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/access"
+//         "github.com/ltick/tick-routing"
+//         "github.com/ltick/tick-routing/access"
 //     )
 //
 //     r := routing.New()
