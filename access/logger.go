@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ltick/tick-routing"
+	"context"
 )
 
 // LogFunc logs a message using the given format and optional arguments.
@@ -44,7 +45,7 @@ type LogWriterFunc func(req *http.Request, res *LogResponseWriter, elapsed float
 //     r := routing.New()
 //     r.Use(access.CustomLogger(myCustomLogger))
 func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) error {
 		startTime := time.Now()
 
 		req := c.Request

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ltick/tick-routing"
 	"github.com/golang/gddo/httputil/header"
+	"context"
 )
 
 // Language is the key used to store and retrieve the chosen language in routing.Context
@@ -33,7 +34,7 @@ func LanguageNegotiator(languages ...string) routing.Handler {
 	}
 	defaultLanguage := languages[0]
 
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) error {
 		language := negotiateLanguage(c.Request, languages, defaultLanguage)
 		c.Set(Language, language)
 		return nil

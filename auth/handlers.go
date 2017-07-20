@@ -12,6 +12,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/ltick/tick-routing"
+	"context"
 )
 
 // User is the key used to store and retrieve the user identity information in routing.Context
@@ -61,7 +62,7 @@ func Basic(fn BasicAuthFunc, realm ...string) routing.Handler {
 	if len(realm) > 0 {
 		name = realm[0]
 	}
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) error {
 		username, password := parseBasicAuth(c.Request.Header.Get("Authorization"))
 		identity, e := fn(c, username, password)
 		if e == nil {

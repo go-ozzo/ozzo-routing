@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ltick/tick-routing"
+	"context"
 )
 
 const (
@@ -60,7 +61,7 @@ func Handler(opts Options) routing.Handler {
 
 	opts.init()
 
-	return func(c *routing.Context) (err error) {
+	return func(ctx context.Context, c *routing.Context) (err error) {
 		origin := c.Request.Header.Get(headerOrigin)
 		if origin == "" {
 			// the request is outside the scope of CORS

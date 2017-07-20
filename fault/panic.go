@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/ltick/tick-routing"
+	"context"
 )
 
 // PanicHandler returns a handler that recovers from panics happened in the handlers following this one.
@@ -24,7 +25,7 @@ import (
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func PanicHandler(logf LogFunc) routing.Handler {
-	return func(c *routing.Context) (err error) {
+	return func(ctx context.Context, c *routing.Context) (err error) {
 		defer func() {
 			if e := recover(); e != nil {
 				if logf != nil {
