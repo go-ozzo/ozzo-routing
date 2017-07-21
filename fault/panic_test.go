@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"context"
 
 	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ func TestPanicHandler(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/users/", nil)
 	c := routing.NewContext(res, req, h, handler3, handler2)
-	err := c.Next()
+	err := c.Next(context.Background())
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "xyz", err.Error())
 	}
@@ -27,7 +28,7 @@ func TestPanicHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users/", nil)
 	c = routing.NewContext(res, req, h, handler2)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(context.Background()))
 	assert.Equal(t, "", buf.String())
 
 	buf.Reset()
@@ -35,7 +36,7 @@ func TestPanicHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users/", nil)
 	c = routing.NewContext(res, req, h2, h, handler3, handler2)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(context.Background()))
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "xyz", res.Body.String())
 	assert.Contains(t, buf.String(), "recovery_test.go")

@@ -122,7 +122,7 @@ func Bearer(fn TokenAuthFunc, realm ...string) routing.Handler {
 	if len(realm) > 0 {
 		name = realm[0]
 	}
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) error {
 		token := parseBearerAuth(c.Request.Header.Get("Authorization"))
 		identity, e := fn(c, token)
 		if e == nil {
@@ -176,7 +176,7 @@ func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
 	if len(tokenName) > 0 {
 		name = tokenName[0]
 	}
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) error {
 		token := c.Request.URL.Query().Get(name)
 		identity, err := fn(c, token)
 		if err != nil {
@@ -269,7 +269,7 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 	parser := &jwt.Parser{
 		ValidMethods: []string{opt.SigningMethod},
 	}
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) error {
 		header := c.Request.Header.Get("Authorization")
 		message := ""
 		if opt.GetVerificationKey != nil {

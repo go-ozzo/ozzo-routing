@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"context"
 
 	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestErrorHandler(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/users/", nil)
 	c := routing.NewContext(res, req, h, handler1, handler2)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(context.Background()))
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "abc", res.Body.String())
 	assert.Equal(t, "abc", buf.String())
@@ -27,7 +28,7 @@ func TestErrorHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users/", nil)
 	c = routing.NewContext(res, req, h, handler2)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(context.Background()))
 	assert.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "test", res.Body.String())
 	assert.Equal(t, "", buf.String())
@@ -37,7 +38,7 @@ func TestErrorHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users/", nil)
 	c = routing.NewContext(res, req, h, handler1, handler2)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(context.Background()))
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "123", res.Body.String())
 	assert.Equal(t, "abc", buf.String())
@@ -47,7 +48,7 @@ func TestErrorHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users/", nil)
 	c = routing.NewContext(res, req, h, handler1, handler2)
-	assert.Nil(t, c.Next())
+	assert.Nil(t, c.Next(context.Background()))
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "abc", res.Body.String())
 	assert.Equal(t, "", buf.String())
