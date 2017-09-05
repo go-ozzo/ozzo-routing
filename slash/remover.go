@@ -36,7 +36,14 @@ func Remover(status int) routing.Handler {
 			if c.Request.Method != "GET" {
 				status = http.StatusTemporaryRedirect
 			}
-			http.Redirect(c.Response, c.Request, strings.TrimRight(c.Request.URL.Path, "/"), status)
+			urlStr := strings.TrimRight(c.Request.URL.Path, "/")
+			if c.Request.URL.RawQuery != "" {
+				urlStr = urlStr + "?" + c.Request.URL.RawQuery
+			}
+			if c.Request.URL.Fragment != "" {
+				urlStr = urlStr + "#" + c.Request.URL.Fragment
+			}
+			http.Redirect(c.Response, c.Request, urlStr, status)
 			c.Abort()
 		}
 		return nil
