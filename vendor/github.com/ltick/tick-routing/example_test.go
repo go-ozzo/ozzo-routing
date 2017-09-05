@@ -9,10 +9,11 @@ import (
 	"github.com/ltick/tick-routing/slash"
 	"log"
 	"net/http"
+	"context"
 )
 
 func Example() {
-	router := routing.New()
+	router := routing.New(context.Background())
 
 	router.Use(
 		// all these handlers are shared by every route
@@ -27,13 +28,13 @@ func Example() {
 		// these handlers are shared by the routes in the api group only
 		content.TypeNegotiator(content.JSON, content.XML),
 	)
-	api.Get("/users", func(c *routing.Context) error {
+	api.Get("/users", func(ctx context.Context, c *routing.Context) error {
 		return c.Write("user list")
 	})
-	api.Post("/users", func(c *routing.Context) error {
+	api.Post("/users", func(ctx context.Context, c *routing.Context) error {
 		return c.Write("create a new user")
 	})
-	api.Put(`/users/<id:\d+>`, func(c *routing.Context) error {
+	api.Put(`/users/<id:\d+>`, func(ctx context.Context, c *routing.Context) error {
 		return c.Write("update user " + c.Param("id"))
 	})
 

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"context"
 
 	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ func TestCustomLogger(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
 	c := routing.NewContext(res, req, h, handler1)
-	assert.NotNil(t, c.Next())
+	assert.NotNil(t, c.Next(context.Background()))
 	assert.Contains(t, buf.String(), "GET http://127.0.0.1/users")
 }
 
@@ -40,7 +41,7 @@ func TestLogger(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
 	c := routing.NewContext(res, req, h, handler1)
-	assert.NotNil(t, c.Next())
+	assert.NotNil(t, c.Next(context.Background()))
 	assert.Contains(t, buf.String(), "GET http://127.0.0.1/users")
 }
 
@@ -78,6 +79,6 @@ func getLogger(buf *bytes.Buffer) LogFunc {
 	}
 }
 
-func handler1(c *routing.Context) error {
+func handler1(ctx context.Context, c *routing.Context) error {
 	return errors.New("abc")
 }

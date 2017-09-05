@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
+	"context"
 	"time"
 
 	"github.com/ltick/tick-routing"
@@ -204,26 +204,26 @@ func TestHandlers(t *testing.T) {
 	req.Header.Set("Origin", "https://example.com")
 	req.Header.Set("Access-Control-Request-Method", "PATCH")
 	c := routing.NewContext(res, req)
-	assert.Nil(t, h(c))
+	assert.Nil(t, h(context.Background(), c))
 	assert.Equal(t, "https://example.com", res.Header().Get(headerAllowOrigin))
 
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("PATCH", "/users/", nil)
 	req.Header.Set("Origin", "https://example.com")
 	c = routing.NewContext(res, req)
-	assert.Nil(t, h(c))
+	assert.Nil(t, h(context.Background(), c))
 	assert.Equal(t, "https://example.com", res.Header().Get(headerAllowOrigin))
 
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("PATCH", "/users/", nil)
 	c = routing.NewContext(res, req)
-	assert.Nil(t, h(c))
+	assert.Nil(t, h(context.Background(), c))
 	assert.Equal(t, "", res.Header().Get(headerAllowOrigin))
 
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("OPTIONS", "/users/", nil)
 	req.Header.Set("Origin", "https://example.com")
 	c = routing.NewContext(res, req)
-	assert.Nil(t, h(c))
+	assert.Nil(t, h(context.Background(), c))
 	assert.Equal(t, "", res.Header().Get(headerAllowOrigin))
 }

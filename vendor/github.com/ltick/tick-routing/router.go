@@ -204,6 +204,7 @@ func (r *Router) normalizeRequestPath(path string) string {
 // NotFoundHandler returns a 404 HTTP error indicating a request has no matching route.
 func TimeoutHandler(ctx context.Context, c *Context) error {
 	c.Response.WriteHeader(http.StatusRequestTimeout)
+	c.Abort()
 	return nil
 }
 
