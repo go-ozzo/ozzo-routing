@@ -7,6 +7,7 @@ package routing
 
 import (
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -19,7 +20,8 @@ type (
 	// Router manages routes and dispatches HTTP requests to the handlers of the matching routes.
 	Router struct {
 		RouteGroup
-		IgnoreTrailingSlash bool  // whether to ignore trailing slashes in the end of the request URL
+		IgnoreTrailingSlash bool // whether to ignore trailing slashes in the end of the request URL
+		UseEscapedPath      bool // whether to use encoded URL instead of decoded URL to match routes
 		pool                sync.Pool
 		routes              []*Route
 		namedRoutes         map[string]*Route
@@ -72,7 +74,14 @@ func New() *Router {
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	c := r.pool.Get().(*Context)
 	c.init(res, req)
-	c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
+	if r.UseEscapedPath {
+		c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.EscapedPath()), c.pvalues)
+		for i, v := range c.pvalues {
+			c.pvalues[i], _ = url.QueryUnescape(v)
+		}
+	} else {
+		c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
+	}
 	if err := c.Next(); err != nil {
 		r.handleError(c, err)
 	}
@@ -156,10 +165,10 @@ func (r *Router) findAllowedMethods(path string) map[string]bool {
 }
 
 func (r *Router) normalizeRequestPath(path string) string {
-	if r.IgnoreTrailingSlash && len(path)>1 && path[len(path)-1] == '/'{
-		for i:=len(path)-2; i>0; i-- {
+	if r.IgnoreTrailingSlash && len(path) > 1 && path[len(path)-1] == '/' {
+		for i := len(path) - 2; i > 0; i-- {
 			if path[i] != '/' {
-				return path[0:i+1]
+				return path[0 : i+1]
 			}
 		}
 		return path[0:1]
