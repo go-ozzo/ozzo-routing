@@ -24,25 +24,24 @@ type dataWriter struct{}
 func (w *dataWriter) SetHeader(res http.ResponseWriter) {}
 
 func (w *dataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
-	var bytes []byte
 	switch data.(type) {
 	case []byte:
-		bytes = data.([]byte)
-		_, err = res.Write(bytes)
+		dataByte := data.([]byte)
+		_, err = res.Write(dataByte)
 	case string:
-		bytes = []byte(data.(string))
-		_, err = res.Write(bytes)
+		dataByte := []byte(data.(string))
+		_, err = res.Write(dataByte)
     case io.ReadSeeker:
-		bytes := data.(io.ReadSeeker)
-        size, err := bytes.Seek(0, io.SeekEnd)
+		dataFile := data.(io.ReadSeeker)
+        size, err := dataFile.Seek(0, io.SeekEnd)
         if err != nil {
             return errors.New("seeker could not seek")
         }
-        _, err = bytes.Seek(0, io.SeekStart)
+        _, err = dataFile.Seek(0, io.SeekStart)
         if err != nil {
             return errors.New("seeker could not seek")
         }
-        _, err = io.CopyN(res, bytes, size)
+        _, err = io.CopyN(res, dataFile, size)
         if err != nil {
             return err
         }

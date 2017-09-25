@@ -91,13 +91,12 @@ func TestContextQueryForm(t *testing.T) {
 }
 
 func TestContextNextAbort(t *testing.T) {
-	ctx := context.Background()
 	c, res := testNewContext(
 		testNormalHandler("a"),
 		testNormalHandler("b"),
 		testNormalHandler("c"),
 	)
-	assert.Nil(t, c.Next(ctx))
+	assert.Nil(t, c.Next())
 	assert.Equal(t, "<a/><b/><c/>", res.Body.String())
 
 	c, res = testNewContext(
@@ -105,7 +104,7 @@ func TestContextNextAbort(t *testing.T) {
 		testNextHandler("b"),
 		testNextHandler("c"),
 	)
-	assert.Nil(t, c.Next(ctx))
+	assert.Nil(t, c.Next())
 	assert.Equal(t, "<a><b><c></c></b></a>", res.Body.String())
 
 	c, res = testNewContext(
@@ -113,7 +112,7 @@ func TestContextNextAbort(t *testing.T) {
 		testAbortHandler("b"),
 		testNormalHandler("c"),
 	)
-	assert.Nil(t, c.Next(ctx))
+	assert.Nil(t, c.Next())
 	assert.Equal(t, "<a><b/></a>", res.Body.String())
 
 	c, res = testNewContext(
@@ -121,7 +120,7 @@ func TestContextNextAbort(t *testing.T) {
 		testErrorHandler("b"),
 		testNormalHandler("c"),
 	)
-	err := c.Next(ctx)
+	err := c.Next()
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "error:b", err.Error())
 	}
@@ -140,7 +139,7 @@ func testNewContext(handlers ...Handler) (*Context, *httptest.ResponseRecorder) 
 func testNextHandler(tag string) Handler {
 	return func(ctx context.Context, c *Context) error {
 		fmt.Fprintf(c.Response, "<%v>", tag)
-		err := c.Next(context.Background())
+		err := c.Next()
 		fmt.Fprintf(c.Response, "</%v>", tag)
 		return err
 	}
