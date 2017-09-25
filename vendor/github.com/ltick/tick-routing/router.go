@@ -29,9 +29,6 @@ type (
 		maxParams           int
 		notFound            []Handler
 		notFoundHandlers    []Handler
-		context             context.Context
-		timeoutDuration     time.Duration
-		timeoutHandlers     []Handler
 	}
 
 	// routeStore stores route paths and the corresponding handlers.
@@ -60,15 +57,16 @@ func New(ctx context.Context) *Router {
 	r := &Router{
 		namedRoutes: make(map[string]*Route),
 		stores:      make(map[string]routeStore),
-		context:     ctx,
 	}
 	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0))
 	r.NotFound(MethodNotAllowedHandler, NotFoundHandler)
-	r.Timeout(0*time.Second, TimeoutHandler)
 	r.pool.New = func() interface{} {
 		return &Context{
-			pvalues: make([]string, r.maxParams),
-			router:  r,
+			pvalues:         make([]string, r.maxParams),
+			router:          r,
+			Ctx:             ctx,
+			TimeoutDuration: 0 * time.Second,
+			TimeoutHandlers: []Handler{TimeoutHandler},
 		}
 	}
 	return r
@@ -77,29 +75,15 @@ func New(ctx context.Context) *Router {
 // ServeHTTP handles the HTTP request.
 // It is required by http.Handler
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-	)
 	c := r.pool.Get().(*Context)
 	c.init(res, req)
+	if c.Ctx == nil {
+		c.Ctx = context.Background()
+	}
+	req.WithContext(c.Ctx)
 	c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
-	// timeout duration
-	timeoutDuration := r.timeoutDuration
-	if r.RouteGroup.timeoutDuration != 0*time.Second {
-		timeoutDuration = r.RouteGroup.timeoutDuration
-	}
-	if timeoutDuration != 0*time.Second {
-		ctx, cancel = context.WithTimeout(r.context, timeoutDuration)
-	} else {
-		ctx, cancel = context.WithCancel(r.context)
-	}
-	req.WithContext(ctx)
-	defer cancel()
-	// timeout handlers
-	c.timeoutHandlers = combineHandlers(r.timeoutHandlers, r.RouteGroup.timeoutHandlers)
-    // next
-	if err := c.Next(ctx); err != nil {
+	// next
+	if err := c.Next(); err != nil {
 		r.handleError(c, err)
 	}
 	r.pool.Put(c)
@@ -127,14 +111,6 @@ func (r *Router) Use(handlers ...Handler) {
 func (r *Router) NotFound(handlers ...Handler) {
 	r.notFound = handlers
 	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
-}
-
-// Timeout specifies the handlers that should be invoked when a request execution timeout.
-func (r *Router) Timeout(timeoutDuration time.Duration, timeoutHandlers ...Handler) {
-	r.timeoutDuration = timeoutDuration
-    if len(timeoutHandlers) > 0  {
-        r.timeoutHandlers = timeoutHandlers
-    }
 }
 
 // handleError is the error handler for handling any unhandled errors.
@@ -201,15 +177,13 @@ func (r *Router) normalizeRequestPath(path string) string {
 	return path
 }
 
-// NotFoundHandler returns a 404 HTTP error indicating a request has no matching route.
+// TimeoutHandler returns a 408 HTTP error indicating a request execute timeout.
 func TimeoutHandler(ctx context.Context, c *Context) error {
-	c.Response.WriteHeader(http.StatusRequestTimeout)
-	c.Abort()
-	return nil
+	return NewHTTPError(http.StatusRequestTimeout)
 }
 
 // NotFoundHandler returns a 404 HTTP error indicating a request has no matching route.
-func NotFoundHandler(context.Context, *Context) error {
+func NotFoundHandler(ctx context.Context, c *Context) error {
 	return NewHTTPError(http.StatusNotFound)
 }
 

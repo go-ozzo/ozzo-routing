@@ -7,26 +7,36 @@ package routing
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
 type Context struct {
-	Request         *http.Request       // the current request
-	Response        http.ResponseWriter // the response writer
-	router          *Router
-	pnames          []string               // list of route parameter names
-	pvalues         []string               // list of parameter values corresponding to pnames
-	data            map[string]interface{} // data items managed by Get and Set
-	index           int                    // the index of the currently executing handler in handlers
-	handlers        []Handler              // the handlers associated with the current route
-	timeoutHandlers []Handler
-	writer          DataWriter
+	Request  *http.Request       // the current request
+	Response http.ResponseWriter // the response writer
+	router   *Router
+	pnames   []string               // list of route parameter names
+	pvalues  []string               // list of parameter values corresponding to pnames
+	data     map[string]interface{} // data items managed by Get and Set
+	index    int                    // the index of the currently executing handler in handlers
+	handlers []Handler              // the handlers associated with the current route
+	writer   DataWriter
+
+	Ctx             context.Context
+	CancelFunc      context.CancelFunc
+	CancelHandlers  []Handler
+	TimeoutHandlers []Handler
+	TimeoutDuration time.Duration
 }
 
 // NewContext creates a new Context object with the given response, request, and the handlers.
 // This method is primarily provided for writing unit tests for handlers.
 func NewContext(res http.ResponseWriter, req *http.Request, handlers ...Handler) *Context {
-	c := &Context{handlers: handlers}
+	c := &Context{
+		handlers:        handlers,
+		Ctx:             context.Background(),
+		TimeoutHandlers: []Handler{TimeoutHandler},
+	}
 	c.init(res, req)
 	return c
 }
@@ -122,25 +132,56 @@ func (c *Context) PostForm(key string, defaultValue ...string) string {
 // If any of these handlers returns an error, Next will return the error and skip the following handlers.
 // Next is normally used when a handler needs to do some postprocessing after the rest of the handlers
 // are executed.
-func (c *Context) Next(ctx context.Context) error {
-	c.index++
-	for n := len(c.handlers); c.index < n; c.index++ {
-		go func(ctx context.Context, c *Context) {
-			select {
-			case <-ctx.Done():
-				switch ctx.Err() {
-				case context.DeadlineExceeded:
-					index := 0
-					for n := len(c.timeoutHandlers); index < n; index++ {
-						c.timeoutHandlers[index](ctx, c)
+func (c *Context) Next() error {
+	if c.Ctx == nil {
+		return NewHTTPError(http.StatusInternalServerError, "router context not set")
+	}
+	handlerError := make(chan error, 1)
+	go func(c *Context) {
+		c.index++
+		for n := len(c.handlers); c.index < n; c.index++ {
+			if err := c.handlers[c.index](c.Ctx, c); err != nil {
+				handlerError <- err
+			}
+		}
+		if c.CancelFunc != nil {
+			c.CancelFunc()
+		}
+		handlerError <- nil
+	}(c)
+	select {
+	case <-c.Ctx.Done():
+		switch c.Ctx.Err() {
+		case context.DeadlineExceeded:
+			c.Abort()
+			index := 0
+			for n := len(c.TimeoutHandlers); index < n; index++ {
+				if err := c.TimeoutHandlers[index](c.Ctx, c); err != nil {
+					if httpError, ok := err.(HTTPError); ok {
+						c.Response.WriteHeader(httpError.StatusCode())
+					} else {
+						c.Response.WriteHeader(http.StatusInternalServerError)
 					}
-					c.Abort()
-                case context.Canceled:
-
+					c.Write(err)
+					return nil
 				}
 			}
-		}(ctx, c)
-		if err := c.handlers[c.index](ctx, c); err != nil {
+		case context.Canceled:
+			index := 0
+			for n := len(c.CancelHandlers); index < n; index++ {
+				if err := c.CancelHandlers[index](c.Ctx, c); err != nil {
+					if httpError, ok := err.(HTTPError); ok {
+						c.Response.WriteHeader(httpError.StatusCode())
+					} else {
+						c.Response.WriteHeader(http.StatusInternalServerError)
+					}
+					c.Write(err)
+					return nil
+				}
+			}
+		}
+	case err := <-handlerError:
+		if err != nil {
 			return err
 		}
 	}

@@ -19,7 +19,7 @@ func TestErrorHandler(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/users/", nil)
 	c := routing.NewContext(res, req, h, handler1, handler2)
-	assert.Nil(t, c.Next(context.Background()))
+	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "abc", res.Body.String())
 	assert.Equal(t, "abc", buf.String())
@@ -28,7 +28,7 @@ func TestErrorHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users/", nil)
 	c = routing.NewContext(res, req, h, handler2)
-	assert.Nil(t, c.Next(context.Background()))
+	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "test", res.Body.String())
 	assert.Equal(t, "", buf.String())
@@ -38,7 +38,7 @@ func TestErrorHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users/", nil)
 	c = routing.NewContext(res, req, h, handler1, handler2)
-	assert.Nil(t, c.Next(context.Background()))
+	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "123", res.Body.String())
 	assert.Equal(t, "abc", buf.String())
@@ -48,7 +48,7 @@ func TestErrorHandler(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users/", nil)
 	c = routing.NewContext(res, req, h, handler1, handler2)
-	assert.Nil(t, c.Next(context.Background()))
+	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "abc", res.Body.String())
 	assert.Equal(t, "", buf.String())
@@ -70,6 +70,6 @@ func Test_writeError(t *testing.T) {
 	assert.Equal(t, "xyz", res.Body.String())
 }
 
-func convertError(c *routing.Context, err error) error {
+func convertError(ctx context.Context, c *routing.Context, err error) error {
 	return errors.New("123")
 }
