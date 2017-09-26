@@ -130,6 +130,7 @@ func (c *Context) Next() error {
 	if c.Ctx == nil {
 		return NewHTTPError(http.StatusInternalServerError, "router context not set")
 	}
+	handlerAbort := false
 	handlerErrorCh := make(chan error, 1)
 	go func(c *Context) {
 		if c.CancelFunc != nil {
@@ -137,6 +138,9 @@ func (c *Context) Next() error {
 		}
 		c.index++
 		for n := len(c.handlers); c.index < n; c.index++ {
+			if handlerAbort {
+				break
+			}
 			if err := c.handlers[c.index](c.Ctx, c); err != nil {
 				handlerErrorCh <- err
 				return
@@ -148,20 +152,19 @@ func (c *Context) Next() error {
 	case <-c.Ctx.Done():
 		switch c.Ctx.Err() {
 		case context.DeadlineExceeded:
-			c.Abort()
+            handlerAbort = true
 			index := 0
 			for n := len(c.router.TimeoutHandlers); index < n; index++ {
 				if err := c.router.TimeoutHandlers[index](c.Ctx, c); err != nil {
 					if httpError, ok := err.(HTTPError); ok {
-						c.Response.WriteHeader(httpError.StatusCode())
+						return NewHTTPError(httpError.StatusCode(), httpError.Error())
 					} else {
-						c.Response.WriteHeader(http.StatusInternalServerError)
+						return NewHTTPError(http.StatusInternalServerError, err.Error())
 					}
-					c.Write(err)
-					return nil
 				}
 			}
 		case context.Canceled:
+            handlerAbort = true
 			index := 0
 			for n := len(c.router.CancelHandlers); index < n; index++ {
 				c.router.CancelHandlers[index](c.Ctx, c)
@@ -227,9 +230,11 @@ func (c *Context) init(response http.ResponseWriter, request *http.Request) {
 	c.data = nil
 	c.index = -1
 	c.writer = DefaultDataWriter
-	if c.Ctx == nil {
-		c.Ctx = context.Background()
-	}
+	if c.router.Context != nil {
+        c.Ctx = c.router.Context
+	} else {
+        c.Ctx = context.Background()
+    }
 }
 
 func getContentType(req *http.Request) string {

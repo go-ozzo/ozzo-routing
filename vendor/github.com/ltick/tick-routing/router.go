@@ -33,6 +33,7 @@ type (
 		CancelHandlers  []Handler
 		TimeoutHandlers []Handler
 		TimeoutDuration time.Duration
+		Context         context.Context
 	}
 
 	// routeStore stores route paths and the corresponding handlers.
@@ -63,6 +64,7 @@ func New(ctx context.Context) *Router {
 		stores:          make(map[string]routeStore),
 		TimeoutDuration: 0 * time.Second,
 		TimeoutHandlers: []Handler{TimeoutHandler},
+		Context:         ctx,
 	}
 	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0))
 	r.NotFound(MethodNotAllowedHandler, NotFoundHandler)
@@ -70,7 +72,6 @@ func New(ctx context.Context) *Router {
 		return &Context{
 			pvalues: make([]string, r.maxParams),
 			router:  r,
-			Ctx:     ctx,
 		}
 	}
 	return r
@@ -80,14 +81,14 @@ func New(ctx context.Context) *Router {
 // It is required by http.Handler
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	c := r.pool.Get().(*Context)
-    // timeout & cancel
+    c.init(res, req)
+	// timeout & cancel
 	if r.TimeoutDuration != 0*time.Second {
 		c.Ctx, c.CancelFunc = context.WithTimeout(c.Ctx, r.TimeoutDuration)
 	} else {
 		c.Ctx, c.CancelFunc = context.WithCancel(c.Ctx)
 	}
-	req.WithContext(c.Ctx)
-    c.init(res, req)
+	c.Request.WithContext(c.Ctx)
 	c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
 	// next
 	if err := c.Next(); err != nil {

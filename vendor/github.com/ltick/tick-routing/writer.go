@@ -1,10 +1,8 @@
 package routing
 
 import (
-	"fmt"
 	"net/http"
-	"io"
-	"errors"
+    "fmt"
 )
 
 // DataWriter is used by Context.Write() to write arbitrary data into an HTTP response.
@@ -31,20 +29,6 @@ func (w *dataWriter) Write(res http.ResponseWriter, data interface{}) (err error
 	case string:
 		dataByte := []byte(data.(string))
 		_, err = res.Write(dataByte)
-    case io.ReadSeeker:
-		dataFile := data.(io.ReadSeeker)
-        size, err := dataFile.Seek(0, io.SeekEnd)
-        if err != nil {
-            return errors.New("seeker could not seek")
-        }
-        _, err = dataFile.Seek(0, io.SeekStart)
-        if err != nil {
-            return errors.New("seeker could not seek")
-        }
-        _, err = io.CopyN(res, dataFile, size)
-        if err != nil {
-            return err
-        }
 	default:
 		if data != nil {
 			_, err := fmt.Fprint(res, data)
