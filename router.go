@@ -29,6 +29,10 @@ type (
 		maxParams           int
 		notFound            []Handler
 		notFoundHandlers    []Handler
+
+		CancelHandlers  []Handler
+		TimeoutHandlers []Handler
+		TimeoutDuration time.Duration
 	}
 
 	// routeStore stores route paths and the corresponding handlers.
@@ -55,18 +59,18 @@ var Methods = []string{
 // New creates a new Router object.
 func New(ctx context.Context) *Router {
 	r := &Router{
-		namedRoutes: make(map[string]*Route),
-		stores:      make(map[string]routeStore),
+		namedRoutes:     make(map[string]*Route),
+		stores:          make(map[string]routeStore),
+		TimeoutDuration: 0 * time.Second,
+		TimeoutHandlers: []Handler{TimeoutHandler},
 	}
 	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0))
 	r.NotFound(MethodNotAllowedHandler, NotFoundHandler)
 	r.pool.New = func() interface{} {
 		return &Context{
-			pvalues:         make([]string, r.maxParams),
-			router:          r,
-			Ctx:             ctx,
-			TimeoutDuration: 0 * time.Second,
-			TimeoutHandlers: []Handler{TimeoutHandler},
+			pvalues: make([]string, r.maxParams),
+			router:  r,
+			Ctx:     ctx,
 		}
 	}
 	return r
@@ -76,11 +80,14 @@ func New(ctx context.Context) *Router {
 // It is required by http.Handler
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	c := r.pool.Get().(*Context)
-	c.init(res, req)
-	if c.Ctx == nil {
-		c.Ctx = context.Background()
+    // timeout & cancel
+	if r.TimeoutDuration != 0*time.Second {
+		c.Ctx, c.CancelFunc = context.WithTimeout(c.Ctx, r.TimeoutDuration)
+	} else {
+		c.Ctx, c.CancelFunc = context.WithCancel(c.Ctx)
 	}
 	req.WithContext(c.Ctx)
+    c.init(res, req)
 	c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
 	// next
 	if err := c.Next(); err != nil {
@@ -111,6 +118,17 @@ func (r *Router) Use(handlers ...Handler) {
 func (r *Router) NotFound(handlers ...Handler) {
 	r.notFound = handlers
 	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
+}
+
+func (r *Router) Timeout(timeoutDuration time.Duration, handlers ...Handler) {
+	r.TimeoutDuration = timeoutDuration
+	if len(handlers) > 0 {
+		r.TimeoutHandlers = handlers
+	}
+}
+
+func (r *Router) Cancel(handlers ...Handler) {
+	r.CancelHandlers = handlers
 }
 
 // handleError is the error handler for handling any unhandled errors.

@@ -105,11 +105,64 @@ func TestRouterNormalizeRequestPath(t *testing.T) {
 	}
 }
 
-/*
-func TestTimeoutHandler(t *testing.T) {
+func TestTimeout(t *testing.T) {
 	r := New(context.Background())
 	h1 := func(ctx context.Context, c *Context) error {
-        time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
+		return nil
+	}
+	r.Timeout(1 * time.Second)
+	r.add("GET", "/", []Handler{h1})
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	r.ServeHTTP(res, req)
+	assert.Equal(t, http.StatusRequestTimeout, res.Code)
+	assert.Equal(t, "Request Timeout", res.Body.String())
+}
+
+func TestCustomTimeout(t *testing.T) {
+	r := New(context.Background())
+	h1 := func(ctx context.Context, c *Context) error {
+		time.Sleep(2 * time.Second)
+		return nil
+	}
+	r.Timeout(1*time.Second, func(ctx context.Context, c *Context) error {
+		return NewHTTPError(http.StatusRequestTimeout, "Custom Request Timeout")
+	})
+	r.add("GET", "/", []Handler{h1})
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	r.ServeHTTP(res, req)
+	assert.Equal(t, http.StatusRequestTimeout, res.Code)
+	assert.Equal(t, "Custom Request Timeout", res.Body.String())
+}
+
+func TestCombinedTimeout(t *testing.T) {
+	r := New(context.Background())
+	h1 := func(ctx context.Context, c *Context) error {
+		time.Sleep(2 * time.Second)
+		c.Write("handler1 Done!")
+		return nil
+	}
+	h2 := func(ctx context.Context, c *Context) error {
+		time.Sleep(2 * time.Second)
+		c.Write("handler2 Done!")
+		return nil
+	}
+	r.Timeout(3 * time.Second)
+	r.add("GET", "/", []Handler{h1, h2})
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	r.ServeHTTP(res, req)
+	assert.Equal(t, http.StatusRequestTimeout, res.Code)
+	assert.Equal(t, "handler1 Done!Request Timeout", res.Body.String())
+}
+
+func TestNoTimeout(t *testing.T) {
+	r := New(context.Background())
+	h1 := func(ctx context.Context, c *Context) error {
+		time.Sleep(1 * time.Second)
+		c.Write("handler Done!")
 		return nil
 	}
 	r.Timeout(2 * time.Second)
@@ -117,9 +170,9 @@ func TestTimeoutHandler(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
 	r.ServeHTTP(res, req)
-	assert.Equal(t, http.StatusRequestTimeout, res.Code)
+	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "handler Done!", res.Body.String())
 }
-*/
 
 func TestRouterHandleError(t *testing.T) {
 	r := New(context.Background())
