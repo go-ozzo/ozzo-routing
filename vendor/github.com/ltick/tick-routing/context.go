@@ -127,51 +127,44 @@ func (c *Context) PostForm(key string, defaultValue ...string) string {
 // Next is normally used when a handler needs to do some postprocessing after the rest of the handlers
 // are executed.
 func (c *Context) Next() error {
-	if c.Ctx == nil {
-		return NewHTTPError(http.StatusInternalServerError, "router context not set")
-	}
-	handlerAbort := false
-	handlerErrorCh := make(chan error, 1)
-	go func(c *Context) {
-		if c.CancelFunc != nil {
-			//defer c.CancelFunc()
+    if c.Ctx == nil {
+        return NewHTTPError(http.StatusInternalServerError, "router context not set")
+    }
+    var handlerError error
+    go func(c *Context) {
+        select {
+        case <-c.Ctx.Done():
+            switch c.Ctx.Err() {
+            case context.DeadlineExceeded:
+                timeoutIndex := 0
+                for n := len(c.router.TimeoutHandlers); timeoutIndex < n; timeoutIndex++ {
+                    if err := c.router.TimeoutHandlers[timeoutIndex](c.Ctx, c); err != nil {
+                        if httpError, ok := err.(HTTPError); ok {
+                            handlerError = NewHTTPError(httpError.StatusCode(), httpError.Error())
+                        } else {
+                            handlerError = NewHTTPError(http.StatusInternalServerError, err.Error())
+                        }
+                    }
+                }
+            case context.Canceled:
+                cancelIndex := 0
+                for n := len(c.router.CancelHandlers); cancelIndex < n; cancelIndex++ {
+                    c.router.CancelHandlers[cancelIndex](c.Ctx, c)
+                }
+            }
+        }
+    }(c)
+    if c.CancelFunc != nil {
+        defer c.CancelFunc()
+    }
+	c.index++
+	for n := len(c.handlers); c.index < n; c.index++ {
+        if handlerError != nil {
+            return handlerError
+        }
+		if err := c.handlers[c.index](c.Ctx, c); err != nil {
+			return err
 		}
-		c.index++
-		for n := len(c.handlers); c.index < n; c.index++ {
-			if handlerAbort {
-				break
-			}
-			if err := c.handlers[c.index](c.Ctx, c); err != nil {
-				handlerErrorCh <- err
-				return
-			}
-		}
-		handlerErrorCh <- nil
-	}(c)
-	select {
-	case <-c.Ctx.Done():
-		switch c.Ctx.Err() {
-		case context.DeadlineExceeded:
-            handlerAbort = true
-			index := 0
-			for n := len(c.router.TimeoutHandlers); index < n; index++ {
-				if err := c.router.TimeoutHandlers[index](c.Ctx, c); err != nil {
-					if httpError, ok := err.(HTTPError); ok {
-						return NewHTTPError(httpError.StatusCode(), httpError.Error())
-					} else {
-						return NewHTTPError(http.StatusInternalServerError, err.Error())
-					}
-				}
-			}
-		case context.Canceled:
-            handlerAbort = true
-			index := 0
-			for n := len(c.router.CancelHandlers); index < n; index++ {
-				c.router.CancelHandlers[index](c.Ctx, c)
-			}
-		}
-	case err := <-handlerErrorCh:
-		return err
 	}
 	return nil
 }
@@ -231,10 +224,10 @@ func (c *Context) init(response http.ResponseWriter, request *http.Request) {
 	c.index = -1
 	c.writer = DefaultDataWriter
 	if c.router.Context != nil {
-        c.Ctx = c.router.Context
+		c.Ctx = c.router.Context
 	} else {
-        c.Ctx = context.Background()
-    }
+		c.Ctx = context.Background()
+	}
 }
 
 func getContentType(req *http.Request) string {

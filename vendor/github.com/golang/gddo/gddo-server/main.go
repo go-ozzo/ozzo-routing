@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/json"
 	"errors"
@@ -18,7 +19,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"path"
 	"regexp"
 	"runtime/debug"
@@ -27,11 +27,8 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/logging"
 	"github.com/spf13/viper"
-	"golang.org/x/net/context"
-	"google.golang.org/appengine"
 
 	"github.com/golang/gddo/database"
 	"github.com/golang/gddo/doc"
@@ -74,7 +71,7 @@ type crawlResult struct {
 
 // getDoc gets the package documentation from the database or from the version
 // control system as needed.
-func getDoc(path string, requestType int) (*doc.Package, []database.Package, error) {
+func getDoc(ctx context.Context, path string, requestType int) (*doc.Package, []database.Package, error) {
 	if path == "-" {
 		// A hack in the database package uses the path "-" to represent the
 		// next document to crawl. Block "-" here so that requests to /- always
@@ -82,7 +79,7 @@ func getDoc(path string, requestType int) (*doc.Package, []database.Package, err
 		return nil, nil, &httpError{status: http.StatusNotFound}
 	}
 
-	pdoc, pkgs, nextCrawl, err := db.Get(path)
+	pdoc, pkgs, nextCrawl, err := db.Get(ctx, path)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -103,7 +100,7 @@ func getDoc(path string, requestType int) (*doc.Package, []database.Package, err
 
 	c := make(chan crawlResult, 1)
 	go func() {
-		pdoc, err := crawlDoc("web  ", path, pdoc, len(pkgs) > 0, nextCrawl)
+		pdoc, err := crawlDoc(ctx, "web  ", path, pdoc, len(pkgs) > 0, nextCrawl)
 		c <- crawlResult{pdoc, err}
 	}()
 
@@ -236,12 +233,12 @@ func servePackage(resp http.ResponseWriter, req *http.Request) error {
 	}
 
 	importPath := strings.TrimPrefix(req.URL.Path, "/")
-	pdoc, pkgs, err := getDoc(importPath, requestType)
+	pdoc, pkgs, err := getDoc(req.Context(), importPath, requestType)
 
 	if e, ok := err.(gosrc.NotFoundError); ok && e.Redirect != "" {
 		// To prevent dumb clients from following redirect loops, respond with
 		// status 404 if the target document is not found.
-		if _, _, err := getDoc(e.Redirect, requestType); gosrc.IsNotFound(err) {
+		if _, _, err := getDoc(req.Context(), e.Redirect, requestType); gosrc.IsNotFound(err) {
 			return &httpError{status: http.StatusNotFound}
 		}
 		u := "/" + e.Redirect
@@ -262,7 +259,7 @@ func servePackage(resp http.ResponseWriter, req *http.Request) error {
 		if len(pkgs) == 0 {
 			return &httpError{status: http.StatusNotFound}
 		}
-		pdocChild, _, _, err := db.Get(pkgs[0].Path)
+		pdocChild, _, _, err := db.Get(req.Context(), pkgs[0].Path)
 		if err != nil {
 			return err
 		}
@@ -420,13 +417,13 @@ func servePackage(resp http.ResponseWriter, req *http.Request) error {
 
 func serveRefresh(resp http.ResponseWriter, req *http.Request) error {
 	importPath := req.Form.Get("path")
-	_, pkgs, _, err := db.Get(importPath)
+	_, pkgs, _, err := db.Get(req.Context(), importPath)
 	if err != nil {
 		return err
 	}
 	c := make(chan error, 1)
 	go func() {
-		_, err := crawlDoc("rfrsh", importPath, nil, len(pkgs) > 0, time.Time{})
+		_, err := crawlDoc(req.Context(), "rfrsh", importPath, nil, len(pkgs) > 0, time.Time{})
 		c <- err
 	}()
 	select {
@@ -463,16 +460,6 @@ func serveGoSubrepoIndex(resp http.ResponseWriter, req *http.Request) error {
 	return executeTemplate(resp, "subrepo.html", http.StatusOK, nil, map[string]interface{}{
 		"pkgs": pkgs,
 	})
-}
-
-func runReindex(resp http.ResponseWriter, req *http.Request) {
-	fmt.Fprintln(resp, "Reindexing...")
-	go reindex()
-}
-
-func runPurgeIndex(resp http.ResponseWriter, req *http.Request) {
-	fmt.Fprintln(resp, "Purging the search index...")
-	go purgeIndex()
 }
 
 type byPath struct {
@@ -562,7 +549,7 @@ func serveHome(resp http.ResponseWriter, req *http.Request) error {
 	}
 
 	if gosrc.IsValidRemotePath(q) || (strings.Contains(q, "/") && gosrc.IsGoRepoPath(q)) {
-		pdoc, pkgs, err := getDoc(q, queryRequest)
+		pdoc, pkgs, err := getDoc(req.Context(), q, queryRequest)
 		if e, ok := err.(gosrc.NotFoundError); ok && e.Redirect != "" {
 			http.Redirect(resp, req, "/"+e.Redirect, http.StatusFound)
 			return nil
@@ -621,9 +608,9 @@ func serveAPISearch(resp http.ResponseWriter, req *http.Request) error {
 	var pkgs []database.Package
 
 	if gosrc.IsValidRemotePath(q) || (strings.Contains(q, "/") && gosrc.IsGoRepoPath(q)) {
-		pdoc, _, err := getDoc(q, apiRequest)
+		pdoc, _, err := getDoc(req.Context(), q, apiRequest)
 		if e, ok := err.(gosrc.NotFoundError); ok && e.Redirect != "" {
-			pdoc, _, err = getDoc(e.Redirect, robotRequest)
+			pdoc, _, err = getDoc(req.Context(), e.Redirect, robotRequest)
 		}
 		if err == nil && pdoc != nil {
 			pkgs = []database.Package{{Path: pdoc.ImportPath, Synopsis: pdoc.Synopsis}}
@@ -678,7 +665,7 @@ func serveAPIImporters(resp http.ResponseWriter, req *http.Request) error {
 
 func serveAPIImports(resp http.ResponseWriter, req *http.Request) error {
 	importPath := strings.TrimPrefix(req.URL.Path, "/imports/")
-	pdoc, _, err := getDoc(importPath, robotRequest)
+	pdoc, _, err := getDoc(req.Context(), importPath, robotRequest)
 	if err != nil {
 		return err
 	}
@@ -708,53 +695,53 @@ func serveAPIHome(resp http.ResponseWriter, req *http.Request) error {
 	return &httpError{status: http.StatusNotFound}
 }
 
-func runHandler(resp http.ResponseWriter, req *http.Request,
-	fn func(resp http.ResponseWriter, req *http.Request) error, errfn httputil.Error) {
+type requestCleaner struct {
+	h                 http.Handler
+	trustProxyHeaders bool
+}
+
+func (rc requestCleaner) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	req2 := new(http.Request)
+	*req2 = *req
+	if rc.trustProxyHeaders {
+		if s := req.Header.Get("X-Forwarded-For"); s != "" {
+			req2.RemoteAddr = s
+		}
+	}
+	req2.Body = http.MaxBytesReader(w, req.Body, 2048)
+	req2.ParseForm()
+	rc.h.ServeHTTP(w, req2)
+}
+
+type errorHandler struct {
+	fn    func(resp http.ResponseWriter, req *http.Request) error
+	errFn httputil.Error
+}
+
+func (eh errorHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if rv := recover(); rv != nil {
 			err := errors.New("handler panic")
 			logError(req, err, rv)
-			errfn(resp, req, http.StatusInternalServerError, err)
+			eh.errFn(resp, req, http.StatusInternalServerError, err)
 		}
 	}()
 
-	// TODO(stephenmw): choose headers based on if we are on App Engine
-	if viper.GetBool(ConfigTrustProxyHeaders) {
-		// If running on GAE flexible, use X-Forwarded-For to identify real ip of requests.
-		if s := req.Header.Get("X-Forwarded-For"); s != "" {
-			req.RemoteAddr = s
-		}
-	}
-
-	req.Body = http.MaxBytesReader(resp, req.Body, 2048)
-	req.ParseForm()
-	var rb httputil.ResponseBuffer
-	err := fn(&rb, req)
+	rb := new(httputil.ResponseBuffer)
+	err := eh.fn(rb, req)
 	if err == nil {
 		rb.WriteTo(resp)
 	} else if e, ok := err.(*httpError); ok {
 		if e.status >= 500 {
 			logError(req, err, nil)
 		}
-		errfn(resp, req, e.status, e.err)
+		eh.errFn(resp, req, e.status, e.err)
 	} else if gosrc.IsNotFound(err) {
-		errfn(resp, req, http.StatusNotFound, nil)
+		eh.errFn(resp, req, http.StatusNotFound, nil)
 	} else {
 		logError(req, err, nil)
-		errfn(resp, req, http.StatusInternalServerError, err)
+		eh.errFn(resp, req, http.StatusInternalServerError, err)
 	}
-}
-
-type handler func(resp http.ResponseWriter, req *http.Request) error
-
-func (h handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	runHandler(resp, req, h, handleError)
-}
-
-type apiHandler func(resp http.ResponseWriter, req *http.Request) error
-
-func (h apiHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	runHandler(resp, req, h, handleAPIError)
 }
 
 func errorText(err error) string {
@@ -857,36 +844,7 @@ var (
 
 func main() {
 	doc.SetDefaultGOOS(viper.GetString(ConfigDefaultGOOS))
-	httpClient = newHTTPClient()
-
-	var (
-		gceLogName string
-		projID     string
-	)
-
-	// TODO(stephenmw): merge into viper config infrastructure.
-	if metadata.OnGCE() {
-		acct, err := metadata.ProjectAttributeValue("ga-account")
-		if err != nil {
-			log.Printf("querying metadata for ga-account: %v", err)
-		} else {
-			gaAccount = acct
-		}
-
-		// Get the log name on GCE and setup context for creating a GCE log client.
-		if name, err := metadata.ProjectAttributeValue("gce-log-name"); err != nil {
-			log.Printf("querying metadata for gce-log-name: %v", err)
-		} else {
-			gceLogName = name
-			if id, err := metadata.ProjectID(); err != nil {
-				log.Printf("querying metadata for project ID: %v", err)
-			} else {
-				projID = id
-			}
-		}
-	} else {
-		gaAccount = os.Getenv("GA_ACCOUNT")
-	}
+	httpClient = newHTTPClient(viper.GetViper())
 
 	if err := parseHTMLTemplates([][]string{
 		{"about.html", "common.html", "layout.html"},
@@ -930,7 +888,20 @@ func main() {
 		log.Fatalf("Error opening database: %v", err)
 	}
 
-	go runBackgroundTasks()
+	go func() {
+		for range time.Tick(viper.GetDuration(ConfigCrawlInterval)) {
+			if err := doCrawl(context.Background()); err != nil {
+				log.Printf("Task Crawl: %v", err)
+			}
+		}
+	}()
+	go func() {
+		for range time.Tick(viper.GetDuration(ConfigGithubInterval)) {
+			if err := readGitHubUpdates(context.Background()); err != nil {
+				log.Printf("Task GitHub updates: %v", err)
+			}
+		}
+	}()
 
 	staticServer := httputil.StaticServer{
 		Dir:    viper.GetString(ConfigAssetsDir),
@@ -943,6 +914,15 @@ func main() {
 	statusImageHandlerPNG = staticServer.FileHandler("status.png")
 	statusImageHandlerSVG = staticServer.FileHandler("status.svg")
 
+	apiHandler := func(f func(http.ResponseWriter, *http.Request) error) http.Handler {
+		return requestCleaner{
+			h: errorHandler{
+				fn:    f,
+				errFn: handleAPIError,
+			},
+			trustProxyHeaders: viper.GetBool(ConfigTrustProxyHeaders),
+		}
+	}
 	apiMux := http.NewServeMux()
 	apiMux.Handle("/favicon.ico", staticServer.FileHandler("favicon.ico"))
 	apiMux.Handle("/google3d2f3cd4cc2bb44b.html", staticServer.FileHandler("google3d2f3cd4cc2bb44b.html"))
@@ -967,13 +947,20 @@ func main() {
 	}
 	mux.Handle("/-/", http.NotFoundHandler())
 
+	handler := func(f func(http.ResponseWriter, *http.Request) error) http.Handler {
+		return requestCleaner{
+			h: errorHandler{
+				fn:    f,
+				errFn: handleError,
+			},
+			trustProxyHeaders: viper.GetBool(ConfigTrustProxyHeaders),
+		}
+	}
 	mux.Handle("/-/about", handler(serveAbout))
 	mux.Handle("/-/bot", handler(serveBot))
 	mux.Handle("/-/go", handler(serveGoIndex))
 	mux.Handle("/-/subrepo", handler(serveGoSubrepoIndex))
 	mux.Handle("/-/refresh", handler(serveRefresh))
-	mux.Handle("/-/admin/reindex", http.HandlerFunc(runReindex))
-	mux.Handle("/-/admin/purgeindex", http.HandlerFunc(runPurgeIndex))
 	mux.Handle("/about", http.RedirectHandler("/-/about", http.StatusMovedPermanently))
 	mux.Handle("/favicon.ico", staticServer.FileHandler("favicon.ico"))
 	mux.Handle("/google3d2f3cd4cc2bb44b.html", staticServer.FileHandler("google3d2f3cd4cc2bb44b.html"))
@@ -993,10 +980,10 @@ func main() {
 		{"talks.godoc.org", otherDomainHandler{"https", "go-talks.appspot.com"}},
 		{"", httpsRedirectHandler{mux}},
 	}
-	if gceLogName != "" {
+	if gceLogName := viper.GetString(ConfigGCELogName); gceLogName != "" {
 		ctx := context.Background()
 
-		logc, err := logging.NewClient(ctx, projID)
+		logc, err := logging.NewClient(ctx, viper.GetString(ConfigProject))
 		if err != nil {
 			log.Fatalf("Failed to create cloud logging client: %v", err)
 		}
@@ -1009,6 +996,5 @@ func main() {
 		gceLogger = newGCELogger(logger)
 	}
 
-	http.Handle("/", root)
-	appengine.Main()
+	log.Fatal(http.ListenAndServe(viper.GetString(ConfigBindAddress), root))
 }
