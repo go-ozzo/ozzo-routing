@@ -7,7 +7,6 @@ package routing
 import (
 	"context"
 	"net/http"
-	"fmt"
 )
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
@@ -224,7 +223,7 @@ func (c *Context) init(response http.ResponseWriter, request *http.Request) {
 	c.data = nil
 	c.index = -1
 	c.writer = DefaultDataWriter
-	if c.router.Context != nil {
+	if c.router != nil && c.router.Context != nil {
 		c.Ctx = c.router.Context
 	} else {
 		c.Ctx = context.Background()

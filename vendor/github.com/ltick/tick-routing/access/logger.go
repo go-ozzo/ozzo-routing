@@ -25,7 +25,7 @@ type LogFunc func(format string, a ...interface{})
 // through this middleware and does whatever log writing it wants with that
 // information.
 // LogWriterFunc should be thread safe.
-type LogWriterFunc func(req *http.Request, res *LogResponseWriter, elapsed float64)
+type LogWriterFunc func(c *routing.Context, res *LogResponseWriter, elapsed float64)
 
 // CustomLogger returns a handler that calls the LogWriterFunc passed to it for every request.
 // The LogWriterFunc is provided with the http.Request and LogResponseWriter objects for the
