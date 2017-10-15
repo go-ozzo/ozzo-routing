@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ltick/tick-routing"
 	"context"
+	"github.com/ltick/tick-routing"
 )
 
 // LogFunc logs a message using the given format and optional arguments.
@@ -48,18 +48,16 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 	return func(ctx context.Context, c *routing.Context) error {
 		startTime := time.Now()
 
-		req := c.Request
 		rw := &LogResponseWriter{c.Response, http.StatusOK, 0}
 		c.Response = rw
 
 		err := c.Next()
 
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
-		loggerFunc(req, rw, elapsed)
+		loggerFunc(c, rw, elapsed)
 
 		return err
 	}
-
 }
 
 // Logger returns a handler that logs a message for every request.
@@ -75,11 +73,10 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 //     r := routing.New()
 //     r.Use(access.Logger(log.Printf))
 func Logger(log LogFunc) routing.Handler {
-	var logger = func(req *http.Request, rw *LogResponseWriter, elapsed float64) {
-		clientIP := GetClientIP(req)
-		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.String(), req.Proto)
+	var logger = func(c *routing.Context, rw *LogResponseWriter, elapsed float64) {
+		clientIP := GetClientIP(c.Request)
+		requestLine := fmt.Sprintf("%s %s %s", c.Request.Method, c.Request.URL.String(), c.Request.Proto)
 		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
-
 	}
 	return CustomLogger(logger)
 }

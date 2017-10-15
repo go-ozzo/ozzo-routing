@@ -19,10 +19,10 @@ import (
 
 func TestCustomLogger(t *testing.T) {
 	var buf bytes.Buffer
-	var customFunc = func(req *http.Request, rw *LogResponseWriter, elapsed float64) {
+	var customFunc = func(c *routing.Context, rw *LogResponseWriter, elapsed float64) {
 		var logWriter = getLogger(&buf)
-		clientIP := GetClientIP(req)
-		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.String(), req.Proto)
+		clientIP := GetClientIP(c.Request)
+		requestLine := fmt.Sprintf("%s %s %s", c.Request.Method, c.Request.URL.String(), c.Request.Proto)
 		logWriter(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
 	}
 	h := CustomLogger(customFunc)
