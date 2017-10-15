@@ -17,13 +17,13 @@
   branch = "master"
   name = "github.com/golang/gddo"
   packages = ["httputil/header"]
-  revision = "2dccccb2f204bf42a2f46fc9ecd6340ec4984fd3"
+  revision = "ddb3324051ddfcb05fae4c8a05321cb4d33d1878"
 
 [[projects]]
   branch = "master"
   name = "github.com/ltick/tick-routing"
   packages = [".","access","content","fault","file","slash"]
-  revision = "80f45679ffd24a9c7df06657977bbdfea362b0b1"
+  revision = "3133ce9d5b719a56c7250470ae4214e3b6da1f62"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"

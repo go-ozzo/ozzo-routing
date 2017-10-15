@@ -7,6 +7,7 @@ package routing
 import (
 	"context"
 	"net/http"
+	"fmt"
 )
 
 // Context represents the contextual data and environment while processing an incoming HTTP request.
