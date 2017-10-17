@@ -12,8 +12,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ltick/tick-routing"
 	"context"
+	"github.com/ltick/tick-routing"
 )
 
 // ServerOptions defines the possible options for the Server handler.
@@ -143,23 +143,23 @@ func Content(path string) routing.Handler {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(RootPath, path)
 	}
-	return func(ctx context.Context, c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
-			return routing.NewHTTPError(http.StatusMethodNotAllowed)
+			return ctx, routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}
 		file, err := os.Open(path)
 		if err != nil {
-			return routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return ctx, routing.NewHTTPError(http.StatusNotFound, err.Error())
 		}
 		defer file.Close()
 		fstat, err := file.Stat()
 		if err != nil {
-			return routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return ctx, routing.NewHTTPError(http.StatusNotFound, err.Error())
 		} else if fstat.IsDir() {
-			return routing.NewHTTPError(http.StatusNotFound)
+			return ctx, routing.NewHTTPError(http.StatusNotFound)
 		}
 		http.ServeContent(c.Response, c.Request, path, fstat.ModTime(), file)
-		return nil
+		return ctx, nil
 	}
 }
 

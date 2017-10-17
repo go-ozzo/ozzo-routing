@@ -23,7 +23,7 @@
   branch = "master"
   name = "github.com/ltick/tick-routing"
   packages = [".","access","content","fault","file","slash"]
-  revision = "b023606937bcf9326652537f093cc3e5a6e2faa2"
+  revision = "a4e6b21d69bdfd50d7de30690a6640f0a262bfb3"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"

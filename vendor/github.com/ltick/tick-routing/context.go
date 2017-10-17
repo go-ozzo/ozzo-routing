@@ -126,44 +126,39 @@ func (c *Context) PostForm(key string, defaultValue ...string) string {
 // If any of these handlers returns an error, Next will return the error and skip the following handlers.
 // Next is normally used when a handler needs to do some postprocessing after the rest of the handlers
 // are executed.
-func (c *Context) Next() error {
-    if c.Ctx == nil {
-        return NewHTTPError(http.StatusInternalServerError, "router context not set")
-    }
-    var HandlerResult error
-    go func(c *Context) {
-        select {
-        case <-c.Ctx.Done():
-            switch c.Ctx.Err() {
-            case context.DeadlineExceeded:
-                timeoutIndex := 0
-                for n := len(c.router.TimeoutHandlers); timeoutIndex < n; timeoutIndex++ {
-                    if err := c.router.TimeoutHandlers[timeoutIndex](c.Ctx, c); err != nil {
-                        if httpError, ok := err.(HTTPError); ok {
-                            HandlerResult = NewHTTPError(httpError.StatusCode(), httpError.Error())
-                        } else {
-                            HandlerResult = NewHTTPError(http.StatusInternalServerError, err.Error())
-                        }
-                    }
-                }
-            case context.Canceled:
-                cancelIndex := 0
-                for n := len(c.router.CancelHandlers); cancelIndex < n; cancelIndex++ {
-                    c.router.CancelHandlers[cancelIndex](c.Ctx, c)
-                }
-            }
-        }
-    }(c)
-    if c.CancelFunc != nil {
-        defer c.CancelFunc()
-    }
+func (c *Context) Next() (err error) {
+	if c.Ctx == nil {
+		return NewHTTPError(http.StatusInternalServerError, "router context not set")
+	}
+	if c.CancelFunc != nil {
+		defer c.CancelFunc()
+	}
 	c.index++
 	for n := len(c.handlers); c.index < n; c.index++ {
-        if HandlerResult != nil {
-            return HandlerResult
+        if c.Ctx, err = c.handlers[c.index](c.Ctx, c); err != nil {
+            return err
         }
-		if err := c.handlers[c.index](c.Ctx, c); err != nil {
-			return err
+		select {
+		case <-c.Ctx.Done():
+			switch c.Ctx.Err() {
+			case context.DeadlineExceeded:
+				timeoutIndex := 0
+				for n := len(c.router.TimeoutHandlers); timeoutIndex < n; timeoutIndex++ {
+					if c.Ctx, err = c.router.TimeoutHandlers[timeoutIndex](c.Ctx, c); err != nil {
+						if httpError, ok := err.(HTTPError); ok {
+							return NewHTTPError(httpError.StatusCode(), httpError.Error())
+						} else {
+							return NewHTTPError(http.StatusInternalServerError, err.Error())
+						}
+					}
+				}
+			case context.Canceled:
+				cancelIndex := 0
+				for n := len(c.router.CancelHandlers); cancelIndex < n; cancelIndex++ {
+					c.router.CancelHandlers[cancelIndex](c.Ctx, c)
+				}
+			}
+		default:
 		}
 	}
 	return nil

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ltick/tick-routing"
 	"context"
+	"github.com/ltick/tick-routing"
 )
 
 const (
@@ -61,26 +61,26 @@ func Handler(opts Options) routing.Handler {
 
 	opts.init()
 
-	return func(ctx context.Context, c *routing.Context) (err error) {
+	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
 		origin := c.Request.Header.Get(headerOrigin)
 		if origin == "" {
 			// the request is outside the scope of CORS
-			return
+			return ctx, nil
 		}
 		if c.Request.Method == "OPTIONS" {
 			// a preflight request
 			method := c.Request.Header.Get(headerRequestMethod)
 			if method == "" {
 				// the request is outside the scope of CORS
-				return
+				return ctx, nil
 			}
 			headers := c.Request.Header.Get(headerRequestHeaders)
 			opts.setPreflightHeaders(origin, method, headers, c.Response.Header())
 			c.Abort()
-			return
+			return ctx, nil
 		}
 		opts.setActualHeaders(origin, c.Response.Header())
-		return
+		return ctx, nil
 	}
 }
 
