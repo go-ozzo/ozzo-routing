@@ -136,7 +136,7 @@ func (c *Context) Next() (err error) {
         if c.Ctx, err = c.handlers[c.index](c.Ctx, c); err != nil {
             return err
         }
-        if c.Ctx == nil {
+        if c.Ctx != nil {
             select {
             case <-c.Ctx.Done():
                 switch c.Ctx.Err() {

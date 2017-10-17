@@ -56,7 +56,7 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
 		loggerFunc(ctx, c, rw, elapsed)
 
-		return ctx, nil
+		return ctx, err
 	}
 }
 

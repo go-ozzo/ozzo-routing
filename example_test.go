@@ -1,6 +1,7 @@
 package routing_test
 
 import (
+	"context"
 	"github.com/ltick/tick-routing"
 	"github.com/ltick/tick-routing/access"
 	"github.com/ltick/tick-routing/content"
@@ -9,7 +10,6 @@ import (
 	"github.com/ltick/tick-routing/slash"
 	"log"
 	"net/http"
-	"context"
 )
 
 func Example() {
@@ -28,14 +28,14 @@ func Example() {
 		// these handlers are shared by the routes in the api group only
 		content.TypeNegotiator(content.JSON, content.XML),
 	)
-	api.Get("/users", func(ctx context.Context, c *routing.Context) error {
-		return c.Write("user list")
+	api.Get("/users", func(ctx context.Context, c *routing.Context) (context.Context, error) {
+		return ctx, c.Write("user list")
 	})
-	api.Post("/users", func(ctx context.Context, c *routing.Context) error {
-		return c.Write("create a new user")
+	api.Post("/users", func(ctx context.Context, c *routing.Context) (context.Context, error) {
+		return ctx, c.Write("create a new user")
 	})
-	api.Put(`/users/<id:\d+>`, func(ctx context.Context, c *routing.Context) error {
-		return c.Write("update user " + c.Param("id"))
+	api.Put(`/users/<id:\d+>`, func(ctx context.Context, c *routing.Context) (context.Context, error) {
+		return ctx, c.Write("update user " + c.Param("id"))
 	})
 
 	// serve index file

@@ -22,19 +22,23 @@ func TestLanguageNegotiator(t *testing.T) {
 	res := httptest.NewRecorder()
 	c := routing.NewContext(res, req)
 	h := LanguageNegotiator()
-	assert.Nil(t, h(context.Background(), c))
+	_, err := h(context.Background(), c)
+	assert.Nil(t, err)
 	assert.Equal(t, "en-US", c.Get(Language))
 
 	h = LanguageNegotiator("ru-RU", "ru", "zh", "zh-CN")
-	assert.Nil(t, h(context.Background(), c))
+	_, err = h(context.Background(), c)
+	assert.Nil(t, err)
 	assert.Equal(t, "zh-CN", c.Get(Language))
 
 	h = LanguageNegotiator("en", "en-US")
-	assert.Nil(t, h(context.Background(), c))
+	_, err = h(context.Background(), c)
+	assert.Nil(t, err)
 	assert.Equal(t, "en", c.Get(Language))
 
 	req.Header.Set("Accept-Language", "ru-RU;q=0")
 	h = LanguageNegotiator("en", "ru-RU")
-	assert.Nil(t, h(context.Background(), c))
+	_, err = h(context.Background(), c)
+	assert.Nil(t, err)
 	assert.Equal(t, "en", c.Get(Language))
 }

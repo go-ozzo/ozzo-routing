@@ -80,13 +80,13 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	// security measure: limit the files within options.RootPath
 	dir := http.Dir(options.RootPath)
 
-	return func(ctx context.Context, c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
-			return routing.NewHTTPError(http.StatusMethodNotAllowed)
+			return ctx, routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}
 		path, found := matchPath(c.Request.URL.Path, from, to)
 		if !found || options.Allow != nil && !options.Allow(c, path) {
-			return routing.NewHTTPError(http.StatusNotFound)
+			return ctx, routing.NewHTTPError(http.StatusNotFound)
 		}
 
 		var (
@@ -97,25 +97,25 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 
 		if file, err = dir.Open(path); err != nil {
 			if options.CatchAllFile != "" {
-				return serveFile(c, dir, options.CatchAllFile)
+				return ctx, serveFile(c, dir, options.CatchAllFile)
 			}
-			return routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return ctx, routing.NewHTTPError(http.StatusNotFound, err.Error())
 		}
 		defer file.Close()
 
 		if fstat, err = file.Stat(); err != nil {
-			return routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return ctx, routing.NewHTTPError(http.StatusNotFound, err.Error())
 		}
 
 		if fstat.IsDir() {
 			if options.IndexFile == "" {
-				return routing.NewHTTPError(http.StatusNotFound)
+				return ctx, routing.NewHTTPError(http.StatusNotFound)
 			}
-			return serveFile(c, dir, filepath.Join(path, options.IndexFile))
+			return ctx, serveFile(c, dir, filepath.Join(path, options.IndexFile))
 		}
 
 		http.ServeContent(c.Response, c.Request, path, fstat.ModTime(), file)
-		return nil
+		return ctx, nil
 	}
 }
 
