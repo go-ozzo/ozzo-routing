@@ -8,8 +8,8 @@ package fault
 import (
 	"net/http"
 
-	"github.com/ltick/tick-routing"
 	"context"
+	"github.com/ltick/tick-routing"
 )
 
 // ErrorHandler returns a handler that handles errors returned by the handlers following this one.
@@ -32,10 +32,10 @@ import (
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func ErrorHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
-	return func(ctx context.Context, c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
 		err := c.Next()
 		if err == nil {
-			return nil
+			return ctx, nil
 		}
 
 		if logf != nil {
@@ -48,7 +48,7 @@ func ErrorHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 		writeError(c, err)
 		c.Abort()
 
-		return nil
+		return ctx, nil
 	}
 }
 

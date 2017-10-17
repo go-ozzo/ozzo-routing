@@ -130,7 +130,7 @@ func (c *Context) Next() error {
     if c.Ctx == nil {
         return NewHTTPError(http.StatusInternalServerError, "router context not set")
     }
-    var handlerError error
+    var HandlerResult error
     go func(c *Context) {
         select {
         case <-c.Ctx.Done():
@@ -140,9 +140,9 @@ func (c *Context) Next() error {
                 for n := len(c.router.TimeoutHandlers); timeoutIndex < n; timeoutIndex++ {
                     if err := c.router.TimeoutHandlers[timeoutIndex](c.Ctx, c); err != nil {
                         if httpError, ok := err.(HTTPError); ok {
-                            handlerError = NewHTTPError(httpError.StatusCode(), httpError.Error())
+                            HandlerResult = NewHTTPError(httpError.StatusCode(), httpError.Error())
                         } else {
-                            handlerError = NewHTTPError(http.StatusInternalServerError, err.Error())
+                            HandlerResult = NewHTTPError(http.StatusInternalServerError, err.Error())
                         }
                     }
                 }
@@ -159,8 +159,8 @@ func (c *Context) Next() error {
     }
 	c.index++
 	for n := len(c.handlers); c.index < n; c.index++ {
-        if handlerError != nil {
-            return handlerError
+        if HandlerResult != nil {
+            return HandlerResult
         }
 		if err := c.handlers[c.index](c.Ctx, c); err != nil {
 			return err

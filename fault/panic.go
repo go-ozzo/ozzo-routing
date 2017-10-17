@@ -25,7 +25,7 @@ import (
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func PanicHandler(logf LogFunc) routing.Handler {
-	return func(ctx context.Context, c *routing.Context) (err error) {
+	return func(ctx context.Context, c *routing.Context) (ctx context.Context, err error) {
 		defer func() {
 			if e := recover(); e != nil {
 				if logf != nil {

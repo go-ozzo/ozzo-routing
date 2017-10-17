@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"context"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockStore struct {
@@ -70,9 +70,9 @@ func TestRouteURL(t *testing.T) {
 }
 
 func newHandler(tag string, buf *bytes.Buffer) Handler {
-	return func(context.Context, *Context) error {
+	return func(context.Context, *Context) (context.Context, error) {
 		fmt.Fprintf(buf, tag)
-		return nil
+		return nil, nil
 	}
 }
 
