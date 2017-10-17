@@ -6,12 +6,12 @@ package access
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"context"
 
 	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
@@ -79,6 +79,6 @@ func getLogger(buf *bytes.Buffer) LogFunc {
 	}
 }
 
-func handler1(ctx context.Context, c *routing.Context) error {
-	return errors.New("abc")
+func handler1(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return ctx, errors.New("abc")
 }

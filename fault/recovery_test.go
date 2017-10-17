@@ -6,12 +6,12 @@ package fault
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"context"
 
 	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
@@ -86,19 +86,19 @@ func getLogger(buf *bytes.Buffer) LogFunc {
 	}
 }
 
-func handler1(ctx context.Context, c *routing.Context) error {
-	return errors.New("abc")
+func handler1(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return ctx, errors.New("abc")
 }
 
-func handler2(ctx context.Context, c *routing.Context) error {
+func handler2(ctx context.Context, c *routing.Context) (context.Context, error) {
 	c.Write("test")
-	return nil
+	return ctx, nil
 }
 
-func handler3(ctx context.Context, c *routing.Context) error {
+func handler3(ctx context.Context, c *routing.Context) (context.Context, error) {
 	panic("xyz")
 }
 
-func handler4(ctx context.Context, c *routing.Context) error {
+func handler4(ctx context.Context, c *routing.Context) (context.Context, error) {
 	panic(routing.NewHTTPError(http.StatusBadRequest, "123"))
 }
