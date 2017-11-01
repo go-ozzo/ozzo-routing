@@ -46,8 +46,6 @@ type LogWriterFunc func(ctx context.Context, c *routing.Context, res *LogRespons
 //     r.Use(access.CustomLogger(myCustomLogger))
 func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
-		fmt.Println("CustomLogger")
-        fmt.Println(ctx.Value("requestId"))
 		startTime := time.Now()
 
 		rw := &LogResponseWriter{c.Response, http.StatusOK, 0}
