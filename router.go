@@ -66,7 +66,7 @@ func New(ctx context.Context) *Router {
 		TimeoutHandlers: []Handler{TimeoutHandler},
 		Context:         ctx,
 	}
-	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0))
+	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0), make([]Handler, 0), make([]Handler, 0))
 	r.NotFound(MethodNotAllowedHandler, NotFoundHandler)
 	r.pool.New = func() interface{} {
 		return &Context{
@@ -112,6 +112,22 @@ func (r *Router) Routes() []*Route {
 func (r *Router) Use(handlers ...Handler) {
 	r.RouteGroup.Use(handlers...)
 	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
+}
+
+func (r *Router) PrependAnterior(handlers ...Handler) {
+	r.RouteGroup.PrependAnterior(handlers...)
+}
+
+func (r *Router) AppendAnterior(handlers ...Handler) {
+	r.RouteGroup.AppendAnterior(handlers...)
+}
+
+func (r *Router) PrependPosterior(handlers ...Handler) {
+	r.RouteGroup.PrependPosterior(handlers...)
+}
+
+func (r *Router) AppendPosterior(handlers ...Handler) {
+	r.RouteGroup.AppendPosterior(handlers...)
 }
 
 // NotFound specifies the handlers that should be invoked when the router cannot find any route matching a request.

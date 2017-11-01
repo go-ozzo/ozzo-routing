@@ -127,7 +127,6 @@ func (c *Context) PostForm(key string, defaultValue ...string) string {
 // Next is normally used when a handler needs to do some postprocessing after the rest of the handlers
 // are executed.
 func (c *Context) Next() (err error) {
-
 	if c.CancelFunc != nil {
 		defer c.CancelFunc()
 	}
