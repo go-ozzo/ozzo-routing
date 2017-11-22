@@ -144,21 +144,27 @@ func New(serverURI string, idleTimeout time.Duration, logConn bool, gaeEndpoint 
 		IdleTimeout: idleTimeout,
 	}
 
-	c := pool.Get()
-	if c.Err() != nil {
-		return nil, c.Err()
-	}
-	c.Close()
-
 	var rc *remote_api.Client
 	if gaeEndpoint != "" {
 		var err error
 		if rc, err = newRemoteClient(gaeEndpoint); err != nil {
 			return nil, err
 		}
+	} else {
+		log.Println("remote_api client not setup to use App Engine search")
 	}
 
 	return &Database{Pool: pool, RemoteClient: rc}, nil
+}
+
+func (db *Database) CheckHealth() error {
+	// TODO(light): get() can trigger a dial.  Ideally, the pool could
+	// inform whether or not a lack of connections is due to idleness or
+	// errors.
+	c := db.Pool.Get()
+	err := c.Err()
+	c.Close()
+	return err
 }
 
 // Exists returns true if package with import path exists in the database.
@@ -362,6 +368,8 @@ func pkgIDAndImportCount(c redis.Conn, path string) (id string, numImported int,
 	id, err = redis.String(c.Do("HGET", "ids", path))
 	if err == redis.ErrNil {
 		return "", 0, nil
+	} else if err != nil {
+		return "", 0, err
 	}
 	return id, numImported, nil
 }
@@ -386,10 +394,12 @@ func (db *Database) updateImportsIndex(ctx context.Context, c redis.Conn, oldDoc
 	for p := range changes {
 		id, n, err := pkgIDAndImportCount(c, p)
 		if err != nil {
-			return err
+			log.Println("database.updateImportsIndex:", err)
 		}
 		if id != "" {
-			db.PutIndex(ctx, nil, id, -1, n)
+			if err := db.PutIndex(ctx, nil, id, -1, n); err != nil {
+				log.Printf("database.updateImportsIndex: putting package %s into the index: %v\n", p, err)
+			}
 		}
 	}
 	return nil
@@ -1189,9 +1199,10 @@ func (db *Database) incrementCounterInternal(key string, delta float64, t time.T
 	// lambda = math.Ln2 / thalf
 	c := db.Pool.Get()
 	defer c.Close()
+	d := strconv.FormatFloat(delta, 'f', -1, 64)
 	const lambda = math.Ln2 / float64(counterHalflife)
-	scaledTime := lambda * float64(t.Sub(time.Unix(1257894000, 0)))
-	return redis.Float64(incrementCounterScript.Do(c, key, delta, scaledTime, (4*counterHalflife)/time.Second))
+	scaledTime := strconv.FormatFloat(lambda*float64(t.Sub(time.Unix(1257894000, 0))), 'f', -1, 64)
+	return redis.Float64(incrementCounterScript.Do(c, key, d, scaledTime, int((4*counterHalflife)/time.Second)))
 }
 
 func (db *Database) IncrementCounter(key string, delta float64) (float64, error) {
@@ -1278,17 +1289,19 @@ func (db *Database) Search(ctx context.Context, q string) ([]Package, error) {
 }
 
 // PutIndex puts a package into App Engine search index. ID is the package ID in the database.
+// It is no-op when running locally without setting up remote_api.
 func (db *Database) PutIndex(ctx context.Context, pdoc *doc.Package, id string, score float64, importCount int) error {
 	if db.RemoteClient == nil {
-		return errors.New("remote_api client not setup to use App Engine search")
+		return nil
 	}
 	return putIndex(db.RemoteClient.NewContext(ctx), pdoc, id, score, importCount)
 }
 
 // DeleteIndex deletes a package from App Engine search index. ID is the package ID in the database.
+// It is no-op when running locally without setting up remote_api.
 func (db *Database) DeleteIndex(ctx context.Context, id string) error {
 	if db.RemoteClient == nil {
-		return errors.New("database.DeleteIndex: no App Engine endpoint given")
+		return nil
 	}
 	return deleteIndex(db.RemoteClient.NewContext(ctx), id)
 }

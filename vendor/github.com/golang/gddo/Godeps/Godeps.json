@@ -8,38 +8,38 @@
 	"Deps": [
 		{
 			"ImportPath": "cloud.google.com/go/compute/metadata",
-			"Comment": "v0.13.0-17-g4b5faa4",
-			"Rev": "4b5faa47331c50b3f75616de199da5fea9c50bea"
+			"Comment": "v0.16.0",
+			"Rev": "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
 		},
 		{
 			"ImportPath": "cloud.google.com/go/internal/tracecontext",
-			"Comment": "v0.13.0-17-g4b5faa4",
-			"Rev": "4b5faa47331c50b3f75616de199da5fea9c50bea"
+			"Comment": "v0.16.0",
+			"Rev": "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
 		},
 		{
 			"ImportPath": "cloud.google.com/go/internal/version",
-			"Comment": "v0.13.0-17-g4b5faa4",
-			"Rev": "4b5faa47331c50b3f75616de199da5fea9c50bea"
+			"Comment": "v0.16.0",
+			"Rev": "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
 		},
 		{
 			"ImportPath": "cloud.google.com/go/logging",
-			"Comment": "v0.13.0-17-g4b5faa4",
-			"Rev": "4b5faa47331c50b3f75616de199da5fea9c50bea"
+			"Comment": "v0.16.0",
+			"Rev": "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
 		},
 		{
 			"ImportPath": "cloud.google.com/go/logging/apiv2",
-			"Comment": "v0.13.0-17-g4b5faa4",
-			"Rev": "4b5faa47331c50b3f75616de199da5fea9c50bea"
+			"Comment": "v0.16.0",
+			"Rev": "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
 		},
 		{
 			"ImportPath": "cloud.google.com/go/logging/internal",
-			"Comment": "v0.13.0-17-g4b5faa4",
-			"Rev": "4b5faa47331c50b3f75616de199da5fea9c50bea"
+			"Comment": "v0.16.0",
+			"Rev": "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
 		},
 		{
 			"ImportPath": "cloud.google.com/go/trace",
-			"Comment": "v0.13.0-17-g4b5faa4",
-			"Rev": "4b5faa47331c50b3f75616de199da5fea9c50bea"
+			"Comment": "v0.16.0",
+			"Rev": "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
 		},
 		{
 			"ImportPath": "github.com/bradfitz/gomemcache/memcache",
@@ -105,6 +105,26 @@
 		{
 			"ImportPath": "github.com/golang/snappy",
 			"Rev": "553a641470496b2327abcac10b36396bd98e45c9"
+		},
+		{
+			"ImportPath": "github.com/google/go-cmp/cmp",
+			"Comment": "v0.1.0-10-g9823290",
+			"Rev": "98232909528519e571b2e69fbe546b6ef35f5780"
+		},
+		{
+			"ImportPath": "github.com/google/go-cmp/cmp/internal/diff",
+			"Comment": "v0.1.0-10-g9823290",
+			"Rev": "98232909528519e571b2e69fbe546b6ef35f5780"
+		},
+		{
+			"ImportPath": "github.com/google/go-cmp/cmp/internal/function",
+			"Comment": "v0.1.0-10-g9823290",
+			"Rev": "98232909528519e571b2e69fbe546b6ef35f5780"
+		},
+		{
+			"ImportPath": "github.com/google/go-cmp/cmp/internal/value",
+			"Comment": "v0.1.0-10-g9823290",
+			"Rev": "98232909528519e571b2e69fbe546b6ef35f5780"
 		},
 		{
 			"ImportPath": "github.com/googleapis/gax-go",
@@ -477,11 +497,19 @@
 			"Rev": "1e559d0a00eef8a9a43151db4665280bd8dd5886"
 		},
 		{
+			"ImportPath": "google.golang.org/genproto/googleapis/cloud/runtimeconfig/v1beta1",
+			"Rev": "1e559d0a00eef8a9a43151db4665280bd8dd5886"
+		},
+		{
 			"ImportPath": "google.golang.org/genproto/googleapis/logging/type",
 			"Rev": "1e559d0a00eef8a9a43151db4665280bd8dd5886"
 		},
 		{
 			"ImportPath": "google.golang.org/genproto/googleapis/logging/v2",
+			"Rev": "1e559d0a00eef8a9a43151db4665280bd8dd5886"
+		},
+		{
+			"ImportPath": "google.golang.org/genproto/googleapis/longrunning",
 			"Rev": "1e559d0a00eef8a9a43151db4665280bd8dd5886"
 		},
 		{
