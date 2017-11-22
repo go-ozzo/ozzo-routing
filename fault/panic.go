@@ -38,6 +38,8 @@ func PanicHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
                 if len(errorf) > 0 {
                     err = errorf[0](ctx, c, err)
                 }
+                writeError(c, err)
+                c.Abort()
             }
         }()
         err = c.Next()
