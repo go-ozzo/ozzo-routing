@@ -135,39 +135,39 @@ func testNewContext(handlers ...Handler) (*Context, *httptest.ResponseRecorder) 
 }
 
 func testNextHandler(tag string) Handler {
-	return func(ctx context.Context, c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		fmt.Fprintf(c.Response, "<%v>", tag)
 		err := c.Next()
 		fmt.Fprintf(c.Response, "</%v>", tag)
-		return err
+		return ctx, err
 	}
 }
 
 func testAbortHandler(tag string) Handler {
-	return func(ctx context.Context, c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
 		c.Abort()
-		return nil
+		return ctx, nil
 	}
 }
 
 func testErrorHandler(tag string) Handler {
-	return func(ctx context.Context, c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
-		return errors.New("error:" + tag)
+		return ctx, errors.New("error:" + tag)
 	}
 }
 
 func testTimeoutHandler() Handler {
-	return func(ctx context.Context, c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		time.Sleep(2 * time.Second)
-		return nil
+		return ctx, nil
 	}
 }
 
 func testNormalHandler(tag string) Handler {
-	return func(ctx context.Context, c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
-		return nil
+		return ctx, nil
 	}
 }

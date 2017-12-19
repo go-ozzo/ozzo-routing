@@ -10,20 +10,20 @@
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
-  revision = "dbeaa9332f19a944acb5736b4456cfcc02140e29"
-  version = "v3.1.0"
+  revision = "d2709f9f1f31ebcda9651b03077758c1f3a0018c"
+  version = "v3.0.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/gddo"
   packages = ["httputil/header"]
-  revision = "293f5da99ebf75dfe83bdc40605c1dca64a484a9"
+  revision = "2fa06788d5bf9a718f8d5d4c63be5db0b58cd1dd"
 
 [[projects]]
   branch = "master"
   name = "github.com/ltick/tick-routing"
   packages = [".","access","content","fault","file","slash"]
-  revision = "33b954e91785984e4754483575d7ed0890203bc3"
+  revision = "692c8f6e8aaaf13a7ec36f094e4df16c18da9754"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"

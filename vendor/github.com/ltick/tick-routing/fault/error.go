@@ -32,21 +32,23 @@ import (
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func ErrorHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
-	return func(ctx context.Context, c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
 		err := c.Next()
 		if err == nil {
-			return nil
+			return ctx, nil
 		}
+
 		if logf != nil {
 			logf("%v", err)
 		}
+
 		if len(errorf) > 0 {
 			err = errorf[0](ctx, c, err)
 		}
 		writeError(c, err)
 		c.Abort()
 
-		return nil
+		return ctx, nil
 	}
 }
 

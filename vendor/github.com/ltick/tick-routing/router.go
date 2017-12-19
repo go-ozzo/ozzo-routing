@@ -16,7 +16,7 @@ import (
 
 type (
 	// Handler is the function for handling HTTP requests.
-	Handler func(context.Context, *Context) error
+	Handler func(context.Context, *Context) (context.Context, error)
 
 	// Router manages routes and dispatches HTTP requests to the handlers of the matching routes.
 	Router struct {
@@ -213,22 +213,22 @@ func (r *Router) normalizeRequestPath(path string) string {
 }
 
 // TimeoutHandler returns a 408 HTTP error indicating a request execute timeout.
-func TimeoutHandler(ctx context.Context, c *Context) error {
-	return NewHTTPError(http.StatusRequestTimeout)
+func TimeoutHandler(ctx context.Context, c *Context) (context.Context, error) {
+	return ctx, NewHTTPError(http.StatusRequestTimeout)
 }
 
 // NotFoundHandler returns a 404 HTTP error indicating a request has no matching route.
-func NotFoundHandler(ctx context.Context, c *Context) error {
-	return NewHTTPError(http.StatusNotFound)
+func NotFoundHandler(ctx context.Context, c *Context) (context.Context, error) {
+	return ctx, NewHTTPError(http.StatusNotFound)
 }
 
 // MethodNotAllowedHandler handles the situation when a request has matching route without matching HTTP method.
 // In this case, the handler will respond with an Allow HTTP header listing the allowed HTTP methods.
 // Otherwise, the handler will do nothing and let the next handler (usually a NotFoundHandler) to handle the problem.
-func MethodNotAllowedHandler(ctx context.Context, c *Context) error {
+func MethodNotAllowedHandler(ctx context.Context, c *Context) (context.Context, error) {
 	methods := c.Router().findAllowedMethods(c.Request.URL.Path)
 	if len(methods) == 0 {
-		return nil
+		return ctx, nil
 	}
 	methods["OPTIONS"] = true
 	ms := make([]string, len(methods))
@@ -243,21 +243,21 @@ func MethodNotAllowedHandler(ctx context.Context, c *Context) error {
 		c.Response.WriteHeader(http.StatusMethodNotAllowed)
 	}
 	c.Abort()
-	return nil
+	return ctx, nil
 }
 
 // HTTPHandlerFunc adapts a http.HandlerFunc into a routing.Handler.
 func HTTPHandlerFunc(h http.HandlerFunc) Handler {
-	return func(ctx context.Context, c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		h(c.Response, c.Request)
-		return nil
+		return ctx, nil
 	}
 }
 
 // HTTPHandler adapts a http.Handler into a routing.Handler.
 func HTTPHandler(h http.Handler) Handler {
-	return func(ctx context.Context, c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		h.ServeHTTP(c.Response, c.Request)
-		return nil
+		return ctx, nil
 	}
 }

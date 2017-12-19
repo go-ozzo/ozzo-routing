@@ -27,7 +27,7 @@ func TestRecovery(t *testing.T) {
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "abc", res.Body.String())
-	assert.Equal(t, "abc", buf.String())
+	assert.Equal(t, "", buf.String())
 
 	buf.Reset()
 	res = httptest.NewRecorder()
@@ -44,7 +44,7 @@ func TestRecovery(t *testing.T) {
 	c = routing.NewContext(res, req, h, handler3, handler2)
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	assert.Equal(t, "xyzxyz", res.Body.String())
+	assert.Equal(t, "xyz", res.Body.String())
 	assert.Contains(t, buf.String(), "recovery_test.go")
 
 	buf.Reset()
@@ -53,7 +53,7 @@ func TestRecovery(t *testing.T) {
 	c = routing.NewContext(res, req, h, handler4, handler2)
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "123123", res.Body.String())
+	assert.Equal(t, "123", res.Body.String())
 	assert.Contains(t, buf.String(), "recovery_test.go")
 
 	buf.Reset()
@@ -63,7 +63,7 @@ func TestRecovery(t *testing.T) {
 	c = routing.NewContext(res, req, h, handler3, handler2)
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	assert.Equal(t, "123123", res.Body.String())
+	assert.Equal(t, "123", res.Body.String())
 	assert.Contains(t, buf.String(), "recovery_test.go")
 
 	buf.Reset()
@@ -74,7 +74,7 @@ func TestRecovery(t *testing.T) {
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "123", res.Body.String())
-	assert.Equal(t, "abc", buf.String())
+	assert.Equal(t, "", buf.String())
 }
 
 func getLogger(buf *bytes.Buffer) LogFunc {
@@ -83,19 +83,19 @@ func getLogger(buf *bytes.Buffer) LogFunc {
 	}
 }
 
-func handler1(ctx context.Context, c *routing.Context) error {
-	return errors.New("abc")
+func handler1(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return ctx, errors.New("abc")
 }
 
-func handler2(ctx context.Context, c *routing.Context) error {
+func handler2(ctx context.Context, c *routing.Context) (context.Context, error) {
 	c.Write("test")
-	return nil
+	return ctx, nil
 }
 
-func handler3(ctx context.Context, c *routing.Context) error {
+func handler3(ctx context.Context, c *routing.Context) (context.Context, error) {
 	panic("xyz")
 }
 
-func handler4(ctx context.Context, c *routing.Context) error {
+func handler4(ctx context.Context, c *routing.Context) (context.Context, error) {
 	panic(routing.NewHTTPError(http.StatusBadRequest, "123"))
 }

@@ -1,12 +1,12 @@
 package fault
 
 import (
-    "bytes"
-    "fmt"
-    "runtime"
-    "context"
+	"bytes"
+	"fmt"
+	"runtime"
 
-    "github.com/ltick/tick-routing"
+	"context"
+	"github.com/ltick/tick-routing"
 )
 
 // PanicHandler returns a handler that recovers from panics happened in the handlers following this one.
@@ -25,32 +25,35 @@ import (
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func PanicHandler(logf LogFunc) routing.Handler {
-    return func(ctx context.Context, c *routing.Context) (err error) {
-        defer func() {
-            if e := recover(); e != nil {
-                if logf != nil {
-                    logf("recovered from panic:%v", getCallStack(4))
-                }
-                var ok bool
-                if err, ok = e.(error); !ok {
-                    err = fmt.Errorf("%v", e)
-                }
-            }
-        }()
-        return c.Next()
-    }
+	return func(ctx context.Context, c *routing.Context) (_ context.Context, err error) {
+		defer func() {
+			if e := recover(); e != nil {
+				if logf != nil {
+					logf("recovered from panic:%v", getCallStack(4))
+				}
+				var ok bool
+				if err, ok = e.(error); !ok {
+					err = fmt.Errorf("%v", e)
+				}
+			}
+		}()
+
+		err = c.Next()
+
+		return ctx, err
+	}
 }
 
 // getCallStack returns the current call stack information as a string.
 // The skip parameter specifies how many top frames should be skipped.
 func getCallStack(skip int) string {
-    buf := new(bytes.Buffer)
-    for i := skip; ; i++ {
-        _, file, line, ok := runtime.Caller(i)
-        if !ok {
-            break
-        }
-        fmt.Fprintf(buf, "\n%s:%d", file, line)
-    }
-    return buf.String()
+	buf := new(bytes.Buffer)
+	for i := skip; ; i++ {
+		_, file, line, ok := runtime.Caller(i)
+		if !ok {
+			break
+		}
+		fmt.Fprintf(buf, "\n%s:%d", file, line)
+	}
+	return buf.String()
 }
