@@ -25,11 +25,9 @@ import (
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func PanicHandler(logf LogFunc) routing.Handler {
-    return func(ctx context.Context, c *routing.Context) (rCtx context.Context, err error) {
-        rCtx = ctx
+    return func(ctx context.Context, c *routing.Context) (err error) {
         defer func() {
             if e := recover(); e != nil {
-
                 if logf != nil {
                     logf("recovered from panic:%v", getCallStack(4))
                 }
@@ -39,7 +37,7 @@ func PanicHandler(logf LogFunc) routing.Handler {
                 }
             }
         }()
-        return rCtx, c.Next()
+        return c.Next()
     }
 }
 
