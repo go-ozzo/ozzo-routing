@@ -132,33 +132,33 @@ func (c *Context) Next() (err error) {
 	}
 	c.index++
 	for n := len(c.handlers); c.index < n; c.index++ {
-        if c.Ctx, err = c.handlers[c.index](c.Ctx, c); err != nil {
-            return err
-        }
-        if c.Ctx != nil {
-            select {
-            case <-c.Ctx.Done():
-                switch c.Ctx.Err() {
-                case context.DeadlineExceeded:
-                    timeoutIndex := 0
-                    for n := len(c.router.TimeoutHandlers); timeoutIndex < n; timeoutIndex++ {
-                        if c.Ctx, err = c.router.TimeoutHandlers[timeoutIndex](c.Ctx, c); err != nil {
-                            if httpError, ok := err.(HTTPError); ok {
-                                return NewHTTPError(httpError.StatusCode(), httpError.Error())
-                            } else {
-                                return NewHTTPError(http.StatusInternalServerError, err.Error())
-                            }
-                        }
-                    }
-                case context.Canceled:
-                    cancelIndex := 0
-                    for n := len(c.router.CancelHandlers); cancelIndex < n; cancelIndex++ {
-                        c.router.CancelHandlers[cancelIndex](c.Ctx, c)
-                    }
-                }
-            default:
-            }
-        }
+		if err = c.handlers[c.index](c.Ctx, c); err != nil {
+			return err
+		}
+		if c.Ctx != nil {
+			select {
+			case <-c.Ctx.Done():
+				switch c.Ctx.Err() {
+				case context.DeadlineExceeded:
+					timeoutIndex := 0
+					for n := len(c.router.TimeoutHandlers); timeoutIndex < n; timeoutIndex++ {
+						if err = c.router.TimeoutHandlers[timeoutIndex](c.Ctx, c); err != nil {
+							if httpError, ok := err.(HTTPError); ok {
+								return NewHTTPError(httpError.StatusCode(), httpError.Error())
+							} else {
+								return NewHTTPError(http.StatusInternalServerError, err.Error())
+							}
+						}
+					}
+				case context.Canceled:
+					cancelIndex := 0
+					for n := len(c.router.CancelHandlers); cancelIndex < n; cancelIndex++ {
+						c.router.CancelHandlers[cancelIndex](c.Ctx, c)
+					}
+				}
+			default:
+			}
+		}
 	}
 	return nil
 }

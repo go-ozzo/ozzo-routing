@@ -31,7 +31,7 @@ import (
 // Note that Remover relies on HTTP redirection to remove the trailing slashes.
 // If you do not want redirection, please set `Router.IgnoreTrailingSlash` to be true without using Remover.
 func Remover(status int) routing.Handler {
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(ctx context.Context, c *routing.Context) error {
 		if c.Request.URL.Path != "/" && strings.HasSuffix(c.Request.URL.Path, "/") {
 			if c.Request.Method != "GET" {
 				status = http.StatusTemporaryRedirect

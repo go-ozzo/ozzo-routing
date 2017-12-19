@@ -13,7 +13,7 @@ import (
 
 func TestRouterNotFound(t *testing.T) {
 	r := New(context.Background())
-	h := func(ctx context.Context, c *Context) (context.Context, error) {
+	h := func(ctx context.Context, c *Context) error {
 		fmt.Fprint(c.Response, "ok")
 		return ctx, nil
 	}
@@ -107,7 +107,7 @@ func TestRouterNormalizeRequestPath(t *testing.T) {
 
 func TestTimeout(t *testing.T) {
 	r := New(context.Background())
-	h1 := func(ctx context.Context, c *Context) (context.Context, error) {
+	h1 := func(ctx context.Context, c *Context) error {
 		time.Sleep(2 * time.Second)
 		return ctx, nil
 	}
@@ -122,11 +122,11 @@ func TestTimeout(t *testing.T) {
 
 func TestCustomTimeout(t *testing.T) {
 	r := New(context.Background())
-	h1 := func(ctx context.Context, c *Context) (context.Context, error) {
+	h1 := func(ctx context.Context, c *Context) error {
 		time.Sleep(2 * time.Second)
 		return ctx, nil
 	}
-	r.Timeout(1*time.Second, func(ctx context.Context, c *Context) (context.Context, error) {
+	r.Timeout(1*time.Second, func(ctx context.Context, c *Context) error {
 		return ctx, NewHTTPError(http.StatusRequestTimeout, "Custom Request Timeout")
 	})
 	r.add("GET", "/", []Handler{h1})
@@ -140,13 +140,17 @@ func TestCustomTimeout(t *testing.T) {
 func TestCombinedTimeout(t *testing.T) {
 	fmt.Println("TestCombinedTimeout")
 	r := New(context.Background())
-	h1 := func(ctx context.Context, c *Context) (context.Context, error) {
+	h1 := func(ctx context.Context, c *Context) error {
 		time.Sleep(2 * time.Second)
 		c.Write("handler1 Done!")
 		return ctx, nil
 	}
-	h2 := func(ctx context.Context, c *Context) (context.Context, error) {
+	h2 := func(ctx context.Context, c *Context) error {
 		time.Sleep(2 * time.Second)
+		select {
+		case <-ctx.Done():
+			return
+		}
 		c.Write("handler2 Done!")
 		return ctx, nil
 	}
@@ -161,7 +165,7 @@ func TestCombinedTimeout(t *testing.T) {
 
 func TestNoTimeout(t *testing.T) {
 	r := New(context.Background())
-	h1 := func(ctx context.Context, c *Context) (context.Context, error) {
+	h1 := func(ctx context.Context, c *Context) error {
 		time.Sleep(1 * time.Second)
 		c.Write("handler Done!")
 		return ctx, nil

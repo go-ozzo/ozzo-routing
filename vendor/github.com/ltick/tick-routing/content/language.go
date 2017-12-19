@@ -34,7 +34,7 @@ func LanguageNegotiator(languages ...string) routing.Handler {
 	}
 	defaultLanguage := languages[0]
 
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(ctx context.Context, c *routing.Context) error {
 		language := negotiateLanguage(c.Request, languages, defaultLanguage)
 		c.Set(Language, language)
 		return ctx, nil

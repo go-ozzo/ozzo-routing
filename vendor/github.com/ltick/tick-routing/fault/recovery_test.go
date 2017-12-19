@@ -86,19 +86,19 @@ func getLogger(buf *bytes.Buffer) LogFunc {
 	}
 }
 
-func handler1(ctx context.Context, c *routing.Context) (context.Context, error) {
+func handler1(ctx context.Context, c *routing.Context) error {
 	return ctx, errors.New("abc")
 }
 
-func handler2(ctx context.Context, c *routing.Context) (context.Context, error) {
+func handler2(ctx context.Context, c *routing.Context) error {
 	c.Write("test")
 	return ctx, nil
 }
 
-func handler3(ctx context.Context, c *routing.Context) (context.Context, error) {
+func handler3(ctx context.Context, c *routing.Context) error {
 	panic("xyz")
 }
 
-func handler4(ctx context.Context, c *routing.Context) (context.Context, error) {
+func handler4(ctx context.Context, c *routing.Context) error {
 	panic(routing.NewHTTPError(http.StatusBadRequest, "123"))
 }

@@ -61,7 +61,7 @@ func Handler(opts Options) routing.Handler {
 
 	opts.init()
 
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(ctx context.Context, c *routing.Context) error {
 		origin := c.Request.Header.Get(headerOrigin)
 		if origin == "" {
 			// the request is outside the scope of CORS

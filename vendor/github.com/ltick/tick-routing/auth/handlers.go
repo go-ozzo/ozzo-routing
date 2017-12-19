@@ -176,7 +176,7 @@ func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
 	if len(tokenName) > 0 {
 		name = tokenName[0]
 	}
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(ctx context.Context, c *routing.Context) error {
 		token := c.Request.URL.Query().Get(name)
 		identity, err := fn(c, token)
 		if err != nil {

@@ -80,7 +80,7 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	// security measure: limit the files within options.RootPath
 	dir := http.Dir(options.RootPath)
 
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(ctx context.Context, c *routing.Context) error {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
 			return ctx, routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}
@@ -143,7 +143,7 @@ func Content(path string) routing.Handler {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(RootPath, path)
 	}
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(ctx context.Context, c *routing.Context) error {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
 			return ctx, routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}
