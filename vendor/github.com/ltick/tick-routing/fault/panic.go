@@ -2,10 +2,10 @@ package fault
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"runtime"
 
-	"context"
 	"github.com/ltick/tick-routing"
 )
 
@@ -25,7 +25,7 @@ import (
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func PanicHandler(logf LogFunc) routing.Handler {
-	return func(ctx context.Context, c *routing.Context) (_ context.Context, err error) {
+	return func(parentCtx context.Context, c *routing.Context) (ctx context.Context, err error) {
 		defer func() {
 			if e := recover(); e != nil {
 				if logf != nil {
@@ -37,10 +37,7 @@ func PanicHandler(logf LogFunc) routing.Handler {
 				}
 			}
 		}()
-
-		err = c.Next()
-
-		return ctx, err
+		return parentCtx, c.Next()
 	}
 }
 

@@ -142,12 +142,34 @@ func TestCombinedTimeout(t *testing.T) {
 	r := New(context.Background())
 	h1 := func(ctx context.Context, c *Context) (context.Context, error) {
 		time.Sleep(2 * time.Second)
-		c.Write("handler1 Done!")
+		select {
+		case <-ctx.Done():
+			fmt.Println(ctx.Err())
+			switch ctx.Err() {
+			case context.DeadlineExceeded:
+				return ctx, NewHTTPError(http.StatusRequestTimeout)
+			case context.Canceled:
+				return ctx, nil
+			}
+		default:
+			c.Write("handler1 Done!")
+		}
+
 		return ctx, nil
 	}
 	h2 := func(ctx context.Context, c *Context) (context.Context, error) {
 		time.Sleep(2 * time.Second)
-		c.Write("handler2 Done!")
+		select {
+		case <-ctx.Done():
+			switch ctx.Err() {
+			case context.DeadlineExceeded:
+				return ctx, NewHTTPError(http.StatusRequestTimeout)
+			case context.Canceled:
+				return ctx, nil
+			}
+		default:
+			c.Write("handler2 Done!")
+		}
 		return ctx, nil
 	}
 	r.Timeout(3 * time.Second)

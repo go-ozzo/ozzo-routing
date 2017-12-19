@@ -37,11 +37,9 @@ func ErrorHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 		if err == nil {
 			return ctx, nil
 		}
-
 		if logf != nil {
 			logf("%v", err)
 		}
-
 		if len(errorf) > 0 {
 			err = errorf[0](ctx, c, err)
 		}
