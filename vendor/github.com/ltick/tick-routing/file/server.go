@@ -115,7 +115,7 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 		}
 
 		http.ServeContent(c.Response, c.Request, path, fstat.ModTime(), file)
-		return ctx, nil
+		return nil
 	}
 }
 
@@ -159,7 +159,7 @@ func Content(path string) routing.Handler {
 			return ctx, routing.NewHTTPError(http.StatusNotFound)
 		}
 		http.ServeContent(c.Response, c.Request, path, fstat.ModTime(), file)
-		return ctx, nil
+		return nil
 	}
 }
 

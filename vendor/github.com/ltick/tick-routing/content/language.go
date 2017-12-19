@@ -37,7 +37,7 @@ func LanguageNegotiator(languages ...string) routing.Handler {
 	return func(ctx context.Context, c *routing.Context) error {
 		language := negotiateLanguage(c.Request, languages, defaultLanguage)
 		c.Set(Language, language)
-		return ctx, nil
+		return nil
 	}
 }
 

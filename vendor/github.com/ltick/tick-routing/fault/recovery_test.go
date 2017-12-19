@@ -27,7 +27,7 @@ func TestRecovery(t *testing.T) {
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "abc", res.Body.String())
-	assert.Equal(t, "abc", buf.String())
+	assert.Equal(t, "", buf.String())
 
 	buf.Reset()
 	res = httptest.NewRecorder()
@@ -46,7 +46,6 @@ func TestRecovery(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "xyz", res.Body.String())
 	assert.Contains(t, buf.String(), "recovery_test.go")
-	assert.Contains(t, buf.String(), "xyz")
 
 	buf.Reset()
 	res = httptest.NewRecorder()
@@ -56,7 +55,6 @@ func TestRecovery(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.Code)
 	assert.Equal(t, "123", res.Body.String())
 	assert.Contains(t, buf.String(), "recovery_test.go")
-	assert.Contains(t, buf.String(), "123")
 
 	buf.Reset()
 	h = Recovery(getLogger(&buf), convertError)
@@ -67,7 +65,6 @@ func TestRecovery(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "123", res.Body.String())
 	assert.Contains(t, buf.String(), "recovery_test.go")
-	assert.Contains(t, buf.String(), "xyz")
 
 	buf.Reset()
 	h = Recovery(getLogger(&buf), convertError)
@@ -77,7 +74,7 @@ func TestRecovery(t *testing.T) {
 	assert.Nil(t, c.Next())
 	assert.Equal(t, http.StatusInternalServerError, res.Code)
 	assert.Equal(t, "123", res.Body.String())
-	assert.Equal(t, "abc", buf.String())
+	assert.Equal(t, "", buf.String())
 }
 
 func getLogger(buf *bytes.Buffer) LogFunc {
@@ -92,7 +89,7 @@ func handler1(ctx context.Context, c *routing.Context) error {
 
 func handler2(ctx context.Context, c *routing.Context) error {
 	c.Write("test")
-	return ctx, nil
+	return nil
 }
 
 func handler3(ctx context.Context, c *routing.Context) error {

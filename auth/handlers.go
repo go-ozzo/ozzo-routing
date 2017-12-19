@@ -180,7 +180,7 @@ func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
 		token := c.Request.URL.Query().Get(name)
 		identity, err := fn(c, token)
 		if err != nil {
-			return ctx, routing.NewHTTPError(http.StatusUnauthorized, err.Error())
+			return routing.NewHTTPError(http.StatusUnauthorized, err.Error())
 		}
 		c.Set(User, identity)
 		return nil

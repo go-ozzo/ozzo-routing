@@ -35,20 +35,18 @@ func ErrorHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 	return func(ctx context.Context, c *routing.Context) error {
 		err := c.Next()
 		if err == nil {
-			return ctx, nil
+			return nil
 		}
-
 		if logf != nil {
 			logf("%v", err)
 		}
-
 		if len(errorf) > 0 {
 			err = errorf[0](ctx, c, err)
 		}
 		writeError(c, err)
 		c.Abort()
 
-		return ctx, nil
+		return nil
 	}
 }
 

@@ -183,7 +183,7 @@ func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
 			return ctx, routing.NewHTTPError(http.StatusUnauthorized, err.Error())
 		}
 		c.Set(User, identity)
-		return ctx, nil
+		return nil
 	}
 }
 

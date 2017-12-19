@@ -56,7 +56,7 @@ func TypeNegotiator(formats ...string) routing.Handler {
 		format := NegotiateContentType(c.Request, formats, formats[0])
 		DataWriters[format].SetHeader(c.Response)
 		c.SetDataWriter(DataWriters[format])
-		return ctx,nil
+		return nil
 	}
 }
 

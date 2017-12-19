@@ -82,11 +82,11 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 
 	return func(ctx context.Context, c *routing.Context) error {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
-			return ctx, routing.NewHTTPError(http.StatusMethodNotAllowed)
+			return routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}
 		path, found := matchPath(c.Request.URL.Path, from, to)
 		if !found || options.Allow != nil && !options.Allow(c, path) {
-			return ctx, routing.NewHTTPError(http.StatusNotFound)
+			return routing.NewHTTPError(http.StatusNotFound)
 		}
 
 		var (
@@ -97,21 +97,21 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 
 		if file, err = dir.Open(path); err != nil {
 			if options.CatchAllFile != "" {
-				return ctx, serveFile(c, dir, options.CatchAllFile)
+				return serveFile(c, dir, options.CatchAllFile)
 			}
-			return ctx, routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return routing.NewHTTPError(http.StatusNotFound, err.Error())
 		}
 		defer file.Close()
 
 		if fstat, err = file.Stat(); err != nil {
-			return ctx, routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return routing.NewHTTPError(http.StatusNotFound, err.Error())
 		}
 
 		if fstat.IsDir() {
 			if options.IndexFile == "" {
-				return ctx, routing.NewHTTPError(http.StatusNotFound)
+				return routing.NewHTTPError(http.StatusNotFound)
 			}
-			return ctx, serveFile(c, dir, filepath.Join(path, options.IndexFile))
+			return serveFile(c, dir, filepath.Join(path, options.IndexFile))
 		}
 
 		http.ServeContent(c.Response, c.Request, path, fstat.ModTime(), file)
@@ -145,18 +145,18 @@ func Content(path string) routing.Handler {
 	}
 	return func(ctx context.Context, c *routing.Context) error {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
-			return ctx, routing.NewHTTPError(http.StatusMethodNotAllowed)
+			return routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}
 		file, err := os.Open(path)
 		if err != nil {
-			return ctx, routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return routing.NewHTTPError(http.StatusNotFound, err.Error())
 		}
 		defer file.Close()
 		fstat, err := file.Stat()
 		if err != nil {
-			return ctx, routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return routing.NewHTTPError(http.StatusNotFound, err.Error())
 		} else if fstat.IsDir() {
-			return ctx, routing.NewHTTPError(http.StatusNotFound)
+			return routing.NewHTTPError(http.StatusNotFound)
 		}
 		http.ServeContent(c.Response, c.Request, path, fstat.ModTime(), file)
 		return nil

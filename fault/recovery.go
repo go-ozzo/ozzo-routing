@@ -43,18 +43,18 @@ type (
 //     r.Use(fault.Recovery(log.Printf))
 func Recovery(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 	handlePanic := PanicHandler(logf)
-	return func(ctx context.Context, c *routing.Context) (rCtx context.Context, err error) {
-		rCtx, err = handlePanic(ctx, c)
+	return func(ctx context.Context, c *routing.Context) (err error) {
+		err = handlePanic(ctx, c)
 		if err != nil {
 			//if logf != nil {
 			//    logf("%v", err)
 			//}
 			if len(errorf) > 0 {
-				err = errorf[0](rCtx, c, err)
+				err = errorf[0](ctx, c, err)
 			}
 			writeError(c, err)
 			c.Abort()
 		}
-		return rCtx, nil
+		return nil
 	}
 }
