@@ -4,8 +4,8 @@ import (
     "bytes"
     "fmt"
     "runtime"
-    "context"
 
+    "context"
     "github.com/ltick/tick-routing"
 )
 
@@ -24,8 +24,8 @@ import (
 //     r := routing.New()
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
-func PanicHandler(logf LogFunc) routing.Handler {
-    return func(ctx context.Context, c *routing.Context) (err error) {
+func PanicHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
+    return func(ctx context.Context, c *routing.Context) (_ context.Context, err error) {
         defer func() {
             if e := recover(); e != nil {
                 if logf != nil {
@@ -35,9 +35,15 @@ func PanicHandler(logf LogFunc) routing.Handler {
                 if err, ok = e.(error); !ok {
                     err = fmt.Errorf("%v", e)
                 }
+                if len(errorf) > 0 {
+                    err = errorf[0](ctx, c, err)
+                }
+                writeError(c, err)
+                c.Abort()
             }
         }()
-        return c.Next()
+        err = c.Next()
+        return ctx, err
     }
 }
 
