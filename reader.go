@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"encoding"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -17,6 +18,10 @@ const (
 	MIME_HTML           = "text/html"
 	MIME_FORM           = "application/x-www-form-urlencoded"
 	MIME_MULTIPART_FORM = "multipart/form-data"
+)
+
+var (
+	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 )
 
 // DataReader is used by Context.Read() to read data from an HTTP request.
@@ -107,6 +112,13 @@ func readForm(form map[string][]string, prefix string, rv reflect.Value) error {
 			name = prefix + "." + name
 		}
 
+		// check if type implements a known type, like encoding.TextUnmarshaler
+		if ok, err := readFormFieldKnownType(form, name, rv.Field(i)); err != nil {
+			return err
+		} else if ok {
+			continue
+		}
+
 		if ft.Kind() != reflect.Struct {
 			if err := readFormField(form, name, rv.Field(i)); err != nil {
 				return err
@@ -122,6 +134,23 @@ func readForm(form map[string][]string, prefix string, rv reflect.Value) error {
 		}
 	}
 	return nil
+}
+
+func readFormFieldKnownType(form map[string][]string, name string, rv reflect.Value) (bool, error) {
+	value, ok := form[name]
+	if !ok {
+		return false, nil
+	}
+	rv = indirect(rv)
+	rt := rv.Type()
+
+	// check if type implements encoding.TextUnmarshaler
+	if rt.Implements(textUnmarshalerType) {
+		return true, rv.Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(value[0]))
+	} else if reflect.PtrTo(rt).Implements(textUnmarshalerType) {
+		return true, rv.Addr().Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(value[0]))
+	}
+	return false, nil
 }
 
 func readFormField(form map[string][]string, name string, rv reflect.Value) error {
