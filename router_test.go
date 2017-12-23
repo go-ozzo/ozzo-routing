@@ -76,7 +76,7 @@ func TestRouterFind(t *testing.T) {
 	r := New()
 	r.add("GET", "/users/<id>", []Handler{NotFoundHandler})
 	pvalues := make([]string, 10)
-	handlers, pnames := r.find("GET", "/users/1", pvalues)
+	handlers, pnames := r.Find("GET", "/users/1", pvalues)
 	assert.Equal(t, 1, len(handlers))
 	if assert.Equal(t, 1, len(pnames)) {
 		assert.Equal(t, "id", pnames[0])

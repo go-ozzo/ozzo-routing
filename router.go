@@ -75,12 +75,12 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	c := r.pool.Get().(*Context)
 	c.init(res, req)
 	if r.UseEscapedPath {
-		c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.EscapedPath()), c.pvalues)
+		c.handlers, c.pnames = r.Find(req.Method, r.normalizeRequestPath(req.URL.EscapedPath()), c.pvalues)
 		for i, v := range c.pvalues {
 			c.pvalues[i], _ = url.QueryUnescape(v)
 		}
 	} else {
-		c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
+		c.handlers, c.pnames = r.Find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
 	}
 	if err := c.Next(); err != nil {
 		r.handleError(c, err)
@@ -112,6 +112,18 @@ func (r *Router) NotFound(handlers ...Handler) {
 	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
 }
 
+// Find determines the handler and parameters to use for a specified method and path.
+func (r *Router) Find(method, path string, pvalues []string) (handlers []Handler, pnames []string) {
+	var hh interface{}
+	if store := r.stores[method]; store != nil {
+		hh, pnames = store.Get(path, pvalues)
+	}
+	if hh != nil {
+		return hh.([]Handler), pnames
+	}
+	return r.notFoundHandlers, pnames
+}
+
 // handleError is the error handler for handling any unhandled errors.
 func (r *Router) handleError(c *Context, err error) {
 	if httpError, ok := err.(HTTPError); ok {
@@ -140,17 +152,6 @@ func (r *Router) addRoute(route *Route, handlers []Handler) {
 	if n := store.Add(path, handlers); n > r.maxParams {
 		r.maxParams = n
 	}
-}
-
-func (r *Router) find(method, path string, pvalues []string) (handlers []Handler, pnames []string) {
-	var hh interface{}
-	if store := r.stores[method]; store != nil {
-		hh, pnames = store.Get(path, pvalues)
-	}
-	if hh != nil {
-		return hh.([]Handler), pnames
-	}
-	return r.notFoundHandlers, pnames
 }
 
 func (r *Router) findAllowedMethods(path string) map[string]bool {
