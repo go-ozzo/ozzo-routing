@@ -84,3 +84,27 @@ func TestDefaultDataReader(t *testing.T) {
 		assert.Equal(t, expected, data, test.tag)
 	}
 }
+
+type TU struct {
+	UValue string
+}
+
+func (tu *TU) UnmarshalText(text []byte) error {
+	tu.UValue = "TU_" + string(text[:])
+	return nil
+}
+
+func TestTextUnmarshaler(t *testing.T) {
+	var a struct {
+		ATU TU     `form:"atu"`
+		NTU string `form:"ntu"`
+	}
+	values := map[string][]string{
+		"atu": []string{"ORIGINAL"},
+		"ntu": []string{"ORIGINAL"},
+	}
+	err := ReadFormData(values, &a)
+	assert.Nil(t, err)
+	assert.Equal(t, "TU_ORIGINAL", a.ATU.UValue)
+	assert.Equal(t, "ORIGINAL", a.NTU)
+}
