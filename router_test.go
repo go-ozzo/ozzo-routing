@@ -75,13 +75,11 @@ func TestRouterAdd(t *testing.T) {
 func TestRouterFind(t *testing.T) {
 	r := New()
 	r.add("GET", "/users/<id>", []Handler{NotFoundHandler})
-	pvalues := make([]string, 10)
-	handlers, pnames := r.find("GET", "/users/1", pvalues)
+	handlers, params := r.Find("GET", "/users/1")
 	assert.Equal(t, 1, len(handlers))
-	if assert.Equal(t, 1, len(pnames)) {
-		assert.Equal(t, "id", pnames[0])
+	if assert.Equal(t, 1, len(params)) {
+		assert.Equal(t, "1", params["id"])
 	}
-	assert.Equal(t, "1", pvalues[0])
 }
 
 func TestRouterNormalizeRequestPath(t *testing.T) {

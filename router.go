@@ -112,6 +112,17 @@ func (r *Router) NotFound(handlers ...Handler) {
 	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
 }
 
+// Find determines the handlers and parameters to use for a specified method and path.
+func (r *Router) Find(method, path string) (handlers []Handler, params map[string]string) {
+	pvalues := make([]string, r.maxParams)
+	handlers, pnames := r.find(method, path, pvalues)
+	params = make(map[string]string, len(pnames))
+	for i, n := range pnames {
+		params[n] = pvalues[i]
+	}
+	return handlers, params
+}
+
 // handleError is the error handler for handling any unhandled errors.
 func (r *Router) handleError(c *Context, err error) {
 	if httpError, ok := err.(HTTPError); ok {
