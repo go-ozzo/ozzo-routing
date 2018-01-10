@@ -5,13 +5,12 @@
 package file
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/ltick/tick-routing"
+	"github.com/go-ozzo/ozzo-routing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,7 +72,7 @@ func TestContent(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/index.html", nil)
 	res := httptest.NewRecorder()
 	c := routing.NewContext(res, req)
-	_, err := h(context.Background(), c)
+	err := h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "hello\n", res.Body.String())
 
@@ -81,7 +80,7 @@ func TestContent(t *testing.T) {
 	req, _ = http.NewRequest("POST", "/index.html", nil)
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	_, err = h(context.Background(), c)
+	err = h(c)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, http.StatusMethodNotAllowed, err.(routing.HTTPError).StatusCode())
 	}
@@ -90,7 +89,7 @@ func TestContent(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/index.html", nil)
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	_, err = h(context.Background(), c)
+	err = h(c)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, http.StatusNotFound, err.(routing.HTTPError).StatusCode())
 	}
@@ -99,7 +98,7 @@ func TestContent(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/index.html", nil)
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	_, err = h(context.Background(), c)
+	err = h(c)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, http.StatusNotFound, err.(routing.HTTPError).StatusCode())
 	}
@@ -124,7 +123,7 @@ func TestServer(t *testing.T) {
 		req, _ := http.NewRequest(test.method, test.url, nil)
 		res := httptest.NewRecorder()
 		c := routing.NewContext(res, req)
-		_, err := h(context.Background(), c)
+		err := h(c)
 		if test.status == 0 {
 			assert.Nil(t, err, test.id)
 			assert.Equal(t, test.body, res.Body.String(), test.id)
@@ -145,13 +144,13 @@ func TestServer(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/css/main.css", nil)
 	res := httptest.NewRecorder()
 	c := routing.NewContext(res, req)
-	_, err := h(context.Background(), c)
+	err := h(c)
 	assert.NotNil(t, err)
 
 	req, _ = http.NewRequest("GET", "/css", nil)
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	_, err = h(context.Background(), c)
+	err = h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "css.html\n", res.Body.String())
 
@@ -168,20 +167,20 @@ func TestServer(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/css/main.css", nil)
 		res := httptest.NewRecorder()
 		c := routing.NewContext(res, req)
-		_, err := h(context.Background(), c)
+		err := h(c)
 		assert.NotNil(t, err)
 
 		req, _ = http.NewRequest("GET", "/css", nil)
 		res = httptest.NewRecorder()
 		c = routing.NewContext(res, req)
-		_, err = h(context.Background(), c)
+		err = h(c)
 		assert.Nil(t, err)
 		assert.Equal(t, "css.html\n", res.Body.String())
 
 		req, _ = http.NewRequest("GET", "/css2", nil)
 		res = httptest.NewRecorder()
 		c = routing.NewContext(res, req)
-		_, err = h(context.Background(), c)
+		err = h(c)
 		assert.Nil(t, err)
 		assert.Equal(t, "hello\n", res.Body.String())
 	}

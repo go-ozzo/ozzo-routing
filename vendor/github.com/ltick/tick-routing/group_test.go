@@ -6,19 +6,18 @@ package routing
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRouteGroupTo(t *testing.T) {
-	router := New(context.Background())
+	router := New()
 	for _, method := range Methods {
 		store := newMockStore()
 		router.stores[method] = store
 	}
-	group := newRouteGroup("/admin", router, nil, nil, nil)
+	group := newRouteGroup("/admin", router, nil)
 
 	group.Any("/users")
 	for _, method := range Methods {
@@ -35,13 +34,13 @@ func TestRouteGroupTo(t *testing.T) {
 }
 
 func TestRouteGroupMethods(t *testing.T) {
-	router := New(context.Background())
+	router := New()
 	for _, method := range Methods {
 		store := newMockStore()
 		router.stores[method] = store
 		assert.Equal(t, 0, store.count, "router.stores["+method+"].count =")
 	}
-	group := newRouteGroup("/admin", router, nil, nil, nil)
+	group := newRouteGroup("/admin", router, nil)
 
 	group.Get("/users")
 	assert.Equal(t, 1, router.stores["GET"].(*mockStore).count, "router.stores[GET].count =")
@@ -64,7 +63,7 @@ func TestRouteGroupMethods(t *testing.T) {
 }
 
 func TestRouteGroupGroup(t *testing.T) {
-	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil)
+	group := newRouteGroup("/admin", New(), nil)
 	g1 := group.Group("/users")
 	assert.Equal(t, "/admin/users", g1.prefix, "g1.prefix =")
 	assert.Equal(t, 0, len(g1.handlers), "len(g1.handlers) =")
@@ -73,7 +72,7 @@ func TestRouteGroupGroup(t *testing.T) {
 	assert.Equal(t, "/admin", g2.prefix, "g2.prefix =")
 	assert.Equal(t, 2, len(g2.handlers), "len(g2.handlers) =")
 
-	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{}, []Handler{newHandler("1", &buf), newHandler("2", &buf)}, []Handler{})
+	group2 := newRouteGroup("/admin", New(), []Handler{newHandler("1", &buf), newHandler("2", &buf)})
 	g3 := group2.Group("/users")
 	assert.Equal(t, "/admin/users", g3.prefix, "g3.prefix =")
 	assert.Equal(t, 2, len(g3.handlers), "len(g3.handlers) =")
@@ -84,11 +83,11 @@ func TestRouteGroupGroup(t *testing.T) {
 
 func TestRouteGroupUse(t *testing.T) {
 	var buf bytes.Buffer
-	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil)
+	group := newRouteGroup("/admin", New(), nil)
 	group.Use(newHandler("1", &buf), newHandler("2", &buf))
 	assert.Equal(t, 2, len(group.handlers), "len(group.handlers) =")
 
-	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{}, []Handler{newHandler("1", &buf), newHandler("2", &buf)}, []Handler{})
+	group2 := newRouteGroup("/admin", New(), []Handler{newHandler("1", &buf), newHandler("2", &buf)})
 	group2.Use(newHandler("3", &buf))
 	assert.Equal(t, 3, len(group2.handlers), "len(group2.handlers) =")
 }

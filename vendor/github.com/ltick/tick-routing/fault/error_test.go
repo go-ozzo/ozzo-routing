@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"context"
 
-	"github.com/ltick/tick-routing"
+	"github.com/go-ozzo/ozzo-routing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -70,6 +69,6 @@ func Test_writeError(t *testing.T) {
 	assert.Equal(t, "xyz", res.Body.String())
 }
 
-func convertError(ctx context.Context, c *routing.Context, err error) error {
+func convertError(c *routing.Context, err error) error {
 	return errors.New("123")
 }

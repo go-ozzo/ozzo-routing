@@ -9,8 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"context"
-	"github.com/ltick/tick-routing"
+	"github.com/go-ozzo/ozzo-routing"
 )
 
 // Remover returns a handler that removes the trailing slash (if any) from the requested URL.
@@ -21,8 +20,8 @@ import (
 //
 //     import (
 //         "net/http"
-//         "github.com/ltick/tick-routing"
-//         "github.com/ltick/tick-routing/slash"
+//         "github.com/go-ozzo/ozzo-routing"
+//         "github.com/go-ozzo/ozzo-routing/slash"
 //     )
 //
 //     r := routing.New()
@@ -31,21 +30,14 @@ import (
 // Note that Remover relies on HTTP redirection to remove the trailing slashes.
 // If you do not want redirection, please set `Router.IgnoreTrailingSlash` to be true without using Remover.
 func Remover(status int) routing.Handler {
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(c *routing.Context) error {
 		if c.Request.URL.Path != "/" && strings.HasSuffix(c.Request.URL.Path, "/") {
 			if c.Request.Method != "GET" {
 				status = http.StatusTemporaryRedirect
 			}
-			urlStr := strings.TrimRight(c.Request.URL.Path, "/")
-			if c.Request.URL.RawQuery != "" {
-				urlStr = urlStr + "?" + c.Request.URL.RawQuery
-			}
-			if c.Request.URL.Fragment != "" {
-				urlStr = urlStr + "#" + c.Request.URL.Fragment
-			}
-			http.Redirect(c.Response, c.Request, urlStr, status)
+			http.Redirect(c.Response, c.Request, strings.TrimRight(c.Request.URL.Path, "/"), status)
 			c.Abort()
 		}
-		return ctx, nil
+		return nil
 	}
 }
