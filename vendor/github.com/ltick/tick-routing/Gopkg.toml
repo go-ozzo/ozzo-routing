@@ -30,8 +30,8 @@
   name = "github.com/golang/gddo"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/ltick/tick-routing"
-  version = "2.1.2"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
