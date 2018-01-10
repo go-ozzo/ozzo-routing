@@ -11,7 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"context"
+	"github.com/ltick/tick-routing"
 )
 
 // LogFunc logs a message using the given format and optional arguments.
@@ -24,7 +25,7 @@ type LogFunc func(format string, a ...interface{})
 // through this middleware and does whatever log writing it wants with that
 // information.
 // LogWriterFunc should be thread safe.
-type LogWriterFunc func(req *http.Request, res *LogResponseWriter, elapsed float64)
+type LogWriterFunc func(ctx context.Context, c *routing.Context, res *LogResponseWriter, elapsed float64)
 
 // CustomLogger returns a handler that calls the LogWriterFunc passed to it for every request.
 // The LogWriterFunc is provided with the http.Request and LogResponseWriter objects for the
@@ -33,8 +34,8 @@ type LogWriterFunc func(req *http.Request, res *LogResponseWriter, elapsed float
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/access"
+//         "github.com/ltick/tick-routing"
+//         "github.com/ltick/tick-routing/access"
 //         "net/http"
 //     )
 //
@@ -44,21 +45,19 @@ type LogWriterFunc func(req *http.Request, res *LogResponseWriter, elapsed float
 //     r := routing.New()
 //     r.Use(access.CustomLogger(myCustomLogger))
 func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
 		startTime := time.Now()
 
-		req := c.Request
 		rw := &LogResponseWriter{c.Response, http.StatusOK, 0}
 		c.Response = rw
 
 		err := c.Next()
 
 		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
-		loggerFunc(req, rw, elapsed)
+		loggerFunc(ctx, c, rw, elapsed)
 
-		return err
+		return ctx, err
 	}
-
 }
 
 // Logger returns a handler that logs a message for every request.
@@ -67,18 +66,17 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/access"
+//         "github.com/ltick/tick-routing"
+//         "github.com/ltick/tick-routing/access"
 //     )
 //
 //     r := routing.New()
 //     r.Use(access.Logger(log.Printf))
 func Logger(log LogFunc) routing.Handler {
-	var logger = func(req *http.Request, rw *LogResponseWriter, elapsed float64) {
-		clientIP := GetClientIP(req)
-		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.String(), req.Proto)
+	var logger = func(ctx context.Context, c *routing.Context, rw *LogResponseWriter, elapsed float64) {
+		clientIP := GetClientIP(c.Request)
+		requestLine := fmt.Sprintf("%s %s %s", c.Request.Method, c.Request.URL.String(), c.Request.Proto)
 		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
-
 	}
 	return CustomLogger(logger)
 }

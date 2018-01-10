@@ -2,10 +2,11 @@ package fault
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"runtime"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/ltick/tick-routing"
 )
 
 // PanicHandler returns a handler that recovers from panics happened in the handlers following this one.
@@ -16,15 +17,15 @@ import (
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/fault"
+//         "github.com/ltick/tick-routing"
+//         "github.com/ltick/tick-routing/fault"
 //     )
 //
 //     r := routing.New()
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func PanicHandler(logf LogFunc) routing.Handler {
-	return func(c *routing.Context) (err error) {
+	return func(parentCtx context.Context, c *routing.Context) (ctx context.Context, err error) {
 		defer func() {
 			if e := recover(); e != nil {
 				if logf != nil {
@@ -36,8 +37,7 @@ func PanicHandler(logf LogFunc) routing.Handler {
 				}
 			}
 		}()
-
-		return c.Next()
+		return parentCtx, c.Next()
 	}
 }
 

@@ -5,11 +5,12 @@
 package content
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +52,8 @@ func TestTypeNegotiator(t *testing.T) {
 	res := httptest.NewRecorder()
 	c := routing.NewContext(res, req)
 	h := TypeNegotiator()
-	assert.Nil(t, h(c))
+	_, err := h(context.Background(), c)
+	assert.Nil(t, err)
 	c.Write("xyz")
 	assert.Equal(t, "text/html; charset=UTF-8", res.Header().Get("Content-Type"))
 	assert.Equal(t, "xyz", res.Body.String())
@@ -60,7 +62,8 @@ func TestTypeNegotiator(t *testing.T) {
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
 	h = TypeNegotiator(JSON, XML)
-	assert.Nil(t, h(c))
+	_, err = h(context.Background(), c)
+	assert.Nil(t, err)
 	assert.Nil(t, c.Write("xyz"))
 	assert.Equal(t, "application/xml; charset=UTF-8", res.Header().Get("Content-Type"))
 	assert.Equal(t, "<string>xyz</string>", res.Body.String())
@@ -69,7 +72,8 @@ func TestTypeNegotiator(t *testing.T) {
 	req.Header.Set("Accept", "application/pdf")
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	assert.Nil(t, h(c))
+	_, err = h(context.Background(), c)
+	assert.Nil(t, err)
 	assert.Nil(t, c.Write("xyz"))
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
 	assert.Equal(t, "\"xyz\"\n", res.Body.String())
@@ -109,7 +113,8 @@ func TestTypeNegotiatorWithVersion(t *testing.T) {
 	res := httptest.NewRecorder()
 	c := routing.NewContext(res, req)
 	h := TypeNegotiator()
-	assert.Nil(t, h(c))
+	_, err := h(context.Background(), c)
+	assert.Nil(t, err)
 	c.Write("xyz")
 	assert.Equal(t, "text/html; charset=UTF-8", res.Header().Get("Content-Type"))
 	assert.Equal(t, "xyz", res.Body.String())
@@ -121,7 +126,8 @@ func TestTypeNegotiatorWithVersion(t *testing.T) {
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
 	h = TypeNegotiator(v2JSON, v1JSON, XML)
-	assert.Nil(t, h(c))
+	_, err = h(context.Background(), c)
+	assert.Nil(t, err)
 	assert.Nil(t, c.Write("xyz"))
 	assert.Equal(t, "application/json;v=1", res.Header().Get("Content-Type"))
 	assert.Equal(t, `"xyz"`+"\n", res.Body.String())
@@ -130,7 +136,8 @@ func TestTypeNegotiatorWithVersion(t *testing.T) {
 	req.Header.Set("Accept", "application/pdf")
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	assert.Nil(t, h(c))
+	_, err = h(context.Background(), c)
+	assert.Nil(t, err)
 	assert.Nil(t, c.Write("xyz"))
 	assert.Equal(t, v2JSON, res.Header().Get("Content-Type"))
 	assert.Equal(t, "\"xyz\"\n", res.Body.String())

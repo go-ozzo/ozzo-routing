@@ -4,21 +4,27 @@
 
 package routing
 
-import "strings"
+import (
+	"strings"
+)
 
 // RouteGroup represents a group of routes that share the same path prefix.
 type RouteGroup struct {
-	prefix   string
-	router   *Router
-	handlers []Handler
+	prefix            string
+	router            *Router
+	anteriorHandlers  []Handler
+	handlers          []Handler
+	posteriorHandlers []Handler
 }
 
 // newRouteGroup creates a new RouteGroup with the given path prefix, router, and handlers.
-func newRouteGroup(prefix string, router *Router, handlers []Handler) *RouteGroup {
+func newRouteGroup(prefix string, router *Router, anteriorHandlers []Handler, handlers []Handler, posteriorHandlers []Handler) *RouteGroup {
 	return &RouteGroup{
-		prefix:   prefix,
-		router:   router,
-		handlers: handlers,
+		prefix:            prefix,
+		router:            router,
+		anteriorHandlers:  anteriorHandlers,
+		handlers:          handlers,
+		posteriorHandlers: posteriorHandlers,
 	}
 }
 
@@ -96,7 +102,7 @@ func (rg *RouteGroup) Group(prefix string, handlers ...Handler) *RouteGroup {
 		handlers = make([]Handler, len(rg.handlers))
 		copy(handlers, rg.handlers)
 	}
-	return newRouteGroup(rg.prefix+prefix, rg.router, handlers)
+	return newRouteGroup(rg.prefix+prefix, rg.router, rg.anteriorHandlers, handlers, rg.posteriorHandlers)
 }
 
 // Use registers one or multiple handlers to the current route group.
@@ -105,9 +111,25 @@ func (rg *RouteGroup) Use(handlers ...Handler) {
 	rg.handlers = append(rg.handlers, handlers...)
 }
 
+func (rg *RouteGroup) PrependAnterior(handlers ...Handler) {
+	rg.anteriorHandlers = append(rg.anteriorHandlers, handlers...)
+}
+
+func (rg *RouteGroup) AppendAnterior(handlers ...Handler) {
+	rg.anteriorHandlers = append(rg.anteriorHandlers, handlers...)
+}
+
+func (rg *RouteGroup) PrependPosterior(handlers ...Handler) {
+	rg.posteriorHandlers = append(rg.posteriorHandlers, handlers...)
+}
+
+func (rg *RouteGroup) AppendPosterior(handlers ...Handler) {
+	rg.posteriorHandlers = append(rg.posteriorHandlers, handlers...)
+}
+
 func (rg *RouteGroup) add(method, path string, handlers []Handler) *Route {
 	r := rg.newRoute(method, path)
-	rg.router.addRoute(r, combineHandlers(rg.handlers, handlers))
+	rg.router.addRoute(r, combineHandlers(combineHandlers(rg.anteriorHandlers, combineHandlers(rg.handlers, handlers)), rg.posteriorHandlers))
 	return r
 }
 

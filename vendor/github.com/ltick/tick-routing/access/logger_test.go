@@ -6,22 +6,23 @@ package access
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCustomLogger(t *testing.T) {
 	var buf bytes.Buffer
-	var customFunc = func(req *http.Request, rw *LogResponseWriter, elapsed float64) {
+	var customFunc = func(ctx context.Context, c *routing.Context, rw *LogResponseWriter, elapsed float64) {
 		var logWriter = getLogger(&buf)
-		clientIP := GetClientIP(req)
-		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.String(), req.Proto)
+		clientIP := GetClientIP(c.Request)
+		requestLine := fmt.Sprintf("%s %s %s", c.Request.Method, c.Request.URL.String(), c.Request.Proto)
 		logWriter(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
 	}
 	h := CustomLogger(customFunc)
@@ -78,6 +79,6 @@ func getLogger(buf *bytes.Buffer) LogFunc {
 	}
 }
 
-func handler1(c *routing.Context) error {
-	return errors.New("abc")
+func handler1(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return ctx, errors.New("abc")
 }

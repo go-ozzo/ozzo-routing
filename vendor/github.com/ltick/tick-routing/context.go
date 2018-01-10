@@ -5,6 +5,7 @@
 package routing
 
 import (
+	"context"
 	"net/http"
 )
 
@@ -19,12 +20,17 @@ type Context struct {
 	index    int                    // the index of the currently executing handler in handlers
 	handlers []Handler              // the handlers associated with the current route
 	writer   DataWriter
+
+	Ctx        context.Context
+	CancelFunc context.CancelFunc
 }
 
 // NewContext creates a new Context object with the given response, request, and the handlers.
 // This method is primarily provided for writing unit tests for handlers.
 func NewContext(res http.ResponseWriter, req *http.Request, handlers ...Handler) *Context {
-	c := &Context{handlers: handlers}
+	c := &Context{
+		handlers: handlers,
+	}
 	c.init(res, req)
 	return c
 }
@@ -120,12 +126,39 @@ func (c *Context) PostForm(key string, defaultValue ...string) string {
 // If any of these handlers returns an error, Next will return the error and skip the following handlers.
 // Next is normally used when a handler needs to do some postprocessing after the rest of the handlers
 // are executed.
-func (c *Context) Next() error {
+func (c *Context) Next() (err error) {
+	if c.CancelFunc != nil {
+		defer c.CancelFunc()
+	}
 	c.index++
 	for n := len(c.handlers); c.index < n; c.index++ {
-		if err := c.handlers[c.index](c); err != nil {
-			return err
-		}
+        if c.Ctx, err = c.handlers[c.index](c.Ctx, c); err != nil {
+            return err
+        }
+        if c.Ctx != nil {
+            select {
+            case <-c.Ctx.Done():
+                switch c.Ctx.Err() {
+                case context.DeadlineExceeded:
+                    timeoutIndex := 0
+                    for n := len(c.router.TimeoutHandlers); timeoutIndex < n; timeoutIndex++ {
+                        if c.Ctx, err = c.router.TimeoutHandlers[timeoutIndex](c.Ctx, c); err != nil {
+                            if httpError, ok := err.(HTTPError); ok {
+                                return NewHTTPError(httpError.StatusCode(), httpError.Error())
+                            } else {
+                                return NewHTTPError(http.StatusInternalServerError, err.Error())
+                            }
+                        }
+                    }
+                case context.Canceled:
+                    cancelIndex := 0
+                    for n := len(c.router.CancelHandlers); cancelIndex < n; cancelIndex++ {
+                        c.router.CancelHandlers[cancelIndex](c.Ctx, c)
+                    }
+                }
+            default:
+            }
+        }
 	}
 	return nil
 }
@@ -184,6 +217,11 @@ func (c *Context) init(response http.ResponseWriter, request *http.Request) {
 	c.data = nil
 	c.index = -1
 	c.writer = DefaultDataWriter
+	if c.router != nil && c.router.Context != nil {
+		c.Ctx = c.router.Context
+	} else {
+		c.Ctx = context.Background()
+	}
 }
 
 func getContentType(req *http.Request) string {

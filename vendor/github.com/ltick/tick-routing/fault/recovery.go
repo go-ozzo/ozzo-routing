@@ -5,7 +5,10 @@
 // Package fault provides a panic and error handler for the ozzo routing package.
 package fault
 
-import "github.com/go-ozzo/ozzo-routing"
+import (
+	"context"
+	"github.com/ltick/tick-routing"
+)
 
 type (
 	// LogFunc logs a message using the given format and optional arguments.
@@ -14,7 +17,7 @@ type (
 	LogFunc func(format string, a ...interface{})
 
 	// ConvertErrorFunc converts an error into a different format so that it is more appropriate for rendering purpose.
-	ConvertErrorFunc func(*routing.Context, error) error
+	ConvertErrorFunc func(context.Context, *routing.Context, error) error
 )
 
 // Recovery returns a handler that handles both panics and errors occurred while servicing an HTTP request.
@@ -32,25 +35,26 @@ type (
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/fault"
+//         "github.com/ltick/tick-routing"
+//         "github.com/ltick/tick-routing/fault"
 //     )
 //
 //     r := routing.New()
 //     r.Use(fault.Recovery(log.Printf))
 func Recovery(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 	handlePanic := PanicHandler(logf)
-	return func(c *routing.Context) error {
-		if err := handlePanic(c); err != nil {
-			if logf != nil {
-				logf("%v", err)
-			}
+	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+		ctx, err := handlePanic(ctx, c)
+		if err != nil {
+			//if logf != nil {
+			//    logf("%v", err)
+			//}
 			if len(errorf) > 0 {
-				err = errorf[0](c, err)
+				err = errorf[0](ctx, c, err)
 			}
 			writeError(c, err)
 			c.Abort()
 		}
-		return nil
+		return ctx, nil
 	}
 }

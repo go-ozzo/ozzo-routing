@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"context"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestContextParam(t *testing.T) {
@@ -53,7 +55,7 @@ func TestContextInit(t *testing.T) {
 }
 
 func TestContextURL(t *testing.T) {
-	router := New()
+	router := New(context.Background())
 	router.Get("/users/<id:\\d+>/<action>/*").Name("users")
 	c := &Context{router: router}
 	assert.Equal(t, "/users/123/address/", c.URL("users", "id", 123, "action", "address"))
@@ -104,7 +106,6 @@ func TestContextNextAbort(t *testing.T) {
 	)
 	assert.Nil(t, c.Next())
 	assert.Equal(t, "<a><b><c></c></b></a>", res.Body.String())
-
 	c, res = testNewContext(
 		testNextHandler("a"),
 		testAbortHandler("b"),
@@ -112,7 +113,6 @@ func TestContextNextAbort(t *testing.T) {
 	)
 	assert.Nil(t, c.Next())
 	assert.Equal(t, "<a><b/></a>", res.Body.String())
-
 	c, res = testNewContext(
 		testNextHandler("a"),
 		testErrorHandler("b"),
@@ -135,32 +135,39 @@ func testNewContext(handlers ...Handler) (*Context, *httptest.ResponseRecorder) 
 }
 
 func testNextHandler(tag string) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		fmt.Fprintf(c.Response, "<%v>", tag)
 		err := c.Next()
 		fmt.Fprintf(c.Response, "</%v>", tag)
-		return err
+		return ctx, err
 	}
 }
 
 func testAbortHandler(tag string) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
 		c.Abort()
-		return nil
+		return ctx, nil
 	}
 }
 
 func testErrorHandler(tag string) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
-		return errors.New("error:" + tag)
+		return ctx, errors.New("error:" + tag)
+	}
+}
+
+func testTimeoutHandler() Handler {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
+		time.Sleep(2 * time.Second)
+		return ctx, nil
 	}
 }
 
 func testNormalHandler(tag string) Handler {
-	return func(c *Context) error {
+	return func(ctx context.Context, c *Context) (context.Context, error) {
 		fmt.Fprintf(c.Response, "<%v/>", tag)
-		return nil
+		return ctx, nil
 	}
 }

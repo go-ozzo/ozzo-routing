@@ -8,7 +8,8 @@ package fault
 import (
 	"net/http"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"context"
+	"github.com/ltick/tick-routing"
 )
 
 // ErrorHandler returns a handler that handles errors returned by the handlers following this one.
@@ -23,32 +24,29 @@ import (
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/fault"
+//         "github.com/ltick/tick-routing"
+//         "github.com/ltick/tick-routing/fault"
 //     )
 //
 //     r := routing.New()
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func ErrorHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
-	return func(c *routing.Context) error {
+	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
 		err := c.Next()
 		if err == nil {
-			return nil
+			return ctx, nil
 		}
-
 		if logf != nil {
 			logf("%v", err)
 		}
-
 		if len(errorf) > 0 {
-			err = errorf[0](c, err)
+			err = errorf[0](ctx, c, err)
 		}
-
 		writeError(c, err)
 		c.Abort()
 
-		return nil
+		return ctx, nil
 	}
 }
 

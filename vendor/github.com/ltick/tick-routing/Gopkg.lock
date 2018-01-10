@@ -14,16 +14,22 @@
   version = "v3.1.0"
 
 [[projects]]
+  name = "github.com/go-ozzo/ozzo-routing"
+  packages = ["."]
+  revision = "bd886380e6a7fe8d842c68b595fadae2dcc3bee8"
+  version = "v2.1.3"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/gddo"
   packages = ["httputil/header"]
   revision = "7940e40f716f12d1c5781ef37de0420157308aa7"
 
 [[projects]]
-  branch = "master"
   name = "github.com/ltick/tick-routing"
   packages = [".","access","content","fault","file","slash"]
-  revision = "6b5e74e0eb54040440cf799c28ca115689289ecb"
+  revision = "4d63a23d3f8421c05db3999d8b0b765ed6a4bde4"
+  version = "v2.1.2"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -40,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "35e6698070a1e2058f23e871af27cd1431c54cb512ba4198da2bc0c733eb50c6"
+  inputs-digest = "1fd988ebc144d61c78666c4ec353ca21a3d0f954ffc91310e80b94bd2bd98800"
   solver-name = "gps-cdcl"
   solver-version = 1
