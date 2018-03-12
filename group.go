@@ -129,7 +129,7 @@ func (rg *RouteGroup) AppendPosterior(handlers ...Handler) {
 
 func (rg *RouteGroup) add(method, path string, handlers []Handler) *Route {
 	r := rg.newRoute(method, path)
-	rg.router.addRoute(r, combineHandlers(combineHandlers(rg.anteriorHandlers, combineHandlers(rg.handlers, handlers)), rg.posteriorHandlers))
+	rg.router.addRoute(r, combineHandlers(rg.handlers, combineHandlers(combineHandlers(rg.anteriorHandlers, handlers), rg.posteriorHandlers)))
 	return r
 }
 
