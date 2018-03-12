@@ -18,7 +18,7 @@ func TestRouteGroupTo(t *testing.T) {
 		store := newMockStore()
 		router.stores[method] = store
 	}
-	group := newRouteGroup("/admin", router, nil, nil, nil)
+	group := newRouteGroup("/admin", router, nil, nil, nil, nil)
 
 	group.Any("/users")
 	for _, method := range Methods {
@@ -41,7 +41,7 @@ func TestRouteGroupMethods(t *testing.T) {
 		router.stores[method] = store
 		assert.Equal(t, 0, store.count, "router.stores["+method+"].count =")
 	}
-	group := newRouteGroup("/admin", router, nil, nil, nil)
+	group := newRouteGroup("/admin", router, nil, nil, nil, nil)
 
 	group.Get("/users")
 	assert.Equal(t, 1, router.stores["GET"].(*mockStore).count, "router.stores[GET].count =")
@@ -64,31 +64,47 @@ func TestRouteGroupMethods(t *testing.T) {
 }
 
 func TestRouteGroupGroup(t *testing.T) {
-	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil)
-	g1 := group.Group("/users")
+	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil, nil)
+	g1 := group.Group("/users", nil, nil)
 	assert.Equal(t, "/admin/users", g1.prefix, "g1.prefix =")
-	assert.Equal(t, 0, len(g1.handlers), "len(g1.handlers) =")
+	assert.Equal(t, 0, len(g1.groupStartupHandlers), "len(g1.groupStartupHandlers) =")
+	assert.Equal(t, 0, len(g1.groupShutdownHandlers), "len(g1.groupShutdownHandlers) =")
 	var buf bytes.Buffer
-	g2 := group.Group("", newHandler("1", &buf), newHandler("2", &buf))
+	g2 := group.Group("", []Handler{newHandler("1", &buf), newHandler("2", &buf)}, nil)
 	assert.Equal(t, "/admin", g2.prefix, "g2.prefix =")
-	assert.Equal(t, 2, len(g2.handlers), "len(g2.handlers) =")
+	assert.Equal(t, 2, len(g2.groupStartupHandlers), "len(g2.groupStartupHandlers) =")
 
-	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{}, []Handler{newHandler("1", &buf), newHandler("2", &buf)}, []Handler{})
-	g3 := group2.Group("/users")
-	assert.Equal(t, "/admin/users", g3.prefix, "g3.prefix =")
-	assert.Equal(t, 2, len(g3.handlers), "len(g3.handlers) =")
-	g4 := group2.Group("", newHandler("3", &buf))
-	assert.Equal(t, "/admin", g4.prefix, "g4.prefix =")
-	assert.Equal(t, 1, len(g4.handlers), "len(g4.handlers) =")
+	g3 := group.Group("", nil, []Handler{newHandler("1", &buf), newHandler("2", &buf)})
+	assert.Equal(t, "/admin", g3.prefix, "g2.prefix =")
+	assert.Equal(t, 2, len(g3.groupShutdownHandlers), "len(g2.groupShutdownHandlers) =")
+
+	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{newHandler("1", &buf), newHandler("2", &buf)}, []Handler{}, []Handler{}, []Handler{})
+	g4 := group2.Group("/users", nil, nil)
+	assert.Equal(t, "/admin/users", g4.prefix, "g4.prefix =")
+	assert.Equal(t, 2, len(g4.groupStartupHandlers), "len(g4.groupStartupHandlers) =")
+	g5 := group2.Group("", []Handler{newHandler("3", &buf)}, nil)
+	assert.Equal(t, "/admin", g5.prefix, "g5.prefix =")
+	assert.Equal(t, 1, len(g5.groupStartupHandlers), "len(g5.groupStartupHandlers) =")
 }
 
-func TestRouteGroupUse(t *testing.T) {
+func TestRouteGroupStartup(t *testing.T) {
 	var buf bytes.Buffer
-	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil)
-	group.Use(newHandler("1", &buf), newHandler("2", &buf))
-	assert.Equal(t, 2, len(group.handlers), "len(group.handlers) =")
+	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil, nil)
+	group.Startup(newHandler("1", &buf), newHandler("2", &buf))
+	assert.Equal(t, 2, len(group.groupStartupHandlers), "len(group.groupStartupHandlers) =")
 
-	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{}, []Handler{newHandler("1", &buf), newHandler("2", &buf)}, []Handler{})
-	group2.Use(newHandler("3", &buf))
-	assert.Equal(t, 3, len(group2.handlers), "len(group2.handlers) =")
+	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{newHandler("1", &buf), newHandler("2", &buf)}, []Handler{}, []Handler{}, []Handler{})
+	group2.Startup(newHandler("3", &buf))
+	assert.Equal(t, 3, len(group2.groupStartupHandlers), "len(group2.groupStartupHandlers) =")
+}
+
+func TestRouteGroupShutdown(t *testing.T) {
+	var buf bytes.Buffer
+	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil, nil)
+	group.Shutdown(newHandler("1", &buf), newHandler("2", &buf))
+	assert.Equal(t, 2, len(group.groupShutdownHandlers), "len(group.groupShutdownHandlers) =")
+
+	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{}, []Handler{}, []Handler{}, []Handler{newHandler("1", &buf), newHandler("2", &buf)})
+	group2.Shutdown(newHandler("3", &buf))
+	assert.Equal(t, 3, len(group2.groupShutdownHandlers), "len(group2.groupShutdownHandlers) =")
 }

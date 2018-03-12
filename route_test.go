@@ -31,7 +31,7 @@ func (s *mockStore) Add(key string, data interface{}) int {
 
 func TestRouteNew(t *testing.T) {
 	router := New(context.Background())
-	group := newRouteGroup("/admin", router, nil, nil, nil)
+	group := newRouteGroup("/admin", router, nil, nil, nil, nil)
 
 	r1 := group.newRoute("GET", "/users").Get()
 	assert.Equal(t, "", r1.name, "route.name =")
@@ -47,7 +47,7 @@ func TestRouteNew(t *testing.T) {
 
 func TestRouteName(t *testing.T) {
 	router := New(context.Background())
-	group := newRouteGroup("/admin", router, nil, nil, nil)
+	group := newRouteGroup("/admin", router, nil, nil, nil, nil)
 
 	r1 := group.newRoute("GET", "/users")
 	assert.Equal(t, "", r1.name, "route.name =")
@@ -59,7 +59,7 @@ func TestRouteName(t *testing.T) {
 
 func TestRouteURL(t *testing.T) {
 	router := New(context.Background())
-	group := newRouteGroup("/admin", router, nil, nil, nil)
+	group := newRouteGroup("/admin", router, nil, nil, nil, nil)
 	r := group.newRoute("GET", "/users/<id:\\d+>/<action>/*")
 	assert.Equal(t, "/admin/users/123/address/", r.URL("id", 123, "action", "address"))
 	assert.Equal(t, "/admin/users/123/<action>/", r.URL("id", 123))
@@ -84,17 +84,17 @@ func TestRouteAdd(t *testing.T) {
 
 	var buf bytes.Buffer
 
-	group := newRouteGroup("/admin", router, []Handler{}, []Handler{newHandler("1.", &buf), newHandler("2.", &buf)}, []Handler{})
+	group := newRouteGroup("/admin", router, []Handler{newHandler("1.", &buf), newHandler("2.", &buf)}, []Handler{}, []Handler{}, []Handler{})
 	group.newRoute("GET", "/users").Get(newHandler("3.", &buf), newHandler("4.", &buf))
 	assert.Equal(t, "1.2.3.4.", buf.String(), "buf@1 =")
 
 	buf.Reset()
-	group = newRouteGroup("/admin", router, []Handler{}, []Handler{}, []Handler{})
+	group = newRouteGroup("/admin", router, []Handler{}, []Handler{}, []Handler{}, []Handler{})
 	group.newRoute("GET", "/users").Get(newHandler("3.", &buf), newHandler("4.", &buf))
 	assert.Equal(t, "3.4.", buf.String(), "buf@2 =")
 
 	buf.Reset()
-	group = newRouteGroup("/admin", router, []Handler{}, []Handler{newHandler("1.", &buf), newHandler("2.", &buf)}, []Handler{})
+	group = newRouteGroup("/admin", router, []Handler{newHandler("1.", &buf), newHandler("2.", &buf)}, []Handler{}, []Handler{}, []Handler{})
 	group.newRoute("GET", "/users").Get()
 	assert.Equal(t, "1.2.", buf.String(), "buf@3 =")
 }
@@ -135,7 +135,7 @@ func TestRouteMethods(t *testing.T) {
 		router.stores[method] = store
 		assert.Equal(t, 0, store.count, "router.stores["+method+"].count =")
 	}
-	group := newRouteGroup("/admin", router, nil, nil, nil)
+	group := newRouteGroup("/admin", router, nil, nil, nil, nil)
 
 	group.newRoute("GET", "/users").Get()
 	assert.Equal(t, 1, router.stores["GET"].(*mockStore).count, "router.stores[GET].count =")
@@ -195,7 +195,7 @@ func TestRouteString(t *testing.T) {
 	router := New(context.Background())
 	router.Get("/users/<id>")
 	router.To("GET,POST", "/users/<id>/profile")
-	group := router.Group("/admin")
+	group := router.Group("/admin", nil, nil)
 	group.Post("/users")
 	s := ""
 	for _, route := range router.Routes() {
