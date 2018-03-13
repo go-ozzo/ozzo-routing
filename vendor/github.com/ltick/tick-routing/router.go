@@ -114,20 +114,20 @@ func (r *Router) Use(handlers ...Handler) {
 	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
 }
 
-func (r *Router) PrependAnterior(handlers ...Handler) {
-	r.RouteGroup.PrependAnterior(handlers...)
+func (r *Router) PrependAnteriorHandler(handlers ...Handler) {
+	r.RouteGroup.PrependAnteriorHandler(handlers...)
 }
 
-func (r *Router) AppendAnterior(handlers ...Handler) {
-	r.RouteGroup.AppendAnterior(handlers...)
+func (r *Router) AppendAnteriorHandler(handlers ...Handler) {
+	r.RouteGroup.AppendAnteriorHandler(handlers...)
 }
 
-func (r *Router) PrependPosterior(handlers ...Handler) {
-	r.RouteGroup.PrependPosterior(handlers...)
+func (r *Router) PrependPosteriorHandler(handlers ...Handler) {
+	r.RouteGroup.PrependPosteriorHandler(handlers...)
 }
 
-func (r *Router) AppendPosterior(handlers ...Handler) {
-	r.RouteGroup.AppendPosterior(handlers...)
+func (r *Router) AppendPosteriorHandler(handlers ...Handler) {
+	r.RouteGroup.AppendPosteriorHandler(handlers...)
 }
 
 // NotFound specifies the handlers that should be invoked when the router cannot find any route matching a request.

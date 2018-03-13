@@ -87,24 +87,24 @@ func TestRouteGroupGroup(t *testing.T) {
 	assert.Equal(t, 1, len(g5.groupStartupHandlers), "len(g5.groupStartupHandlers) =")
 }
 
-func TestRouteGroupStartup(t *testing.T) {
+func TestRouteGroupAddStartupHandler(t *testing.T) {
 	var buf bytes.Buffer
 	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil, nil)
-	group.Startup(newHandler("1", &buf), newHandler("2", &buf))
+	group.AddStartupHandler(newHandler("1", &buf), newHandler("2", &buf))
 	assert.Equal(t, 2, len(group.groupStartupHandlers), "len(group.groupStartupHandlers) =")
 
 	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{newHandler("1", &buf), newHandler("2", &buf)}, []Handler{}, []Handler{}, []Handler{})
-	group2.Startup(newHandler("3", &buf))
+	group2.AddStartupHandler(newHandler("3", &buf))
 	assert.Equal(t, 3, len(group2.groupStartupHandlers), "len(group2.groupStartupHandlers) =")
 }
 
-func TestRouteGroupShutdown(t *testing.T) {
+func TestRouteGroupAddShutdownHandler(t *testing.T) {
 	var buf bytes.Buffer
 	group := newRouteGroup("/admin", New(context.Background()), nil, nil, nil, nil)
-	group.Shutdown(newHandler("1", &buf), newHandler("2", &buf))
+	group.AddShutdownHandler(newHandler("1", &buf), newHandler("2", &buf))
 	assert.Equal(t, 2, len(group.groupShutdownHandlers), "len(group.groupShutdownHandlers) =")
 
 	group2 := newRouteGroup("/admin", New(context.Background()), []Handler{}, []Handler{}, []Handler{}, []Handler{newHandler("1", &buf), newHandler("2", &buf)})
-	group2.Shutdown(newHandler("3", &buf))
+	group2.AddShutdownHandler(newHandler("3", &buf))
 	assert.Equal(t, 3, len(group2.groupShutdownHandlers), "len(group2.groupShutdownHandlers) =")
 }

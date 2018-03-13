@@ -121,27 +121,27 @@ func (rg *RouteGroup) Group(prefix string, groupStartupHandlers []Handler, group
 
 // Startup registers one or multiple handlers to the current route group.
 // These handlers will be shared by all routes belong to this group and its subgroups.
-func (rg *RouteGroup) Startup(handlers ...Handler) {
+func (rg *RouteGroup) AddStartupHandler(handlers ...Handler) {
 	rg.groupStartupHandlers = append(rg.groupStartupHandlers, handlers...)
 }
 
-func (rg *RouteGroup) Shutdown(handlers ...Handler) {
+func (rg *RouteGroup) AddShutdownHandler(handlers ...Handler) {
 	rg.groupShutdownHandlers = append(rg.groupShutdownHandlers, handlers...)
 }
 
-func (rg *RouteGroup) PrependAnterior(handlers ...Handler) {
+func (rg *RouteGroup) PrependAnteriorHandler(handlers ...Handler) {
 	rg.anteriorHandlers = append(rg.anteriorHandlers, handlers...)
 }
 
-func (rg *RouteGroup) AppendAnterior(handlers ...Handler) {
+func (rg *RouteGroup) AppendAnteriorHandler(handlers ...Handler) {
 	rg.anteriorHandlers = append(rg.anteriorHandlers, handlers...)
 }
 
-func (rg *RouteGroup) PrependPosterior(handlers ...Handler) {
+func (rg *RouteGroup) PrependPosteriorHandler(handlers ...Handler) {
 	rg.posteriorHandlers = append(rg.posteriorHandlers, handlers...)
 }
 
-func (rg *RouteGroup) AppendPosterior(handlers ...Handler) {
+func (rg *RouteGroup) AppendPosteriorHandler(handlers ...Handler) {
 	rg.posteriorHandlers = append(rg.posteriorHandlers, handlers...)
 }
 

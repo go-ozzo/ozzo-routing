@@ -109,29 +109,29 @@ func (r *Router) Routes() []*Route {
 }
 
 // Startup prepends the specified handlers to the router and shares them with all routes.
-func (r *Router) Startup(handlers ...Handler) {
-	r.RouteGroup.Startup(handlers...)
+func (r *Router) AddStartupHandler(handlers ...Handler) {
+	r.RouteGroup.AddStartupHandler(handlers...)
 	r.notFoundHandlers = combineHandlers(r.groupStartupHandlers, r.notFound)
 }
 // Shutdown appends the specified handlers to the router and shares them with all routes.
-func (r *Router) Shutdown(handlers ...Handler) {
-	r.RouteGroup.Shutdown(handlers...)
+func (r *Router) AddShutdownHandler(handlers ...Handler) {
+	r.RouteGroup.AddShutdownHandler(handlers...)
 }
 
-func (r *Router) PrependAnterior(handlers ...Handler) {
-	r.RouteGroup.PrependAnterior(handlers...)
+func (r *Router) PrependAnteriorHandler(handlers ...Handler) {
+	r.RouteGroup.PrependAnteriorHandler(handlers...)
 }
 
-func (r *Router) AppendAnterior(handlers ...Handler) {
-	r.RouteGroup.AppendAnterior(handlers...)
+func (r *Router) AppendAnteriorHandler(handlers ...Handler) {
+	r.RouteGroup.AppendAnteriorHandler(handlers...)
 }
 
-func (r *Router) PrependPosterior(handlers ...Handler) {
-	r.RouteGroup.PrependPosterior(handlers...)
+func (r *Router) PrependPosteriorHandler(handlers ...Handler) {
+	r.RouteGroup.PrependPosteriorHandler(handlers...)
 }
 
-func (r *Router) AppendPosterior(handlers ...Handler) {
-	r.RouteGroup.AppendPosterior(handlers...)
+func (r *Router) AppendPosteriorHandler(handlers ...Handler) {
+	r.RouteGroup.AppendPosteriorHandler(handlers...)
 }
 
 // NotFound specifies the handlers that should be invoked when the router cannot find any route matching a request.

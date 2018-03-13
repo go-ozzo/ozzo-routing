@@ -111,19 +111,19 @@ func (rg *RouteGroup) Use(handlers ...Handler) {
 	rg.handlers = append(rg.handlers, handlers...)
 }
 
-func (rg *RouteGroup) PrependAnterior(handlers ...Handler) {
+func (rg *RouteGroup) PrependAnteriorHandler(handlers ...Handler) {
 	rg.anteriorHandlers = append(rg.anteriorHandlers, handlers...)
 }
 
-func (rg *RouteGroup) AppendAnterior(handlers ...Handler) {
+func (rg *RouteGroup) AppendAnteriorHandler(handlers ...Handler) {
 	rg.anteriorHandlers = append(rg.anteriorHandlers, handlers...)
 }
 
-func (rg *RouteGroup) PrependPosterior(handlers ...Handler) {
+func (rg *RouteGroup) PrependPosteriorHandler(handlers ...Handler) {
 	rg.posteriorHandlers = append(rg.posteriorHandlers, handlers...)
 }
 
-func (rg *RouteGroup) AppendPosterior(handlers ...Handler) {
+func (rg *RouteGroup) AppendPosteriorHandler(handlers ...Handler) {
 	rg.posteriorHandlers = append(rg.posteriorHandlers, handlers...)
 }
 
