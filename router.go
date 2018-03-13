@@ -109,13 +109,13 @@ func (r *Router) Routes() []*Route {
 }
 
 // Startup prepends the specified handlers to the router and shares them with all routes.
-func (r *Router) AddStartupHandler(handlers ...Handler) {
-	r.RouteGroup.AddStartupHandler(handlers...)
+func (r *Router) AppendStartupHandler(handlers ...Handler) {
+	r.RouteGroup.AppendStartupHandler(handlers...)
 	r.notFoundHandlers = combineHandlers(r.groupStartupHandlers, r.notFound)
 }
 // Shutdown appends the specified handlers to the router and shares them with all routes.
-func (r *Router) AddShutdownHandler(handlers ...Handler) {
-	r.RouteGroup.AddShutdownHandler(handlers...)
+func (r *Router) AppendShutdownHandler(handlers ...Handler) {
+	r.RouteGroup.AppendShutdownHandler(handlers...)
 }
 
 func (r *Router) PrependAnteriorHandler(handlers ...Handler) {

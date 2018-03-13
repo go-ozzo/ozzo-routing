@@ -23,8 +23,8 @@ func Example() {
 	)
 
 	// serve RESTful APIs
-	api := router.Group("/api")
-	api.Use(
+	api := router.Group("/api", nil,nil)
+	api.AddStartupHandler(
 		// these handlers are shared by the routes in the api group only
 		content.TypeNegotiator(content.JSON, content.XML),
 	)
