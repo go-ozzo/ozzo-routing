@@ -56,7 +56,7 @@ func TestRouterNotFound(t *testing.T) {
 func TestRouterUse(t *testing.T) {
 	r := New(context.Background())
 	assert.Equal(t, 2, len(r.notFoundHandlers))
-	r.Use(NotFoundHandler)
+	r.AddStartupHandler(NotFoundHandler)
 	assert.Equal(t, 3, len(r.notFoundHandlers))
 }
 

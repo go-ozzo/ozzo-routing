@@ -66,7 +66,7 @@ func New(ctx context.Context) *Router {
 		TimeoutHandlers: []Handler{TimeoutHandler},
 		Context:         ctx,
 	}
-	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0), make([]Handler, 0), make([]Handler, 0))
+	r.RouteGroup = *newRouteGroup("", r, make([]Handler, 0), make([]Handler, 0), make([]Handler, 0), make([]Handler, 0))
 	r.NotFound(MethodNotAllowedHandler, NotFoundHandler)
 	r.pool.New = func() interface{} {
 		return &Context{
@@ -108,10 +108,14 @@ func (r *Router) Routes() []*Route {
 	return r.routes
 }
 
-// Use appends the specified handlers to the router and shares them with all routes.
-func (r *Router) Use(handlers ...Handler) {
-	r.RouteGroup.Use(handlers...)
-	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
+// Startup prepends the specified handlers to the router and shares them with all routes.
+func (r *Router) AddStartupHandler(handlers ...Handler) {
+	r.RouteGroup.AddStartupHandler(handlers...)
+	r.notFoundHandlers = combineHandlers(r.groupStartupHandlers, r.notFound)
+}
+// Shutdown appends the specified handlers to the router and shares them with all routes.
+func (r *Router) AddShutdownHandler(handlers ...Handler) {
+	r.RouteGroup.AddShutdownHandler(handlers...)
 }
 
 func (r *Router) PrependAnteriorHandler(handlers ...Handler) {
@@ -134,7 +138,7 @@ func (r *Router) AppendPosteriorHandler(handlers ...Handler) {
 // Note that the handlers registered via Use will be invoked first in this case.
 func (r *Router) NotFound(handlers ...Handler) {
 	r.notFound = handlers
-	r.notFoundHandlers = combineHandlers(r.handlers, r.notFound)
+	r.notFoundHandlers = combineHandlers(r.groupStartupHandlers, r.notFound)
 }
 
 func (r *Router) Timeout(timeoutDuration time.Duration, handlers ...Handler) {

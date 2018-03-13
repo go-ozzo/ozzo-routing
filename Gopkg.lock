@@ -10,20 +10,20 @@
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
-  revision = "dbeaa9332f19a944acb5736b4456cfcc02140e29"
-  version = "v3.1.0"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/gddo"
   packages = ["httputil/header"]
-  revision = "7940e40f716f12d1c5781ef37de0420157308aa7"
+  revision = "dcea65fd03382fd4f4df9ebdac117c6e0cde2594"
 
 [[projects]]
   branch = "master"
   name = "github.com/ltick/tick-routing"
   packages = [".","access","content","fault","file","slash"]
-  revision = "45a9618bad99afd06debc9f620b8fdf17c6ee9bc"
+  revision = "fff6cc8275ec2bdf16522cd492ae1245ace9e1cc"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -34,8 +34,8 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
-  version = "v1.2.0"
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
