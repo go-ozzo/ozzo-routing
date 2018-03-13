@@ -121,28 +121,32 @@ func (rg *RouteGroup) Group(prefix string, groupStartupHandlers []Handler, group
 
 // Startup registers one or multiple handlers to the current route group.
 // These handlers will be shared by all routes belong to this group and its subgroups.
-func (rg *RouteGroup) AddStartupHandler(handlers ...Handler) {
+func (rg *RouteGroup) AppendStartupHandler(handlers ...Handler) {
 	rg.groupStartupHandlers = append(rg.groupStartupHandlers, handlers...)
 }
-
-func (rg *RouteGroup) AddShutdownHandler(handlers ...Handler) {
-	rg.groupShutdownHandlers = append(rg.groupShutdownHandlers, handlers...)
+func (rg *RouteGroup) PrependStartupHandler(handlers ...Handler) {
+	rg.groupStartupHandlers = append(handlers, rg.groupStartupHandlers...)
 }
 
-func (rg *RouteGroup) PrependAnteriorHandler(handlers ...Handler) {
-	rg.anteriorHandlers = append(rg.anteriorHandlers, handlers...)
+func (rg *RouteGroup) AppendShutdownHandler(handlers ...Handler) {
+	rg.groupShutdownHandlers = append(rg.groupShutdownHandlers, handlers...)
+}
+func (rg *RouteGroup) PrependShutdownHandler(handlers ...Handler) {
+	rg.groupShutdownHandlers = append(handlers, rg.groupShutdownHandlers...)
 }
 
 func (rg *RouteGroup) AppendAnteriorHandler(handlers ...Handler) {
 	rg.anteriorHandlers = append(rg.anteriorHandlers, handlers...)
 }
-
-func (rg *RouteGroup) PrependPosteriorHandler(handlers ...Handler) {
-	rg.posteriorHandlers = append(rg.posteriorHandlers, handlers...)
+func (rg *RouteGroup) PrependAnteriorHandler(handlers ...Handler) {
+	rg.anteriorHandlers = append(handlers, rg.anteriorHandlers...)
 }
 
 func (rg *RouteGroup) AppendPosteriorHandler(handlers ...Handler) {
 	rg.posteriorHandlers = append(rg.posteriorHandlers, handlers...)
+}
+func (rg *RouteGroup) PrependPosteriorHandler(handlers ...Handler) {
+	rg.posteriorHandlers = append(handlers, rg.posteriorHandlers...)
 }
 
 func (rg *RouteGroup) add(method, path string, handlers []Handler) *Route {

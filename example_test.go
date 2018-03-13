@@ -15,7 +15,7 @@ import (
 func Example() {
 	router := routing.New(context.Background())
 
-	router.Use(
+	router.AppendStartupHandler(
 		// all these handlers are shared by every route
 		access.Logger(log.Printf),
 		slash.Remover(http.StatusMovedPermanently),
@@ -24,7 +24,7 @@ func Example() {
 
 	// serve RESTful APIs
 	api := router.Group("/api", nil,nil)
-	api.AddStartupHandler(
+	api.AppendStartupHandler(
 		// these handlers are shared by the routes in the api group only
 		content.TypeNegotiator(content.JSON, content.XML),
 	)
