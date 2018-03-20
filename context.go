@@ -208,6 +208,7 @@ func (c *Context) Write(data interface{}) error {
 // SetDataWriter sets the data writer that will be used by Write().
 func (c *Context) SetDataWriter(writer DataWriter) {
 	c.writer = writer
+	writer.SetHeader(c.Response)
 }
 
 // init sets the request and response of the context and resets all other properties.

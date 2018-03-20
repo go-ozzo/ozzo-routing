@@ -8,6 +8,7 @@ package routing
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -22,6 +23,7 @@ type (
 	Router struct {
 		RouteGroup
 		IgnoreTrailingSlash bool // whether to ignore trailing slashes in the end of the request URL
+		UseEscapedPath      bool // whether to use encoded URL instead of decoded URL to match routes
 		pool                sync.Pool
 		routes              []*Route
 		namedRoutes         map[string]*Route
@@ -89,8 +91,14 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		c.Ctx, c.CancelFunc = context.WithCancel(c.Ctx)
 	}
 	c.Request.WithContext(c.Ctx)
-	c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
-	// next
+	if r.UseEscapedPath {
+		c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.EscapedPath()), c.pvalues)
+		for i, v := range c.pvalues {
+			c.pvalues[i], _ = url.QueryUnescape(v)
+		}
+	} else {
+		c.handlers, c.pnames = r.find(req.Method, r.normalizeRequestPath(req.URL.Path), c.pvalues)
+	}
 	if err := c.Next(); err != nil {
 		r.handleError(c, err)
 	}
@@ -150,6 +158,17 @@ func (r *Router) Timeout(timeoutDuration time.Duration, handlers ...Handler) {
 
 func (r *Router) Cancel(handlers ...Handler) {
 	r.CancelHandlers = handlers
+}
+
+// Find determines the handlers and parameters to use for a specified method and path.
+func (r *Router) Find(method, path string) (handlers []Handler, params map[string]string) {
+	pvalues := make([]string, r.maxParams)
+	handlers, pnames := r.find(method, path, pvalues)
+	params = make(map[string]string, len(pnames))
+	for i, n := range pnames {
+		params[n] = pvalues[i]
+	}
+	return handlers, params
 }
 
 // handleError is the error handler for handling any unhandled errors.
