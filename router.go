@@ -117,47 +117,57 @@ func (r *Router) Routes() []*Route {
 }
 
 // Startup prepends the specified handlers to the router and shares them with all routes.
-func (r *Router) AppendStartupHandler(handlers ...Handler) {
+func (r *Router) AppendStartupHandler(handlers ...Handler) *Router {
 	r.RouteGroup.AppendStartupHandler(handlers...)
 	r.notFoundHandlers = combineHandlers(r.groupStartupHandlers, r.notFound)
+	return r
 }
+
 // Shutdown appends the specified handlers to the router and shares them with all routes.
-func (r *Router) AppendShutdownHandler(handlers ...Handler) {
+func (r *Router) AppendShutdownHandler(handlers ...Handler) *Router {
 	r.RouteGroup.AppendShutdownHandler(handlers...)
+	return r
 }
 
-func (r *Router) PrependAnteriorHandler(handlers ...Handler) {
+func (r *Router) PrependAnteriorHandler(handlers ...Handler) *Router {
 	r.RouteGroup.PrependAnteriorHandler(handlers...)
+	return r
 }
 
-func (r *Router) AppendAnteriorHandler(handlers ...Handler) {
+func (r *Router) AppendAnteriorHandler(handlers ...Handler) *Router {
 	r.RouteGroup.AppendAnteriorHandler(handlers...)
+	return r
 }
 
-func (r *Router) PrependPosteriorHandler(handlers ...Handler) {
+func (r *Router) PrependPosteriorHandler(handlers ...Handler) *Router {
 	r.RouteGroup.PrependPosteriorHandler(handlers...)
+	return r
 }
 
-func (r *Router) AppendPosteriorHandler(handlers ...Handler) {
+func (r *Router) AppendPosteriorHandler(handlers ...Handler) *Router {
 	r.RouteGroup.AppendPosteriorHandler(handlers...)
+	return r
 }
 
 // NotFound specifies the handlers that should be invoked when the router cannot find any route matching a request.
 // Note that the handlers registered via Use will be invoked first in this case.
-func (r *Router) NotFound(handlers ...Handler) {
+func (r *Router) NotFound(handlers ...Handler) *Router {
 	r.notFound = handlers
 	r.notFoundHandlers = combineHandlers(r.groupStartupHandlers, r.notFound)
+	return r
 }
 
-func (r *Router) Timeout(timeoutDuration time.Duration, handlers ...Handler) {
+func (r *Router) Timeout(timeoutDuration time.Duration, handlers ...Handler) *Router {
 	r.TimeoutDuration = timeoutDuration
 	if len(handlers) > 0 {
 		r.TimeoutHandlers = handlers
 	}
+	return r
 }
 
-func (r *Router) Cancel(handlers ...Handler) {
+func (r *Router) Cancel(handlers ...Handler) *Router {
 	r.CancelHandlers = handlers
+	return r
 }
 
 // Find determines the handlers and parameters to use for a specified method and path.
