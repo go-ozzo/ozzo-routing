@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"context"
 
 	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +18,7 @@ func TestRemover(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/users/", nil)
 	c := routing.NewContext(res, req)
-	_, err := h(context.Background(), c)
+	err := h(c)
 	assert.Nil(t, err, "return value is nil")
 	assert.Equal(t, http.StatusMovedPermanently, res.Code)
 	assert.Equal(t, "/users", res.Header().Get("Location"))
@@ -27,21 +26,21 @@ func TestRemover(t *testing.T) {
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/", nil)
 	c = routing.NewContext(res, req)
-	_, err = h(context.Background(), c)
+	err = h(c)
 	assert.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "", res.Header().Get("Location"))
 
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/users", nil)
 	c = routing.NewContext(res, req)
-	_, err = h(context.Background(), c)
+	err = h(c)
 	assert.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "", res.Header().Get("Location"))
 
 	res = httptest.NewRecorder()
 	req, _ = http.NewRequest("POST", "/users/", nil)
 	c = routing.NewContext(res, req)
-	_, err = h(context.Background(), c)
+	err = h(c)
 	assert.Equal(t, http.StatusTemporaryRedirect, res.Code)
 	assert.Equal(t, "/users", res.Header().Get("Location"))
 }

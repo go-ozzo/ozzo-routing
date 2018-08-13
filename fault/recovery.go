@@ -6,7 +6,6 @@
 package fault
 
 import (
-	"context"
 	"github.com/ltick/tick-routing"
 )
 
@@ -17,7 +16,7 @@ type (
 	LogFunc func(format string, a ...interface{})
 
 	// ConvertErrorFunc converts an error into a different format so that it is more appropriate for rendering purpose.
-	ConvertErrorFunc func(context.Context, *routing.Context, error) error
+	ConvertErrorFunc func(*routing.Context, error) error
 )
 
 // Recovery returns a handler that handles both panics and errors occurred while servicing an HTTP request.
@@ -43,18 +42,18 @@ type (
 //     r.Use(fault.Recovery(log.Printf))
 func Recovery(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 	handlePanic := PanicHandler(logf)
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
-		ctx, err := handlePanic(ctx, c)
+	return func(c *routing.Context) error {
+		err := handlePanic(c)
 		if err != nil {
 			//if logf != nil {
 			//    logf("%v", err)
 			//}
 			if len(errorf) > 0 {
-				err = errorf[0](ctx, c, err)
+				err = errorf[0](c, err)
 			}
 			writeError(c, err)
 			c.Abort()
 		}
-		return ctx, nil
+		return  nil
 	}
 }

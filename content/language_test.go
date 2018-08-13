@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"context"
 
 	"github.com/ltick/tick-routing"
 	"github.com/stretchr/testify/assert"
@@ -22,23 +21,23 @@ func TestLanguageNegotiator(t *testing.T) {
 	res := httptest.NewRecorder()
 	c := routing.NewContext(res, req)
 	h := LanguageNegotiator()
-	_, err := h(context.Background(), c)
+	err := h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "en-US", c.Get(Language))
 
 	h = LanguageNegotiator("ru-RU", "ru", "zh", "zh-CN")
-	_, err = h(context.Background(), c)
+	err = h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "zh-CN", c.Get(Language))
 
 	h = LanguageNegotiator("en", "en-US")
-	_, err = h(context.Background(), c)
+	err = h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "en", c.Get(Language))
 
 	req.Header.Set("Accept-Language", "ru-RU;q=0")
 	h = LanguageNegotiator("en", "ru-RU")
-	_, err = h(context.Background(), c)
+	err = h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "en", c.Get(Language))
 }

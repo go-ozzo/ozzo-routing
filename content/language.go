@@ -7,7 +7,6 @@ package content
 import (
 	"net/http"
 
-	"context"
 	"github.com/golang/gddo/httputil/header"
 	"github.com/ltick/tick-routing"
 )
@@ -34,10 +33,10 @@ func LanguageNegotiator(languages ...string) routing.Handler {
 	}
 	defaultLanguage := languages[0]
 
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(c *routing.Context) error {
 		language := negotiateLanguage(c.Request, languages, defaultLanguage)
 		c.Set(Language, language)
-		return ctx, nil
+		return  nil
 	}
 }
 

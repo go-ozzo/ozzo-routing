@@ -10,7 +10,7 @@ type DataWriter interface {
 	// SetHeader sets necessary response headers.
 	SetHeader(http.ResponseWriter)
 	// Write writes the given data into the response.
-	Write(http.ResponseWriter, interface{}) error
+	Write(http.ResponseWriter, interface{}) (int, error)
 }
 
 // DefaultDataWriter writes the given data in an HTTP response.
@@ -21,19 +21,18 @@ type dataWriter struct{}
 
 func (w *dataWriter) SetHeader(res http.ResponseWriter) {}
 
-func (w *dataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
+func (w *dataWriter) Write(res http.ResponseWriter, data interface{}) (n int, err error) {
 	switch data.(type) {
 	case []byte:
 		dataByte := data.([]byte)
-		_, err = res.Write(dataByte)
+		n, err = res.Write(dataByte)
 	case string:
 		dataByte := []byte(data.(string))
-		_, err = res.Write(dataByte)
+		n, err = res.Write(dataByte)
 	default:
 		if data != nil {
-			_, err := fmt.Fprint(res, data)
-			return err
+			n, err = fmt.Fprint(res, data)
 		}
 	}
-	return err
+	return n, err
 }

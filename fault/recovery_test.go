@@ -6,7 +6,6 @@ package fault
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -83,19 +82,19 @@ func getLogger(buf *bytes.Buffer) LogFunc {
 	}
 }
 
-func handler1(ctx context.Context, c *routing.Context) (context.Context, error) {
-	return ctx, errors.New("abc")
+func handler1(c *routing.Context) error {
+	return  errors.New("abc")
 }
 
-func handler2(ctx context.Context, c *routing.Context) (context.Context, error) {
+func handler2(c *routing.Context) error {
 	c.Write("test")
-	return ctx, nil
+	return  nil
 }
 
-func handler3(ctx context.Context, c *routing.Context) (context.Context, error) {
+func handler3(c *routing.Context) error {
 	panic("xyz")
 }
 
-func handler4(ctx context.Context, c *routing.Context) (context.Context, error) {
+func handler4(c *routing.Context) error {
 	panic(routing.NewHTTPError(http.StatusBadRequest, "123"))
 }

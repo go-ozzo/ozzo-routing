@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"context"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/ltick/tick-routing"
@@ -45,7 +44,7 @@ func TestBasic(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/users/", nil)
 	c := routing.NewContext(res, req)
-	err := h(context.Background(), c)
+	err := h(c)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "no", err.Error())
 	}
@@ -56,7 +55,7 @@ func TestBasic(t *testing.T) {
 	req.Header.Set("Authorization", "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	err = h(context.Background(), c)
+	err = h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "", res.Header().Get("WWW-Authenticate"))
 	assert.Equal(t, "yes", c.Get(User))
@@ -90,7 +89,7 @@ func TestBearer(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/users/", nil)
 	c := routing.NewContext(res, req)
-	err := h(context.Background(), c)
+	err := h(c)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "no", err.Error())
 	}
@@ -101,7 +100,7 @@ func TestBearer(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	err = h(context.Background(), c)
+	err = h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "", res.Header().Get("WWW-Authenticate"))
 	assert.Equal(t, "yes", c.Get(User))
@@ -110,7 +109,7 @@ func TestBearer(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer QW")
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	err = h(context.Background(), c)
+	err = h(c)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "no", err.Error())
 	}
@@ -123,7 +122,7 @@ func TestQuery(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/users", nil)
 	c := routing.NewContext(res, req)
-	err := h(context.Background(), c)
+	err := h(c)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "no", err.Error())
 	}
@@ -132,7 +131,7 @@ func TestQuery(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/users?token=Aladdin:open sesame", nil)
 	res = httptest.NewRecorder()
 	c = routing.NewContext(res, req)
-	err = h(context.Background(), c)
+	err = h(c)
 	assert.Nil(t, err)
 	assert.Equal(t, "", res.Header().Get("WWW-Authenticate"))
 	assert.Equal(t, "yes", c.Get(User))
@@ -152,7 +151,7 @@ func TestJWT(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/users/", nil)
 		req.Header.Set("Authorization", "Bearer "+tokenString)
 		c := routing.NewContext(res, req)
-		err = h(context.Background(), c)
+		err = h(c)
 		assert.Nil(t, err)
 		token := c.Get("JWT")
 		if assert.NotNil(t, token) {
@@ -175,7 +174,7 @@ func TestJWT(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/users/", nil)
 		req.Header.Set("Authorization", "Bearer "+bearer)
 		c := routing.NewContext(res, req)
-		err := h(context.Background(), c)
+		err := h(c)
 		assert.NotNil(t, err)
 	}
 
@@ -186,7 +185,7 @@ func TestJWT(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/users/", nil)
 		req.Header.Set("Authorization", "Bearer QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
 		c := routing.NewContext(res, req)
-		err := h(context.Background(), c)
+		err := h(c)
 		assert.NotNil(t, err)
 		assert.Equal(t, `Bearer realm="API"`, res.Header().Get("WWW-Authenticate"))
 		assert.Nil(t, c.Get("JWT"))
@@ -201,7 +200,7 @@ func TestJWT(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/users/", nil)
 		req.Header.Set("Authorization", "Bearer QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
 		c := routing.NewContext(res, req)
-		err := h(context.Background(), c)
+		err := h(c)
 		assert.NotNil(t, err)
 		assert.Equal(t, `Bearer realm="App"`, res.Header().Get("WWW-Authenticate"))
 		assert.Nil(t, c.Get("JWT"))

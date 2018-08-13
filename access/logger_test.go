@@ -6,7 +6,6 @@ package access
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,7 +18,7 @@ import (
 
 func TestCustomLogger(t *testing.T) {
 	var buf bytes.Buffer
-	var customFunc = func(ctx context.Context, c *routing.Context, rw *LogResponseWriter, elapsed float64) {
+	var customFunc = func(c *routing.Context, rw *LogResponseWriter, elapsed float64) {
 		var logWriter = getLogger(&buf)
 		clientIP := GetClientIP(c.Request)
 		requestLine := fmt.Sprintf("%s %s %s", c.Request.Method, c.Request.URL.String(), c.Request.Proto)
@@ -79,6 +78,6 @@ func getLogger(buf *bytes.Buffer) LogFunc {
 	}
 }
 
-func handler1(ctx context.Context, c *routing.Context) (context.Context, error) {
-	return ctx, errors.New("abc")
+func handler1(c *routing.Context) error {
+	return  errors.New("abc")
 }

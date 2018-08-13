@@ -11,7 +11,6 @@ import (
 	"net/http"
 
 	"github.com/ltick/tick-routing"
-	"context"
 )
 
 // MIME types
@@ -52,10 +51,10 @@ func TypeNegotiator(formats ...string) routing.Handler {
 		}
 	}
 
-	return func(ctx context.Context, c *routing.Context) (context.Context, error) {
+	return func(c *routing.Context) error {
 		format := NegotiateContentType(c.Request, formats, formats[0])
 		c.SetDataWriter(DataWriters[format])
-		return ctx,nil
+		return nil
 	}
 }
 

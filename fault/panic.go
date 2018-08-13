@@ -2,7 +2,6 @@ package fault
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"runtime"
 
@@ -25,7 +24,7 @@ import (
 //     r.Use(fault.ErrorHandler(log.Printf))
 //     r.Use(fault.PanicHandler(log.Printf))
 func PanicHandler(logf LogFunc) routing.Handler {
-	return func(parentCtx context.Context, c *routing.Context) (ctx context.Context, err error) {
+	return func(c *routing.Context) (err error) {
 		defer func() {
 			if e := recover(); e != nil {
 				if logf != nil {
@@ -37,7 +36,7 @@ func PanicHandler(logf LogFunc) routing.Handler {
 				}
 			}
 		}()
-		return parentCtx, c.Next()
+		return c.Next()
 	}
 }
 
