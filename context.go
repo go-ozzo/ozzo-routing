@@ -29,7 +29,7 @@ type Context struct {
 // This method is primarily provided for writing unit tests for handlers.
 func NewContext(res http.ResponseWriter, req *http.Request, handlers ...Handler) *Context {
 	c := &Context{
-		Context: context.Background(),
+		Context:  context.Background(),
 		handlers: handlers,
 	}
 	c.init(res, req)
@@ -201,7 +201,8 @@ func (c *Context) Read(data interface{}) error {
 // The method calls the data writer set via SetDataWriter() to do the actual writing.
 // By default, the DefaultDataWriter will be used.
 func (c *Context) Write(data interface{}) error {
-	return c.writer.Write(c.Response, data)
+	_, err := c.writer.Write(c.Response, data)
+	return err
 }
 
 // SetDataWriter sets the data writer that will be used by Write().
