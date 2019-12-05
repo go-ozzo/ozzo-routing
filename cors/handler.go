@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/v2"
 )
 
 const (

@@ -25,20 +25,14 @@ If you are using [fasthttp](https://github.com/valyala/fasthttp), you may use a 
 
 ## Requirements
 
-Go 1.7 or above.
+Go 1.13 or above.
 
 ## Installation
 
 Run the following command to install the package:
 
 ```
-go get github.com/go-ozzo/ozzo-routing
-```
-
-You may also get specified release of the package by:
-
-```
-go get gopkg.in/go-ozzo/ozzo-routing.v1
+go get github.com/go-ozzo/ozzo-routing/v2
 ```
 
 ## Getting Started
@@ -53,12 +47,12 @@ package main
 import (
 	"log"
 	"net/http"
-	"github.com/go-ozzo/ozzo-routing"
-	"github.com/go-ozzo/ozzo-routing/access"
-	"github.com/go-ozzo/ozzo-routing/slash"
-	"github.com/go-ozzo/ozzo-routing/content"
-	"github.com/go-ozzo/ozzo-routing/fault"
-	"github.com/go-ozzo/ozzo-routing/file"
+	"github.com/go-ozzo/ozzo-routing/v2"
+	"github.com/go-ozzo/ozzo-routing/v2/access"
+	"github.com/go-ozzo/ozzo-routing/v2/slash"
+	"github.com/go-ozzo/ozzo-routing/v2/content"
+	"github.com/go-ozzo/ozzo-routing/v2/fault"
+	"github.com/go-ozzo/ozzo-routing/v2/file"
 )
 
 func main() {
@@ -342,8 +336,8 @@ under the specified directories, while the latter serves the content of a single
 
 ```go
 import (
-	"github.com/go-ozzo/ozzo-routing"
-	"github.com/go-ozzo/ozzo-routing/file"
+	"github.com/go-ozzo/ozzo-routing/v2"
+	"github.com/go-ozzo/ozzo-routing/v2/file"
 )
 
 router := routing.NewRouter()
@@ -383,10 +377,10 @@ The following code shows how these handlers may be used:
 import (
 	"log"
 	"net/http"
-	"github.com/go-ozzo/ozzo-routing"
-	"github.com/go-ozzo/ozzo-routing/access"
-	"github.com/go-ozzo/ozzo-routing/slash"
-	"github.com/go-ozzo/ozzo-routing/fault"
+	"github.com/go-ozzo/ozzo-routing/v2"
+	"github.com/go-ozzo/ozzo-routing/v2/access"
+	"github.com/go-ozzo/ozzo-routing/v2/slash"
+	"github.com/go-ozzo/ozzo-routing/v2/fault"
 )
 
 router := routing.New()

@@ -7,7 +7,7 @@ package content
 import (
 	"net/http"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/golang/gddo/httputil/header"
 )
 

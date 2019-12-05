@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/v2"
 )
 
 // PanicHandler returns a handler that recovers from panics happened in the handlers following this one.
@@ -16,8 +16,8 @@ import (
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/fault"
+//         "github.com/go-ozzo/ozzo-routing/v2"
+//         "github.com/go-ozzo/ozzo-routing/v2/fault"
 //     )
 //
 //     r := routing.New()

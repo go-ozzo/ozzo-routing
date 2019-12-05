@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/v2"
 )
 
 // ServerOptions defines the possible options for the Server handler.
@@ -57,8 +57,8 @@ func init() {
 //
 //     import (
 //         "log"
-//         "github.com/go-ozzo/ozzo-routing"
-//         "github.com/go-ozzo/ozzo-routing/file"
+//         "github.com/go-ozzo/ozzo-routing/v2"
+//         "github.com/go-ozzo/ozzo-routing/v2/file"
 //     )
 //
 //     r := routing.New()
