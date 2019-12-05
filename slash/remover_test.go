@@ -27,6 +27,7 @@ func TestRemover(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/", nil)
 	c = routing.NewContext(res, req)
 	err = h(c)
+	assert.Nil(t, err, "return value is nil")
 	assert.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "", res.Header().Get("Location"))
 
@@ -34,6 +35,7 @@ func TestRemover(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/users", nil)
 	c = routing.NewContext(res, req)
 	err = h(c)
+	assert.Nil(t, err, "return value is nil")
 	assert.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "", res.Header().Get("Location"))
 
@@ -41,6 +43,7 @@ func TestRemover(t *testing.T) {
 	req, _ = http.NewRequest("POST", "/users/", nil)
 	c = routing.NewContext(res, req)
 	err = h(c)
+	assert.Nil(t, err, "return value is nil")
 	assert.Equal(t, http.StatusTemporaryRedirect, res.Code)
 	assert.Equal(t, "/users", res.Header().Get("Location"))
 }
