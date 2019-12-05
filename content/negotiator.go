@@ -9,6 +9,15 @@ import (
 	"strings"
 )
 
+// AcceptRange represents an accept range as defined in https://tools.ietf.org/html/rfc7231#section-5.3.2
+//
+// Accept = #( media-range [ accept-params ] )
+//  media-range    = ( "*/*"
+//                   / ( type "/" "*" )
+//                   / ( type "/" subtype )
+//                   ) *( OWS ";" OWS parameter )
+//  accept-params  = weight *( accept-ext )
+//  accept-ext = OWS ";" OWS token [ "=" ( token / quoted-string ) ]
 type AcceptRange struct {
 	Type       string
 	Subtype    string
@@ -17,19 +26,12 @@ type AcceptRange struct {
 	raw        string // the raw string for this accept
 }
 
+// RawString returns the raw string in the request specifying the accept range.
 func (a AcceptRange) RawString() string {
 	return a.raw
 }
 
-// https://tools.ietf.org/html/rfc7231#section-5.3.2
-// Accept = #( media-range [ accept-params ] )
-//  media-range    = ( "*/*"
-//                   / ( type "/" "*" )
-//                   / ( type "/" subtype )
-//                   ) *( OWS ";" OWS parameter )
-//  accept-params  = weight *( accept-ext )
-//  accept-ext = OWS ";" OWS token [ "=" ( token / quoted-string ) ]
-
+// AcceptMediaTypes builds a list of AcceptRange from the given HTTP request.
 func AcceptMediaTypes(r *http.Request) []AcceptRange {
 	result := []AcceptRange{}
 
@@ -40,6 +42,7 @@ func AcceptMediaTypes(r *http.Request) []AcceptRange {
 	return result
 }
 
+// ParseAcceptRanges parses an Accept header into a list of AcceptRange
 func ParseAcceptRanges(accepts string) []AcceptRange {
 	result := []AcceptRange{}
 	remaining := accepts
@@ -54,6 +57,7 @@ func ParseAcceptRanges(accepts string) []AcceptRange {
 	return result
 }
 
+// ParseAcceptRange parses a single accept string into an AcceptRange.
 func ParseAcceptRange(accept string) AcceptRange {
 	typeAndSub, rawparams := extractFieldAndSkipToken(accept, ';')
 
@@ -121,6 +125,7 @@ func compareParams(params1 map[string]string, params2 map[string]string) (count 
 	return count
 }
 
+// NegotiateContentType negotiates the content types based on the given request and allowed types.
 func NegotiateContentType(r *http.Request, offers []string, defaultOffer string) string {
 	accepts := AcceptMediaTypes(r)
 	offerRanges := []AcceptRange{}

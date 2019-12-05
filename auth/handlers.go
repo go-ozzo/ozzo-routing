@@ -186,10 +186,10 @@ func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
 	}
 }
 
-// JWTTokenHandler handles the parsed JWT token.
+// JWTTokenHandler represents a handler function that handles the parsed JWT token.
 type JWTTokenHandler func(*routing.Context, *jwt.Token) error
 
-//Get a dynamic VerificationKey
+// VerificationKeyHandler represents a handler function that gets a dynamic VerificationKey
 type VerificationKeyHandler func(*routing.Context) string
 
 // JWTOptions represents the options that can be used with the JWT handler.

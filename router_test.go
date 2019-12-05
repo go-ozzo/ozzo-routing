@@ -83,8 +83,8 @@ func TestRouterFind(t *testing.T) {
 }
 
 func TestRouterNormalizeRequestPath(t *testing.T) {
-	tests := []struct{
-		path string
+	tests := []struct {
+		path     string
 		expected string
 	}{
 		{"/", "/"},

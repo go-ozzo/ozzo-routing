@@ -96,11 +96,13 @@ func (r *LogResponseWriter) Write(p []byte) (int, error) {
 	return written, err
 }
 
+// WriteHeader records the response status and then writes HTTP headers.
 func (r *LogResponseWriter) WriteHeader(status int) {
 	r.Status = status
 	r.ResponseWriter.WriteHeader(status)
 }
 
+// GetClientIP returns the client IP address from the given HTTP request.
 func GetClientIP(req *http.Request) string {
 	ip := req.Header.Get("X-Real-IP")
 	if ip == "" {

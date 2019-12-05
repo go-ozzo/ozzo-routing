@@ -10,7 +10,7 @@ import (
 	"encoding/xml"
 	"net/http"
 
-	"github.com/go-ozzo/ozzo-routing/v2"
+	routing "github.com/go-ozzo/ozzo-routing/v2"
 )
 
 // MIME types
@@ -61,6 +61,7 @@ func TypeNegotiator(formats ...string) routing.Handler {
 // JSONDataWriter sets the "Content-Type" response header as "application/json" and writes the given data in JSON format to the response.
 type JSONDataWriter struct{}
 
+// SetHeader sets the Content-Type response header.
 func (w *JSONDataWriter) SetHeader(res http.ResponseWriter) {
 	res.Header().Set("Content-Type", "application/json")
 }
@@ -74,6 +75,7 @@ func (w *JSONDataWriter) Write(res http.ResponseWriter, data interface{}) (err e
 // XMLDataWriter sets the "Content-Type" response header as "application/xml; charset=UTF-8" and writes the given data in XML format to the response.
 type XMLDataWriter struct{}
 
+// SetHeader sets the Content-Type response header.
 func (w *XMLDataWriter) SetHeader(res http.ResponseWriter) {
 	res.Header().Set("Content-Type", "application/xml; charset=UTF-8")
 }
@@ -90,6 +92,7 @@ func (w *XMLDataWriter) Write(res http.ResponseWriter, data interface{}) (err er
 // HTMLDataWriter sets the "Content-Type" response header as "text/html; charset=UTF-8" and calls routing.DefaultDataWriter to write the given data to the response.
 type HTMLDataWriter struct{}
 
+// SetHeader sets the Content-Type response header.
 func (w *HTMLDataWriter) SetHeader(res http.ResponseWriter) {
 	res.Header().Set("Content-Type", "text/html; charset=UTF-8")
 }
