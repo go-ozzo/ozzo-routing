@@ -5,7 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/go-ozzo/ozzo-routing/badge.svg?branch=master)](https://coveralls.io/github/go-ozzo/ozzo-routing?branch=master)
 [![Go Report](https://goreportcard.com/badge/github.com/go-ozzo/ozzo-routing)](https://goreportcard.com/report/github.com/go-ozzo/ozzo-routing)
 
-**You may consider using [golang-restful-starter-kit](https://github.com/qiangxue/golang-restful-starter-kit) to jumpstart your new RESTful applications with ozzo-routing.**
+**You may consider using [go-restful-api](https://github.com/qiangxue/go-restful-api) to jumpstart your new RESTful applications with ozzo-routing.**
 
 ## Description
 
