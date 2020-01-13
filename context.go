@@ -172,6 +172,13 @@ func (c *Context) Write(data interface{}) error {
 	return c.writer.Write(c.Response, data)
 }
 
+// WriteWithStatus sends the HTTP status code and writes the given data of arbitrary type to the response.
+// See Write() for details on how data is written to response.
+func (c *Context) WriteWithStatus(data interface{}, statusCode int) error {
+	c.Response.WriteHeader(statusCode)
+	return c.Write(data)
+}
+
 // SetDataWriter sets the data writer that will be used by Write().
 func (c *Context) SetDataWriter(writer DataWriter) {
 	c.writer = writer

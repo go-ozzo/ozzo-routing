@@ -20,6 +20,7 @@ It has the following features:
 * URL creation according to the predefined routes
 * compatible with `http.Handler` and `http.HandlerFunc`
 * ready-to-use handlers sufficient for building RESTful APIs
+* graceful shutdown
 
 If you are using [fasthttp](https://github.com/valyala/fasthttp), you may use a similar routing package [fasthttp-routing](https://github.com/qiangxue/fasthttp-routing) which is adapted from ozzo-routing.
 
