@@ -5,7 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/go-ozzo/ozzo-routing/badge.svg?branch=master)](https://coveralls.io/github/go-ozzo/ozzo-routing?branch=master)
 [![Go Report](https://goreportcard.com/badge/github.com/go-ozzo/ozzo-routing)](https://goreportcard.com/report/github.com/go-ozzo/ozzo-routing)
 
-**You may consider using [go-restful-api](https://github.com/qiangxue/go-restful-api) to jumpstart your new RESTful applications with ozzo-routing.**
+**You may consider using [go-rest-api](https://github.com/qiangxue/go-rest-api) to jumpstart your new RESTful applications with ozzo-routing.**
 
 ## Description
 
@@ -33,7 +33,7 @@ Go 1.13 or above.
 Run the following command to install the package:
 
 ```
-go get github.com/go-ozzo/ozzo-routing/v2
+go get github.com/go-ozzo/ozzo-routing
 ```
 
 ## Getting Started
@@ -48,12 +48,12 @@ package main
 import (
 	"log"
 	"net/http"
-	"github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/go-ozzo/ozzo-routing/v2/access"
-	"github.com/go-ozzo/ozzo-routing/v2/slash"
-	"github.com/go-ozzo/ozzo-routing/v2/content"
-	"github.com/go-ozzo/ozzo-routing/v2/fault"
-	"github.com/go-ozzo/ozzo-routing/v2/file"
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/access"
+	"github.com/go-ozzo/ozzo-routing/slash"
+	"github.com/go-ozzo/ozzo-routing/content"
+	"github.com/go-ozzo/ozzo-routing/fault"
+	"github.com/go-ozzo/ozzo-routing/file"
 )
 
 func main() {
@@ -337,8 +337,8 @@ under the specified directories, while the latter serves the content of a single
 
 ```go
 import (
-	"github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/go-ozzo/ozzo-routing/v2/file"
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/file"
 )
 
 router := routing.NewRouter()
@@ -378,10 +378,10 @@ The following code shows how these handlers may be used:
 import (
 	"log"
 	"net/http"
-	"github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/go-ozzo/ozzo-routing/v2/access"
-	"github.com/go-ozzo/ozzo-routing/v2/slash"
-	"github.com/go-ozzo/ozzo-routing/v2/fault"
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/access"
+	"github.com/go-ozzo/ozzo-routing/slash"
+	"github.com/go-ozzo/ozzo-routing/fault"
 )
 
 router := routing.New()
