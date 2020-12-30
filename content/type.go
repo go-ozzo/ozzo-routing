@@ -63,7 +63,7 @@ type JSONDataWriter struct{}
 
 // SetHeader sets the Content-Type response header.
 func (w *JSONDataWriter) SetHeader(res http.ResponseWriter) {
-	res.Header().Set("Content-Type", "application/json")
+	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
 }
 
 func (w *JSONDataWriter) Write(res http.ResponseWriter, data interface{}) (err error) {
