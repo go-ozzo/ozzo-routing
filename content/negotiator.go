@@ -138,7 +138,7 @@ func NegotiateContentType(r *http.Request, offers []string, defaultOffer string)
 
 func negotiateContentType(accepts []AcceptRange, offers []AcceptRange, defaultOffer AcceptRange) string {
 	best := defaultOffer.RawString()
-	bestWeight := float64(0)
+	bestWeight := defaultOffer.Weight
 	bestParams := 0
 
 	for _, offer := range offers {
@@ -155,10 +155,10 @@ func negotiateContentType(accepts []AcceptRange, offers []AcceptRange, defaultOf
 
 			if bestWeight > (accept.Weight + booster) {
 				continue // we already have something better..
-			} else if accept.Type == "*" && accept.Subtype == "*" {
+			} else if accept.Type == "*" && accept.Subtype == "*" && ((accept.Weight + booster) > bestWeight) {
 				best = offer.RawString()
 				bestWeight = accept.Weight + booster
-			} else if accept.Subtype == "*" && offer.Type == accept.Type {
+			} else if accept.Subtype == "*" && offer.Type == accept.Type && ((accept.Weight + booster) > bestWeight) {
 				best = offer.RawString()
 				bestWeight = accept.Weight + booster
 			} else if accept.Type == offer.Type && accept.Subtype == offer.Subtype {

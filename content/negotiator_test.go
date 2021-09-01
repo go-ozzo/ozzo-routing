@@ -40,6 +40,25 @@ func TestContentNegotiation3(t *testing.T) {
 	assert.Equal(t, "application/xml", format)
 }
 
+func TestContentNegotiation4(t *testing.T) {
+	header := http.Header{}
+	header.Set("Accept", "*/*")
+	req := &http.Request{Header: header}
+
+	offers := []string{"application/json", "application/xml"}
+	format := NegotiateContentType(req, offers, "application/json")
+	assert.Equal(t, "application/json", format)
+}
+
+func TestContentNegotiation5(t *testing.T) {
+	header := http.Header{}
+	header.Set("Accept", "*/*")
+	req := &http.Request{Header: header}
+
+	offers := []string{"application/json", "application/xml", "application/json;v=1", "application/json;v=2"}
+	format := NegotiateContentType(req, offers, "text/html")
+	assert.Equal(t, "text/html", format)
+}
 func TestAccept(t *testing.T) {
 	header := http.Header{}
 	header.Set("Accept", "application/json;  q=1 ; v=1,")
