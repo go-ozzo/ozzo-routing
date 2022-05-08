@@ -6,17 +6,20 @@
 package file
 
 import (
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/go-ozzo/ozzo-routing/v2"
+	routing "github.com/go-ozzo/ozzo-routing/v2"
 )
 
 // ServerOptions defines the possible options for the Server handler.
 type ServerOptions struct {
+	// The FS to be used to serve files from. When set, this overrides RootPath.
+	FS fs.FS
 	// The path that all files to be served should be located within. The path map passed to the Server method
 	// are all relative to this path. This property can be specified as an absolute file path or a path relative
 	// to the current working path. If not set, this property defaults to the current working path.
@@ -76,8 +79,13 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	}
 	from, to := parsePathMap(pathMap)
 
-	// security measure: limit the files within options.RootPath
-	dir := http.Dir(options.RootPath)
+	var fsys http.FileSystem
+	if options.FS != nil {
+		fsys = http.FS(options.FS)
+	} else {
+		// security measure: limit the files within options.RootPath
+		fsys = http.FS(os.DirFS(options.RootPath))
+	}
 
 	return func(c *routing.Context) error {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
@@ -94,9 +102,9 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			err   error
 		)
 
-		if file, err = dir.Open(path); err != nil {
+		if file, err = fsys.Open(path); err != nil {
 			if options.CatchAllFile != "" {
-				return serveFile(c, dir, options.CatchAllFile)
+				return serveFile(c, fsys, options.CatchAllFile)
 			}
 			return routing.NewHTTPError(http.StatusNotFound, err.Error())
 		}
@@ -110,7 +118,7 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			if options.IndexFile == "" {
 				return routing.NewHTTPError(http.StatusNotFound)
 			}
-			return serveFile(c, dir, filepath.Join(path, options.IndexFile))
+			return serveFile(c, fsys, filepath.Join(path, options.IndexFile))
 		}
 
 		c.Response.Header().Del("Content-Type")
@@ -119,8 +127,8 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	}
 }
 
-func serveFile(c *routing.Context, dir http.Dir, path string) error {
-	file, err := dir.Open(path)
+func serveFile(c *routing.Context, fsys http.FileSystem, path string) error {
+	file, err := fsys.Open(path)
 	if err != nil {
 		return routing.NewHTTPError(http.StatusNotFound, err.Error())
 	}
