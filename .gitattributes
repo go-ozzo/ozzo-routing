@@ -1,0 +1,2 @@
+file/testdata/*.* eol=lf
+file/testdata/*/*.* eol=lf
