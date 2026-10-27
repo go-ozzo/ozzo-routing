@@ -8,10 +8,12 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
+	"strings"
 	"testing"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/go-ozzo/ozzo-routing/v2"
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -204,5 +206,34 @@ func TestJWT(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Equal(t, `Bearer realm="App"`, res.Header().Get("WWW-Authenticate"))
 		assert.Nil(t, c.Get("JWT"))
+	}
+}
+
+// golang-jwt v3 splits the token on every period before checking the segment count
+// (GO-2025-3553), allocating about 16 bytes per period of an attacker's header.
+func TestJWTRejectsWrongSegmentCountCheaply(t *testing.T) {
+	h := JWT("secret")
+	for id, token := range map[string]string{
+		"no periods": "abc",
+		"one period": "a.b",
+		"many":       "a.b.c.d",
+		"only dots":  strings.Repeat(".", 1<<20),
+		"empty":      "",
+	} {
+		req, _ := http.NewRequest("GET", "/users/", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		res := httptest.NewRecorder()
+		c := routing.NewContext(res, req)
+
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		err := h(c)
+		runtime.ReadMemStats(&after)
+
+		if assert.NotNil(t, err, id) {
+			assert.Equal(t, http.StatusUnauthorized, err.(routing.HTTPError).StatusCode(), id)
+			assert.Equal(t, "token contains an invalid number of segments", err.Error(), id)
+		}
+		assert.Less(t, after.TotalAlloc-before.TotalAlloc, uint64(1<<20), id)
 	}
 }

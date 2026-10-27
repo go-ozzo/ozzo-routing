@@ -223,7 +223,7 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 //     "errors"
 //     "fmt"
 //     "net/http"
-//     "github.com/dgrijalva/jwt-go"
+//     "github.com/golang-jwt/jwt"
 //     "github.com/go-ozzo/ozzo-routing/v2"
 //     "github.com/go-ozzo/ozzo-routing/v2/auth"
 //   )
@@ -275,7 +275,16 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 			verificationKey = opt.GetVerificationKey(c)
 		}
 		if strings.HasPrefix(header, "Bearer ") {
-			token, err := parser.Parse(header[7:], func(t *jwt.Token) (interface{}, error) { return []byte(verificationKey), nil })
+			var token *jwt.Token
+			var err error
+			// golang-jwt v3 splits the token on every period before it checks the segment count, so a
+			// header full of periods costs about 16 bytes of allocation per byte (GO-2025-3553).
+			// Counting allocates nothing; the error is the one the parser would return.
+			if strings.Count(header[7:], ".") != 2 {
+				err = jwt.NewValidationError("token contains an invalid number of segments", jwt.ValidationErrorMalformed)
+			} else {
+				token, err = parser.Parse(header[7:], func(t *jwt.Token) (interface{}, error) { return []byte(verificationKey), nil })
+			}
 			if err == nil && token.Valid {
 				err = opt.TokenHandler(c, token)
 			}
