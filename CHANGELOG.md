@@ -12,6 +12,8 @@ Releases before v2.4.1 are described on the [GitHub releases page](https://githu
 - **Go 1.21 or newer is required** (was 1.13). It is the minimum of the jwt/v5 and `io/fs` changes planned for
   this release, and the oldest Go the CI tests.
 - deps: github.com/stretchr/testify v1.4.0 → v1.12.1.
+- deps: github.com/golang/gddo is removed. The repository is archived; `content.LanguageNegotiator` now parses
+  `Accept-Language` with a copy of its `ParseAccept` in an internal package, with gddo's tests. Behaviour is unchanged.
 
 ### Internal
 
