@@ -126,7 +126,7 @@ func (o *Options) setPreflightHeaders(origin, method, reqHeaders string, headers
 	}
 
 	if allowedHeaders != "" {
-		headers.Set(headerAllowHeaders, reqHeaders)
+		headers.Set(headerAllowHeaders, allowedHeaders)
 	}
 }
 
