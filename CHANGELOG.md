@@ -7,6 +7,20 @@ Releases before v2.4.1 are described on the [GitHub releases page](https://githu
 
 ## [Unreleased]
 
+### Changed
+
+- **Go 1.21 or newer is required** (was 1.13). It is the minimum of the jwt/v5 and `io/fs` changes planned for
+  this release, and the oldest Go the CI tests.
+- deps: github.com/stretchr/testify v1.4.0 → v1.12.1.
+
+### Internal
+
+- CI on GitHub Actions: tests with the race detector on Linux (oldstable, stable), Windows and macOS (stable) and on
+  the minimum Go from `go.mod`, a linux/386 build, golangci-lint v2.15.0, gofmt and `go mod tidy` checks,
+  govulncheck, and coverage on Codecov. Travis CI is removed.
+- golangci-lint configuration and fixes for its findings; no behaviour changes.
+- SECURITY.md, CONTRIBUTING.md, CODEOWNERS, Dependabot for GitHub Actions, `.gitattributes` keeping LF line endings.
+
 ## [2.4.1] - 2026-10-27
 
 ### Security
