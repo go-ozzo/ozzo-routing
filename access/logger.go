@@ -31,18 +31,18 @@ type LogWriterFunc func(req *http.Request, res *LogResponseWriter, elapsed float
 // request, as well as the elapsed time since the request first came through the middleware.
 // LogWriterFunc can then do whatever logging it needs to do.
 //
-//     import (
-//         "log"
-//         "github.com/go-ozzo/ozzo-routing/v2"
-//         "github.com/go-ozzo/ozzo-routing/v2/access"
-//         "net/http"
-//     )
+//	import (
+//	    "log"
+//	    "github.com/go-ozzo/ozzo-routing/v2"
+//	    "github.com/go-ozzo/ozzo-routing/v2/access"
+//	    "net/http"
+//	)
 //
-//     func myCustomLogger(req http.Context, res access.LogResponseWriter, elapsed int64) {
-//         // Do something with the request, response, and elapsed time data here
-//     }
-//     r := routing.New()
-//     r.Use(access.CustomLogger(myCustomLogger))
+//	func myCustomLogger(req http.Context, res access.LogResponseWriter, elapsed int64) {
+//	    // Do something with the request, response, and elapsed time data here
+//	}
+//	r := routing.New()
+//	r.Use(access.CustomLogger(myCustomLogger))
 func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 	return func(c *routing.Context) error {
 		startTime := time.Now()
@@ -53,32 +53,30 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 
 		err := c.Next()
 
-		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
+		elapsed := float64(time.Since(startTime).Nanoseconds()) / 1e6
 		loggerFunc(req, rw, elapsed)
 
 		return err
 	}
-
 }
 
 // Logger returns a handler that logs a message for every request.
 // The access log messages contain information including client IPs, time used to serve each request, request line,
 // response status and size.
 //
-//     import (
-//         "log"
-//         "github.com/go-ozzo/ozzo-routing/v2"
-//         "github.com/go-ozzo/ozzo-routing/v2/access"
-//     )
+//	import (
+//	    "log"
+//	    "github.com/go-ozzo/ozzo-routing/v2"
+//	    "github.com/go-ozzo/ozzo-routing/v2/access"
+//	)
 //
-//     r := routing.New()
-//     r.Use(access.Logger(log.Printf))
+//	r := routing.New()
+//	r.Use(access.Logger(log.Printf))
 func Logger(log LogFunc) routing.Handler {
 	var logger = func(req *http.Request, rw *LogResponseWriter, elapsed float64) {
 		clientIP := GetClientIP(req)
 		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.String(), req.Proto)
 		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
-
 	}
 	return CustomLogger(logger)
 }

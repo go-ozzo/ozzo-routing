@@ -57,7 +57,6 @@ var AllowAll = Options{
 
 // Handler creates a routing handler that adds appropriate CORS headers according to the specified options and the request.
 func Handler(opts Options) routing.Handler {
-
 	opts.init()
 
 	return func(c *routing.Context) (err error) {
@@ -127,7 +126,7 @@ func (o *Options) setPreflightHeaders(origin, method, reqHeaders string, headers
 	}
 
 	if allowedHeaders != "" {
-		headers.Set(headerAllowHeaders, reqHeaders)
+		headers.Set(headerAllowHeaders, allowedHeaders)
 	}
 }
 

@@ -1,8 +1,7 @@
 # ozzo-routing
 
-[![GoDoc](https://godoc.org/github.com/go-ozzo/ozzo-routing?status.png)](http://godoc.org/github.com/go-ozzo/ozzo-routing)
-[![Build Status](https://travis-ci.org/go-ozzo/ozzo-routing.svg?branch=master)](https://travis-ci.org/go-ozzo/ozzo-routing)
-[![Coverage Status](https://coveralls.io/repos/github/go-ozzo/ozzo-routing/badge.svg?branch=master)](https://coveralls.io/github/go-ozzo/ozzo-routing?branch=master)
+[![Go Reference](https://pkg.go.dev/badge/github.com/go-ozzo/ozzo-routing/v2.svg)](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2)
+[![CI](https://github.com/go-ozzo/ozzo-routing/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/go-ozzo/ozzo-routing/actions/workflows/ci.yml)
 [![Go Report](https://goreportcard.com/badge/github.com/go-ozzo/ozzo-routing)](https://goreportcard.com/report/github.com/go-ozzo/ozzo-routing)
 
 **You may consider using [go-rest-api](https://github.com/qiangxue/go-rest-api) to jumpstart your new RESTful applications with ozzo-routing.**
@@ -26,7 +25,7 @@ If you are using [fasthttp](https://github.com/valyala/fasthttp), you may use a 
 
 ## Requirements
 
-Go 1.13 or above.
+Go 1.21 or above.
 
 ## Installation
 
@@ -369,20 +368,20 @@ ozzo-routing comes with a few commonly used handlers in its subpackages:
 
 Handler name 					| Description
 --------------------------------|--------------------------------------------
-[access.Logger](https://godoc.org/github.com/go-ozzo/ozzo-routing/access) | records an entry for every incoming request
-[auth.Basic](https://godoc.org/github.com/go-ozzo/ozzo-routing/auth) | provides authentication via HTTP Basic
-[auth.Bearer](https://godoc.org/github.com/go-ozzo/ozzo-routing/auth) | provides authentication via HTTP Bearer
-[auth.Query](https://godoc.org/github.com/go-ozzo/ozzo-routing/auth) | provides authentication via token-based query parameter
-[auth.JWT](https://godoc.org/github.com/go-ozzo/ozzo-routing/auth) | provides JWT-based authentication
-[content.TypeNegotiator](https://godoc.org/github.com/go-ozzo/ozzo-routing/content) | supports content negotiation by response types
-[content.LanguageNegotiator](https://godoc.org/github.com/go-ozzo/ozzo-routing/content) | supports content negotiation by accepted languages
-[cors.Handler](https://godoc.org/github.com/go-ozzo/ozzo-routing/cors) | implements the CORS (Cross Origin Resource Sharing) specification from the W3C
-[fault.Recovery](https://godoc.org/github.com/go-ozzo/ozzo-routing/fault) | recovers from panics and handles errors returned by handlers
-[fault.PanicHandler](https://godoc.org/github.com/go-ozzo/ozzo-routing/fault) | recovers from panics happened in the handlers
-[fault.ErrorHandler](https://godoc.org/github.com/go-ozzo/ozzo-routing/fault) | handles errors returned by handlers by writing them in an appropriate format to the response
-[file.Server](https://godoc.org/github.com/go-ozzo/ozzo-routing/file) | serves the files under the specified folder as response content
-[file.Content](https://godoc.org/github.com/go-ozzo/ozzo-routing/file) | serves the content of the specified file as the response
-[slash.Remover](https://godoc.org/github.com/go-ozzo/ozzo-routing/slash) | removes the trailing slashes from the request URL and redirects to the proper URL
+[access.Logger](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/access) | records an entry for every incoming request
+[auth.Basic](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/auth) | provides authentication via HTTP Basic
+[auth.Bearer](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/auth) | provides authentication via HTTP Bearer
+[auth.Query](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/auth) | provides authentication via token-based query parameter
+[auth.JWT](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/auth) | provides JWT-based authentication
+[content.TypeNegotiator](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/content) | supports content negotiation by response types
+[content.LanguageNegotiator](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/content) | supports content negotiation by accepted languages
+[cors.Handler](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/cors) | implements the CORS (Cross Origin Resource Sharing) specification from the W3C
+[fault.Recovery](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/fault) | recovers from panics and handles errors returned by handlers
+[fault.PanicHandler](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/fault) | recovers from panics happened in the handlers
+[fault.ErrorHandler](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/fault) | handles errors returned by handlers by writing them in an appropriate format to the response
+[file.Server](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/file) | serves the files under the specified folder as response content
+[file.Content](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/file) | serves the content of the specified file as the response
+[slash.Remover](https://pkg.go.dev/github.com/go-ozzo/ozzo-routing/v2/slash) | removes the trailing slashes from the request URL and redirects to the proper URL
 
 The following code shows how these handlers may be used:
 
@@ -468,3 +467,13 @@ BenchmarkMartini_ParseAll                  10000            122002 ns/op        
 ozzo-routing has referenced many popular routing frameworks, including [Express](http://expressjs.com/), 
 [Martini](https://github.com/go-martini/martini), [httprouter](https://github.com/julienschmidt/httprouter), and
 [gin](https://github.com/gin-gonic/gin). 
+
+## Star History
+
+<a href="https://starhistory.io">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.starhistory.io/png?repos=go-ozzo/ozzo-routing&style=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.starhistory.io/png?repos=go-ozzo/ozzo-routing&style=professional" />
+   <img alt="Star History Chart" src="https://api.starhistory.io/png?repos=go-ozzo/ozzo-routing" width="800" />
+ </picture>
+</a>

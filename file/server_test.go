@@ -59,6 +59,27 @@ func TestMatchPath(t *testing.T) {
 		{"t3.5", []string{"/", "/css", "/js"}, []string{"/www/others", "/www/ui/css", "/www/ui/js"}, "/css2", "/www/ui/css2", true},
 
 		{"t4.1", []string{"/css/abc", "/css"}, []string{"/www/abc", "/www/css"}, "/css/abc", "/www/css/abc", true},
+
+		// a URL whose dot segments climb above the mapped target matches nothing
+		{"t5.1", []string{"/"}, []string{"/www/"}, "/../x", "", false},
+		{"t5.2", []string{"/"}, []string{"/www/"}, "/a/../../x", "", false},
+		{"t5.3", []string{"/css"}, []string{"/www/css"}, "/css/../../etc/passwd", "", false},
+		{"t5.4", []string{"/"}, []string{"/www/"}, "/..", "", false},
+		{"t5.5", []string{"/static"}, []string{"/www/"}, "/static../x", "", false},
+		{"t5.6", []string{"/"}, []string{"/www/."}, "/./../w2/x", "", false},
+		{"t5.7", []string{"/"}, []string{"/www"}, "//../x", "", false},
+		{"t5.14", []string{"/static"}, []string{"/www/css"}, "/static/../css-private/x", "", false},
+		{"t5.15", []string{"/static"}, []string{"/www/css"}, "/static-a/../../x", "", false},
+		{"t5.16", []string{"/static"}, []string{"/www/css"}, "/static-a/../b/x", "", false},
+		{"t5.17", []string{"/"}, []string{""}, "/a/../../x", "a/../../x", true},
+		{"t5.18", []string{"/static"}, []string{"/www/css"}, "/static-a/./b", "/www/css-a/./b", true},
+		// dot segments that stay under the target are passed on unchanged, as before
+		{"t5.8", []string{"/"}, []string{"/www/"}, "/a/./b/../c/", "/www/a/./b/../c/", true},
+		{"t5.9", []string{"/"}, []string{"/www/"}, "/a/..", "/www/a/..", true},
+		{"t5.10", []string{"/"}, []string{"/www"}, "//./x", "/www/./x", true},
+		{"t5.13", []string{"/"}, []string{"/www"}, "/../x", "/www../x", true},
+		{"t5.11", []string{"/a"}, []string{"/w/a"}, "/a./a", "/w/a./a", true},
+		{"t5.12", []string{"/"}, []string{""}, "/../x", "../x", true},
 	}
 	for _, test := range tests {
 		path, found := matchPath(test.url, test.from, test.to)
@@ -129,10 +150,8 @@ func TestServer(t *testing.T) {
 		if test.status == 0 {
 			assert.Nil(t, err, test.id)
 			assert.Equal(t, test.body, res.Body.String(), test.id)
-		} else {
-			if assert.NotNil(t, err, test.id) {
-				assert.Equal(t, test.status, err.(routing.HTTPError).StatusCode(), test.id)
-			}
+		} else if assert.NotNil(t, err, test.id) {
+			assert.Equal(t, test.status, err.(routing.HTTPError).StatusCode(), test.id)
 		}
 	}
 
@@ -201,6 +220,50 @@ func runServerCases(t *testing.T, h routing.Handler, tests []serverCase) {
 		res := httptest.NewRecorder()
 		c := routing.NewContext(res, req)
 		err := h(c)
+		if test.status == 0 {
+			if assert.Nil(t, err, test.id) {
+				assert.Equal(t, test.body, res.Body.String(), test.id)
+			}
+		} else if assert.NotNil(t, err, test.id) {
+			assert.Equal(t, test.status, err.(routing.HTTPError).StatusCode(), test.id)
+		}
+	}
+}
+
+// The mapped directory is a boundary: dot segments, plain or percent-encoded, must not
+// reach files that are inside RootPath but outside the directory the URL prefix maps to.
+func TestServerStaysInMappedDir(t *testing.T) {
+	root := Server(PathMap{"/": "/testdata/css/"})
+	prefixed := Server(PathMap{"/static": "/testdata/css/"})
+	named := Server(PathMap{"/static": "/testdata/css"})
+	catchAll := Server(PathMap{"/": "/testdata/css/"}, ServerOptions{CatchAllFile: "testdata/css/main.css"})
+	tests := []struct {
+		id     string
+		h      routing.Handler
+		url    string
+		status int
+		body   string
+	}{
+		{"inside", root, "/main.css", 0, "body {}\n"},
+		{"dot inside", root, "/./main.css", 0, "body {}\n"},
+		{"dot dot inside", root, "/sub/../main.css", 0, "body {}\n"},
+		{"parent", root, "/../index.html", http.StatusNotFound, ""},
+		{"encoded parent", root, "/%2e%2e/index.html", http.StatusNotFound, ""},
+		{"source file", root, "/../../server.go", http.StatusNotFound, ""},
+		{"encoded source file", root, "/%2e%2e/%2e%2e/server.go", http.StatusNotFound, ""},
+		{"encoded slashes", root, "/..%2f..%2fserver.go", http.StatusNotFound, ""},
+		{"glued to prefix", prefixed, "/static../index.html", http.StatusNotFound, ""},
+		{"glued to prefix, source file", prefixed, "/static../../server.go", http.StatusNotFound, ""},
+		{"named target", named, "/static/main.css", 0, "body {}\n"},
+		{"named target, sibling with the same prefix", named, "/static/../css-private/secret.txt", http.StatusNotFound, ""},
+		{"named target, encoded sibling", named, "/static/%2e%2e/css-private/secret.txt", http.StatusNotFound, ""},
+		{"catch all is not a way out", catchAll, "/../../server.go", http.StatusNotFound, ""},
+	}
+	for _, test := range tests {
+		h := test.h
+		req, _ := http.NewRequest("GET", test.url, nil)
+		res := httptest.NewRecorder()
+		err := h(routing.NewContext(res, req))
 		if test.status == 0 {
 			if assert.Nil(t, err, test.id) {
 				assert.Equal(t, test.body, res.Body.String(), test.id)
@@ -282,4 +345,46 @@ func TestServerFS(t *testing.T) {
 		{"embedded root", "GET", "/", 0, "ui index\n"},
 		{"embedded file", "GET", "/index.html", 0, "ui index\n"},
 	})
+}
+
+// The PathMap target bounds requests served from an FS the same way as from RootPath.
+func TestServerFSStaysInMappedDir(t *testing.T) {
+	fsys := fstest.MapFS{
+		"ui/index.html":             {Data: []byte("ui index\n")},
+		"ui/css/main.css":           {Data: []byte("ui css\n")},
+		"ui/css-private/secret.txt": {Data: []byte("secret\n")},
+	}
+	root := Server(PathMap{"/": "/ui/css/"}, ServerOptions{FS: fsys})
+	runServerCases(t, root, []serverCase{
+		{"inside", "GET", "/main.css", 0, "ui css\n"},
+		{"dot dot inside", "GET", "/x/../main.css", 0, "ui css\n"},
+		{"parent", "GET", "/../index.html", http.StatusNotFound, ""},
+		{"encoded parent", "GET", "/%2e%2e/index.html", http.StatusNotFound, ""},
+	})
+	prefixed := Server(PathMap{"/static": "/ui/css/"}, ServerOptions{FS: fsys})
+	runServerCases(t, prefixed, []serverCase{
+		{"glued to prefix", "GET", "/static../index.html", http.StatusNotFound, ""},
+	})
+	named := Server(PathMap{"/static": "/ui/css"}, ServerOptions{FS: fsys})
+	runServerCases(t, named, []serverCase{
+		{"named target", "GET", "/static/main.css", 0, "ui css\n"},
+		{"named target, sibling with the same prefix", "GET", "/static/../css-private/secret.txt", http.StatusNotFound, ""},
+	})
+}
+
+// The error message is written to the client, so it must not carry the server's file paths.
+func TestNotFoundHidesFilePaths(t *testing.T) {
+	handlers := map[string]routing.Handler{
+		"server missing":   Server(PathMap{"/": "/testdata/"}),
+		"server catch all": Server(PathMap{"/": "/testdata/"}, ServerOptions{CatchAllFile: "missing.html"}),
+		"content missing":  Content("testdata/missing.html"),
+	}
+	for id, h := range handlers {
+		req, _ := http.NewRequest("GET", "/missing.css", nil)
+		err := h(routing.NewContext(httptest.NewRecorder(), req))
+		if assert.NotNil(t, err, id) {
+			assert.Equal(t, http.StatusNotFound, err.(routing.HTTPError).StatusCode(), id)
+			assert.Equal(t, http.StatusText(http.StatusNotFound), err.Error(), id)
+		}
+	}
 }

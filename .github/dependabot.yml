@@ -1,0 +1,14 @@
+# Keeps GitHub Actions on current majors. Go module updates are handled deliberately
+# (go list -m -u all before releases); security updates for modules come from Dependabot
+# security updates (repo setting).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci

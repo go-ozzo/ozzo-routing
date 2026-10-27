@@ -61,17 +61,17 @@ func init() {
 // For example, if the path map contains both "/css" and "/css/img", and the URL path is "/css/img/logo.gif",
 // then the path mapped by "/css/img" will be used.
 //
-//     import (
-//         "log"
-//         "github.com/go-ozzo/ozzo-routing/v2"
-//         "github.com/go-ozzo/ozzo-routing/v2/file"
-//     )
+//	import (
+//	    "log"
+//	    "github.com/go-ozzo/ozzo-routing/v2"
+//	    "github.com/go-ozzo/ozzo-routing/v2/file"
+//	)
 //
-//     r := routing.New()
-//     r.Get("/*", file.Server(file.PathMap{
-//          "/css": "/ui/dist/css",
-//          "/js": "/ui/dist/js",
-//     }))
+//	r := routing.New()
+//	r.Get("/*", file.Server(file.PathMap{
+//	     "/css": "/ui/dist/css",
+//	     "/js": "/ui/dist/js",
+//	}))
 func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	var options ServerOptions
 	if len(opts) > 0 {
@@ -109,12 +109,12 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			if options.CatchAllFile != "" {
 				return serveFile(c, fsys, options.CatchAllFile)
 			}
-			return routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return routing.NewHTTPError(http.StatusNotFound)
 		}
-		defer file.Close()
+		defer file.Close() //nolint:errcheck // read-only file: a Close error loses nothing
 
 		if fstat, err = file.Stat(); err != nil {
-			return routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return routing.NewHTTPError(http.StatusNotFound)
 		}
 
 		if fstat.IsDir() {
@@ -135,12 +135,12 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 func serveFile(c *routing.Context, fsys http.FileSystem, path string) error {
 	file, err := fsys.Open(path)
 	if err != nil {
-		return routing.NewHTTPError(http.StatusNotFound, err.Error())
+		return routing.NewHTTPError(http.StatusNotFound)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // read-only file: a Close error loses nothing
 	fstat, err := file.Stat()
 	if err != nil {
-		return routing.NewHTTPError(http.StatusNotFound, err.Error())
+		return routing.NewHTTPError(http.StatusNotFound)
 	} else if fstat.IsDir() {
 		return routing.NewHTTPError(http.StatusNotFound)
 	}
@@ -161,14 +161,14 @@ func Content(path string) routing.Handler {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
 			return routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}
-		file, err := os.Open(path)
+		file, err := os.Open(path) //nolint:gosec // path is the handler's configured file, not request input
 		if err != nil {
-			return routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return routing.NewHTTPError(http.StatusNotFound)
 		}
-		defer file.Close()
+		defer file.Close() //nolint:errcheck // read-only file: a Close error loses nothing
 		fstat, err := file.Stat()
 		if err != nil {
-			return routing.NewHTTPError(http.StatusNotFound, err.Error())
+			return routing.NewHTTPError(http.StatusNotFound)
 		} else if fstat.IsDir() {
 			return routing.NewHTTPError(http.StatusNotFound)
 		}
@@ -197,10 +197,38 @@ func matchPath(path string, from, to []string) (string, bool) {
 	for i := len(from) - 1; i >= 0; i-- {
 		prefix := from[i]
 		if strings.HasPrefix(path, prefix) {
-			return to[i] + path[len(prefix):], true
+			rest := path[len(prefix):]
+			if !withinTarget(to[i], rest) {
+				return "", false
+			}
+			return to[i] + rest, true
 		}
 	}
 	return "", false
+}
+
+// withinTarget reports whether target+rest still lies under the PathMap target once its "."
+// and ".." segments are resolved. http.Dir resolves them only against RootPath, so without this
+// check a URL like "/%2e%2e/config.yaml" reaches files outside the mapped directory.
+// matchPath concatenates, so when the target ends in a name ("/www") and rest does not start
+// with a slash, the first fragment of rest extends that name ("/www" + "index" is "/wwwindex");
+// everything after it must stay inside the extended name.
+func withinTarget(target, rest string) bool {
+	dir := target
+	if last := slashpath.Base("/" + target); target != "" && last != "." && last != ".." &&
+		!strings.HasSuffix(target, "/") && !strings.HasPrefix(rest, "/") {
+		i := strings.IndexByte(rest, '/')
+		if i < 0 {
+			return true // a single fragment glued to the name: no separator to climb with
+		}
+		dir += rest[:i]
+	}
+	base := slashpath.Clean("/" + dir)
+	if base == "/" {
+		return true
+	}
+	cleaned := slashpath.Clean("/" + target + rest)
+	return cleaned == base || strings.HasPrefix(cleaned, base+"/")
 }
 
 // cleanFS cleans the requested name the way http.Dir does before opening it. http.FS passes

@@ -22,9 +22,9 @@ const Language = "Language"
 //
 // In a handler, you can access the chosen language through routing.Context like the following:
 //
-//     func(c *routing.Context) error {
-//         language := c.Get(content.Language).(string)
-//     }
+//	func(c *routing.Context) error {
+//	    language := c.Get(content.Language).(string)
+//	}
 //
 // If you do not specify languages, the negotiator will set the language to be "en-US".
 func LanguageNegotiator(languages ...string) routing.Handler {

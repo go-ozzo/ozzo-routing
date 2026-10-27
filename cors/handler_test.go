@@ -194,6 +194,56 @@ func TestOptionsSetPreflightHeaders(t *testing.T) {
 	assert.Equal(t, "X-Pong", headers.Get(headerAllowHeaders))
 }
 
+func TestHandlerPreflightHeaderFiltering(t *testing.T) {
+	tests := []struct {
+		name         string
+		allowHeaders string
+		request      string
+		wantHeaders  string
+		wantOrigin   string
+	}{
+		{"allowed", "X-Ping, X-Pong", "X-Ping", "X-Ping", "https://example.com"},
+		{"all allowed", "X-Ping, X-Pong", "X-Pong,X-Ping", "X-Pong,X-Ping", "https://example.com"},
+		{"denied", "X-Ping, X-Pong", "X-Unknown", "", ""},
+		{"all denied", "X-Ping, X-Pong", "X-Unknown, X-Other", "", ""},
+		{"empty", "X-Ping, X-Pong", "", "", "https://example.com"},
+		{"mixed allowed first", "X-Ping, X-Pong", "X-Ping, X-Unknown", "X-Ping", "https://example.com"},
+		{"mixed denied first", "X-Ping, X-Pong", "X-Unknown, X-Ping", "X-Ping", "https://example.com"},
+		{"mixed allowed pair", "X-Ping, X-Pong", "X-Pong, X-Unknown, X-Ping", "X-Pong,X-Ping", "https://example.com"},
+		{"mixed case and whitespace", "X-Ping, X-Pong", " x-ping , X-Unknown , x-pong ", "x-ping,x-pong", "https://example.com"},
+		{"empty allow list", "", "X-Ping", "", ""},
+		{"empty allow list and request", "", "", "", "https://example.com"},
+		{"wildcard mixed", "*", "X-Ping, X-Unknown", "X-Ping, X-Unknown", "https://example.com"},
+		{"wildcard denied name", "*", "X-Unknown", "X-Unknown", "https://example.com"},
+		{"wildcard empty", "*", "", "", "https://example.com"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			h := Handler(Options{
+				AllowOrigins: "https://example.com",
+				AllowMethods: "PATCH",
+				AllowHeaders: test.allowHeaders,
+			})
+			res := httptest.NewRecorder()
+			req := httptest.NewRequest("OPTIONS", "/users", nil)
+			req.Header.Set(headerOrigin, "https://example.com")
+			req.Header.Set(headerRequestMethod, "PATCH")
+			req.Header.Set(headerRequestHeaders, test.request)
+			nextCalled := false
+			c := routing.NewContext(res, req, h, func(*routing.Context) error {
+				nextCalled = true
+				return nil
+			})
+
+			assert.NoError(t, c.Next())
+			assert.Equal(t, test.wantHeaders, res.Header().Get(headerAllowHeaders))
+			assert.Equal(t, test.wantOrigin, res.Header().Get(headerAllowOrigin))
+			assert.False(t, nextCalled)
+		})
+	}
+}
+
 func TestHandlers(t *testing.T) {
 	h := Handler(Options{
 		AllowOrigins: "https://example.com, https://foo.com",
