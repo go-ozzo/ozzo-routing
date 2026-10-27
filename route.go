@@ -121,7 +121,7 @@ func (r *Route) URL(pairs ...interface{}) (s string) {
 		if i < len(pairs)-1 {
 			value = url.QueryEscape(fmt.Sprint(pairs[i+1]))
 		}
-		s = strings.Replace(s, name, value, -1)
+		s = strings.ReplaceAll(s, name, value)
 	}
 	return
 }

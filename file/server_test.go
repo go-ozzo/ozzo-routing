@@ -148,10 +148,8 @@ func TestServer(t *testing.T) {
 		if test.status == 0 {
 			assert.Nil(t, err, test.id)
 			assert.Equal(t, test.body, res.Body.String(), test.id)
-		} else {
-			if assert.NotNil(t, err, test.id) {
-				assert.Equal(t, test.status, err.(routing.HTTPError).StatusCode(), test.id)
-			}
+		} else if assert.NotNil(t, err, test.id) {
+			assert.Equal(t, test.status, err.(routing.HTTPError).StatusCode(), test.id)
 		}
 	}
 

@@ -61,5 +61,6 @@ func writeError(c *routing.Context, err error) {
 	} else {
 		c.Response.WriteHeader(http.StatusInternalServerError)
 	}
-	c.Write(err)
+	// The status is already sent; a body that fails to write has nowhere left to be reported.
+	_ = c.Write(err)
 }

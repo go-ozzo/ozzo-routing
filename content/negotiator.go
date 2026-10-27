@@ -34,7 +34,7 @@ func (a AcceptRange) RawString() string {
 
 // AcceptMediaTypes builds a list of AcceptRange from the given HTTP request.
 func AcceptMediaTypes(r *http.Request) []AcceptRange {
-	result := []AcceptRange{}
+	result := make([]AcceptRange, 0, len(r.Header["Accept"]))
 
 	for _, v := range r.Header["Accept"] {
 		result = append(result, ParseAcceptRanges(v)...)
@@ -129,7 +129,7 @@ func compareParams(params1 map[string]string, params2 map[string]string) (count 
 // NegotiateContentType negotiates the content types based on the given request and allowed types.
 func NegotiateContentType(r *http.Request, offers []string, defaultOffer string) string {
 	accepts := AcceptMediaTypes(r)
-	offerRanges := []AcceptRange{}
+	offerRanges := make([]AcceptRange, 0, len(offers))
 	for _, off := range offers {
 		offerRanges = append(offerRanges, ParseAcceptRange(off))
 	}

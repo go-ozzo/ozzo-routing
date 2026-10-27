@@ -53,12 +53,11 @@ func CustomLogger(loggerFunc LogWriterFunc) routing.Handler {
 
 		err := c.Next()
 
-		elapsed := float64(time.Now().Sub(startTime).Nanoseconds()) / 1e6
+		elapsed := float64(time.Since(startTime).Nanoseconds()) / 1e6
 		loggerFunc(req, rw, elapsed)
 
 		return err
 	}
-
 }
 
 // Logger returns a handler that logs a message for every request.
@@ -78,7 +77,6 @@ func Logger(log LogFunc) routing.Handler {
 		clientIP := GetClientIP(req)
 		requestLine := fmt.Sprintf("%s %s %s", req.Method, req.URL.String(), req.Proto)
 		log(`[%s] [%.3fms] %s %d %d`, clientIP, elapsed, requestLine, rw.Status, rw.BytesWritten)
-
 	}
 	return CustomLogger(logger)
 }
