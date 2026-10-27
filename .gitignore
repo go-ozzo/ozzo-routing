@@ -22,5 +22,21 @@ _testmain.go
 *.exe
 *.test
 *.prof
+.DS_Store
 
-coverage.out
+# Editors
+.idea
+
+# Test and build outputs
+*.out
+*.log
+coverage.*
+/dist/
+
+# Private (never tracked in this public repo)
+/.claude/
+/.pm/
+/docs/dev/
+/tmp/
+/.gode/
+/.mcp.json
