@@ -9,9 +9,10 @@ import (
 	"encoding/base64"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // User is the key used to store and retrieve the user identity information in routing.Context
@@ -202,6 +203,9 @@ type JWTOptions struct {
 	TokenHandler JWTTokenHandler
 	// a function to get a dynamic VerificationKey
 	GetVerificationKey VerificationKeyHandler
+	// the clock skew allowed when checking the exp, nbf and iat claims. Defaults to none; a negative value is
+	// treated as 0. It replaces setting the global jwt.TimeFunc of golang-jwt v3, which jwt/v5 does not have.
+	Leeway time.Duration
 }
 
 // DefaultJWTTokenHandler stores the parsed JWT token in the routing context with the key named "JWT".
@@ -217,13 +221,15 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 // If the parsing or validation fails, a "WWW-Authenticate" header will be sent, and an http.StatusUnauthorized
 // error will be returned.
 //
+// Tokens are parsed with github.com/golang-jwt/jwt/v5 (before v2.5.0: github.com/golang-jwt/jwt v3), so the
+// token in the routing context and the types of JWTTokenHandler and NewJWT come from that package. Only the
+// configured signing method is accepted, and exp, nbf and iat are checked.
+//
 // JWT can be used like the following:
 //
 //	import (
-//	  "errors"
 //	  "fmt"
-//	  "net/http"
-//	  "github.com/golang-jwt/jwt"
+//	  "github.com/golang-jwt/jwt/v5"
 //	  "github.com/go-ozzo/ozzo-routing/v2"
 //	  "github.com/go-ozzo/ozzo-routing/v2/auth"
 //	)
@@ -237,7 +243,7 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 //	      return err
 //	    }
 //	    token, err := auth.NewJWT(jwt.MapClaims{
-//	      "id": id
+//	      "id": id,
 //	    }, signingKey)
 //	    if err != nil {
 //	      return err
@@ -248,7 +254,7 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 //	  r.Use(auth.JWT(signingKey))
 //	  r.Get("/restricted", func(c *routing.Context) error {
 //	    claims := c.Get("JWT").(*jwt.Token).Claims.(jwt.MapClaims)
-//	    return c.Write(fmt.Sprint("Welcome, %v!", claims["id"]))
+//	    return c.Write(fmt.Sprintf("Welcome, %v!", claims["id"]))
 //	  })
 //	}
 func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
@@ -265,9 +271,13 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 	if opt.TokenHandler == nil {
 		opt.TokenHandler = DefaultJWTTokenHandler
 	}
-	parser := &jwt.Parser{
-		ValidMethods: []string{opt.SigningMethod},
+	// WithIssuedAt keeps the golang-jwt v3 rule that a token issued in the future is rejected;
+	// jwt/v5 checks iat only when asked. exp and nbf are checked by default.
+	parserOptions := []jwt.ParserOption{jwt.WithValidMethods([]string{opt.SigningMethod}), jwt.WithIssuedAt()}
+	if opt.Leeway > 0 {
+		parserOptions = append(parserOptions, jwt.WithLeeway(opt.Leeway))
 	}
+	parser := jwt.NewParser(parserOptions...)
 	return func(c *routing.Context) error {
 		header := c.Request.Header.Get("Authorization")
 		message := ""
@@ -275,16 +285,7 @@ func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 			verificationKey = opt.GetVerificationKey(c)
 		}
 		if strings.HasPrefix(header, "Bearer ") {
-			var token *jwt.Token
-			var err error
-			// golang-jwt v3 splits the token on every period before it checks the segment count, so a
-			// header full of periods costs about 16 bytes of allocation per byte (GO-2025-3553).
-			// Counting allocates nothing; the error is the one the parser would return.
-			if strings.Count(header[7:], ".") != 2 {
-				err = jwt.NewValidationError("token contains an invalid number of segments", jwt.ValidationErrorMalformed)
-			} else {
-				token, err = parser.Parse(header[7:], func(t *jwt.Token) (interface{}, error) { return []byte(verificationKey), nil })
-			}
+			token, err := parser.Parse(header[7:], func(*jwt.Token) (interface{}, error) { return []byte(verificationKey), nil })
 			if err == nil && token.Valid {
 				err = opt.TokenHandler(c, token)
 			}
