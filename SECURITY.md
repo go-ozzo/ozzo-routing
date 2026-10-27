@@ -14,7 +14,8 @@ Only the module path `github.com/go-ozzo/ozzo-routing/v2` receives fixes. Releas
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Report privately via a GitHub Security Advisory:
+Report it privately with **Report a vulnerability** on the repository's
+[Security tab](https://github.com/go-ozzo/ozzo-routing/security), which opens a private advisory draft:
 https://github.com/go-ozzo/ozzo-routing/security/advisories/new
 
 Please include:

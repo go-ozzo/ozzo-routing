@@ -15,6 +15,13 @@ Releases before v2.4.1 are described on the [GitHub releases page](https://githu
 - deps: github.com/golang/gddo is removed. The repository is archived; `content.LanguageNegotiator` now parses
   `Accept-Language` with a copy of its `ParseAccept` in an internal package, with gddo's tests. Behaviour is unchanged.
 
+### Fixed
+
+- `cors.Handler` answers a preflight with only the requested headers that `AllowHeaders` allows. It used to echo the
+  whole `Access-Control-Request-Headers` value as soon as one name was allowed, approving the others too. With an
+  explicit `AllowHeaders` list the allowed names now come back comma-joined without the original spacing
+  (`X-Ping,X-Pong`); with `AllowHeaders: "*"` the request value is echoed as before. (#72, @bensynapse)
+
 ### Internal
 
 - CI on GitHub Actions: tests with the race detector on Linux (oldstable, stable), Windows and macOS (stable) and on
