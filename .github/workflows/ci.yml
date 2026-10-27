@@ -1,0 +1,162 @@
+name: CI
+
+# Go: oldstable + stable (the two supported releases), plus the go.mod minimum.
+# The ruleset requires ONE check, the "Test" gate at the end: jobs and the matrix can change
+# without touching the ruleset. A new required job goes into the gate's `needs`.
+# Tool versions are pinned and bumped on purpose: an unpinned tool breaks every PR at once
+# when its new release lands.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+env:
+  # Never download a newer Go behind our back: the job must run the Go it asked for, or
+  # the minimum and oldstable tests prove nothing.
+  GOTOOLCHAIN: local
+
+jobs:
+  test:
+    name: Test - ${{ matrix.os }} - Go ${{ matrix.go-version }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # Codecov OIDC — only this job needs it
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, go-version: oldstable }
+          - { os: ubuntu-latest, go-version: stable }
+          # file.Server joins and checks paths; Windows separators and names behave differently.
+          - { os: windows-latest, go-version: stable }
+          - { os: macos-latest, go-version: stable }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+      - name: Verify modules
+        run: go mod verify
+      - name: Vet
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == 'stable'
+        run: go vet ./...
+      - name: Test (race)
+        shell: bash
+        run: go test -race -count=1 -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == 'stable'
+        uses: codecov/codecov-action@v7
+        continue-on-error: true
+        with:
+          use_oidc: true
+          files: ./coverage.txt
+          flags: unittests
+          name: codecov-ozzo-routing
+
+  # The go.mod `go` line is a promise to every importer. Read it from the `go` line, not with
+  # go-version-file: setup-go prefers a `toolchain` line when one exists.
+  test-minimum:
+    name: Test - ubuntu-latest - Go minimum
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: gomod
+        run: echo "go=$(awk '$1 == "go" { print $2; exit }' go.mod)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ steps.gomod.outputs.go }}
+          cache: true
+      - run: go version
+      - name: Test (race)
+        run: go test -race -count=1 ./...
+
+  build-386:
+    name: Build - linux 386
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: true
+      - run: GOARCH=386 go build ./...
+      # No -race: the race detector does not support 386.
+      - run: GOARCH=386 go test -count=1 ./...
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: true
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          # Exact version: bump it in its own PR that fixes the new findings, and with each
+          # new Go minor (an older linter may not understand the new Go).
+          version: v2.15.0
+          args: --timeout=5m
+
+  formatting:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: true
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Not gofmt-ed:"; echo "$unformatted"; exit 1
+          fi
+      - name: go mod tidy
+        run: |
+          go mod tidy
+          if [ -n "$(git status --porcelain -- go.mod go.sum)" ]; then
+            echo "go mod tidy changed go.mod/go.sum:"
+            git status --porcelain -- go.mod go.sum
+            git diff -- go.mod go.sum; exit 1
+          fi
+
+  # Informational: not in the gate, so a new advisory in a dependency does not block
+  # unrelated PRs, and continue-on-error keeps a finding from turning the whole run (and the
+  # README badge) red; read the job's log. It stays on the latest govulncheck on purpose: the
+  # vulnerability data must be current.
+  vulncheck:
+    name: Vulncheck
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: stable
+
+  # The one required check. `if: always()` and the explicit result check are both needed: a
+  # job that is skipped (for example because a job it needs failed) counts as passed for a
+  # required check, so a gate without them can let a red PR through.
+  gate:
+    name: Test
+    if: always()
+    needs: [test, test-minimum, build-386, lint, formatting]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every required job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != success ]; then echo "a required job ended with: $r"; exit 1; fi
+          done
