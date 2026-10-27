@@ -7,6 +7,12 @@ Releases before v2.4.1 are described on the [GitHub releases page](https://githu
 
 ## [Unreleased]
 
+### Added
+
+- `file.ServerOptions.FS`: serve files from an `fs.FS`, such as an `embed.FS`, instead of `RootPath`. Names are
+  cleaned the same way `http.Dir` cleans them, and the `PathMap` target bounds requests as it does for `RootPath`.
+  (#68, @zekroTJA)
+
 ### Changed
 
 - **Go 1.21 or newer is required** (was 1.13). It is the minimum of the jwt/v5 and `io/fs` changes planned for

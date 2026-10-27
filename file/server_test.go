@@ -7,8 +7,10 @@ package file
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/stretchr/testify/assert"
@@ -205,6 +207,29 @@ func TestServer(t *testing.T) {
 	}
 }
 
+type serverCase struct {
+	id          string
+	method, url string
+	status      int
+	body        string
+}
+
+func runServerCases(t *testing.T, h routing.Handler, tests []serverCase) {
+	for _, test := range tests {
+		req, _ := http.NewRequest(test.method, test.url, nil)
+		res := httptest.NewRecorder()
+		c := routing.NewContext(res, req)
+		err := h(c)
+		if test.status == 0 {
+			if assert.Nil(t, err, test.id) {
+				assert.Equal(t, test.body, res.Body.String(), test.id)
+			}
+		} else if assert.NotNil(t, err, test.id) {
+			assert.Equal(t, test.status, err.(routing.HTTPError).StatusCode(), test.id)
+		}
+	}
+}
+
 // The mapped directory is a boundary: dot segments, plain or percent-encoded, must not
 // reach files that are inside RootPath but outside the directory the URL prefix maps to.
 func TestServerStaysInMappedDir(t *testing.T) {
@@ -247,6 +272,104 @@ func TestServerStaysInMappedDir(t *testing.T) {
 			assert.Equal(t, test.status, err.(routing.HTTPError).StatusCode(), test.id)
 		}
 	}
+}
+
+// http.Dir cleans the requested name, so directory URLs with a trailing slash and
+// "//", "." or ".." segments that stay inside RootPath are served.
+func TestServerCleansNames(t *testing.T) {
+	h := Server(PathMap{"/": "/"}, ServerOptions{RootPath: "testdata", IndexFile: "index.html"})
+	runServerCases(t, h, []serverCase{
+		{"root", "GET", "/", 0, "hello\n"},
+		{"dir", "GET", "/css", 0, "css.html\n"},
+		{"dir with slash", "GET", "/css/", 0, "css.html\n"},
+		{"double slash", "GET", "/css//main.css", 0, "body {}\n"},
+		{"dot", "GET", "/./css/main.css", 0, "body {}\n"},
+		{"dot dot", "GET", "/css/../index.html", 0, "hello\n"},
+		{"outside root", "GET", "/../server.go", http.StatusNotFound, ""},
+		{"encoded outside root", "GET", "/%2e%2e/server.go", http.StatusNotFound, ""},
+		{"backslash outside root", "GET", "/..%5cserver.go", http.StatusNotFound, ""},
+		{"nul", "GET", "/index.html%00", http.StatusNotFound, ""},
+	})
+}
+
+// An FS backed by a directory must not serve files outside that directory either.
+func TestServerFSContainment(t *testing.T) {
+	h := Server(PathMap{"/": "/"}, ServerOptions{FS: os.DirFS("testdata")})
+	runServerCases(t, h, []serverCase{
+		{"inside", "GET", "/index.html", 0, "hello\n"},
+		{"outside root", "GET", "/../server.go", http.StatusNotFound, ""},
+		{"encoded outside root", "GET", "/%2e%2e/server.go", http.StatusNotFound, ""},
+		{"backslash outside root", "GET", "/..%5cserver.go", http.StatusNotFound, ""},
+		{"nul", "GET", "/index.html%00", http.StatusNotFound, ""},
+	})
+}
+
+func TestServerFS(t *testing.T) {
+	fsys := fstest.MapFS{
+		"index.html":     {Data: []byte("fs index\n")},
+		"css/index.html": {Data: []byte("fs css index\n")},
+		"css/main.css":   {Data: []byte("fs css\n")},
+	}
+
+	// FS takes precedence over RootPath: testdata holds files with the same names.
+	h := Server(PathMap{"/": "/"}, ServerOptions{FS: fsys, RootPath: "testdata", IndexFile: "index.html"})
+	runServerCases(t, h, []serverCase{
+		{"file", "GET", "/css/main.css", 0, "fs css\n"},
+		{"head", "HEAD", "/css/main.css", 0, ""},
+		{"root", "GET", "/", 0, "fs index\n"},
+		{"dir", "GET", "/css", 0, "fs css index\n"},
+		{"dir with slash", "GET", "/css/", 0, "fs css index\n"},
+		{"double slash", "GET", "/css//main.css", 0, "fs css\n"},
+		{"dot", "GET", "/./css/main.css", 0, "fs css\n"},
+		{"dot dot", "GET", "/css/../index.html", 0, "fs index\n"},
+		{"outside root", "GET", "/../index.html", 0, "fs index\n"},
+		{"missing", "GET", "/css/main2.css", http.StatusNotFound, ""},
+		{"post", "POST", "/css/main.css", http.StatusMethodNotAllowed, ""},
+	})
+
+	h = Server(PathMap{"/static": ""}, ServerOptions{FS: fsys})
+	runServerCases(t, h, []serverCase{
+		{"empty target", "GET", "/static/css/main.css", 0, "fs css\n"},
+		{"dir without index file", "GET", "/static/css", http.StatusNotFound, ""},
+	})
+
+	h = Server(PathMap{"/": "/"}, ServerOptions{FS: fsys, CatchAllFile: "index.html"})
+	runServerCases(t, h, []serverCase{
+		{"catch all", "GET", "/missing.css", 0, "fs index\n"},
+	})
+
+	// The README example: an embed.FS keeps the embedded directory name in its paths.
+	embedded := fstest.MapFS{"ui/index.html": {Data: []byte("ui index\n")}}
+	h = Server(PathMap{"/": "/ui/"}, ServerOptions{FS: embedded, IndexFile: "index.html"})
+	runServerCases(t, h, []serverCase{
+		{"embedded root", "GET", "/", 0, "ui index\n"},
+		{"embedded file", "GET", "/index.html", 0, "ui index\n"},
+	})
+}
+
+// The PathMap target bounds requests served from an FS the same way as from RootPath.
+func TestServerFSStaysInMappedDir(t *testing.T) {
+	fsys := fstest.MapFS{
+		"ui/index.html":             {Data: []byte("ui index\n")},
+		"ui/css/main.css":           {Data: []byte("ui css\n")},
+		"ui/css-private/secret.txt": {Data: []byte("secret\n")},
+	}
+	root := Server(PathMap{"/": "/ui/css/"}, ServerOptions{FS: fsys})
+	runServerCases(t, root, []serverCase{
+		{"inside", "GET", "/main.css", 0, "ui css\n"},
+		{"dot dot inside", "GET", "/x/../main.css", 0, "ui css\n"},
+		{"parent", "GET", "/../index.html", http.StatusNotFound, ""},
+		{"encoded parent", "GET", "/%2e%2e/index.html", http.StatusNotFound, ""},
+	})
+	prefixed := Server(PathMap{"/static": "/ui/css/"}, ServerOptions{FS: fsys})
+	runServerCases(t, prefixed, []serverCase{
+		{"glued to prefix", "GET", "/static../index.html", http.StatusNotFound, ""},
+	})
+	named := Server(PathMap{"/static": "/ui/css"}, ServerOptions{FS: fsys})
+	runServerCases(t, named, []serverCase{
+		{"named target", "GET", "/static/main.css", 0, "ui css\n"},
+		{"named target, sibling with the same prefix", "GET", "/static/../css-private/secret.txt", http.StatusNotFound, ""},
+	})
 }
 
 // The error message is written to the client, so it must not carry the server's file paths.

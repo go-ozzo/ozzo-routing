@@ -6,6 +6,7 @@
 package file
 
 import (
+	"io/fs"
 	"net/http"
 	"os"
 	slashpath "path"
@@ -13,11 +14,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-ozzo/ozzo-routing/v2"
+	routing "github.com/go-ozzo/ozzo-routing/v2"
 )
 
 // ServerOptions defines the possible options for the Server handler.
 type ServerOptions struct {
+	// The file system to serve files from, such as an embed.FS. When set, it takes precedence over RootPath,
+	// and the file paths of the path map and CatchAllFile are relative to its root. Its files must implement
+	// io.Seeker (embed.FS and os.DirFS files do): http.ServeContent answers 500 for files that can't seek.
+	FS fs.FS
 	// The path that all files to be served should be located within. The path map passed to the Server method
 	// are all relative to this path. This property can be specified as an absolute file path or a path relative
 	// to the current working path. If not set, this property defaults to the current working path.
@@ -28,7 +33,7 @@ type ServerOptions struct {
 	IndexFile string
 	// The file to be served when no file or directory matches the current request.
 	// If not set, the handler will return a 404 HTTP error when no file/directory matches the request.
-	// The path of this file is relative to RootPath
+	// The path of this file is relative to RootPath, or to the root of FS when it is set.
 	CatchAllFile string
 	// A function that checks if the requested file path is allowed. If allowed, the function
 	// may do additional work such as setting Expires HTTP header.
@@ -38,7 +43,7 @@ type ServerOptions struct {
 }
 
 // PathMap specifies the mapping between URL paths (keys) and file paths (keys).
-// The file paths are relative to Options.RootPath
+// The file paths are relative to ServerOptions.RootPath, or to the root of ServerOptions.FS when it is set.
 type PathMap map[string]string
 
 // RootPath stores the current working path
@@ -77,8 +82,13 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	}
 	from, to := parsePathMap(pathMap)
 
-	// security measure: limit the files within options.RootPath
-	dir := http.Dir(options.RootPath)
+	var fsys http.FileSystem
+	if options.FS != nil {
+		fsys = cleanFS{http.FS(options.FS)}
+	} else {
+		// security measure: limit the files within options.RootPath
+		fsys = http.Dir(options.RootPath)
+	}
 
 	return func(c *routing.Context) error {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
@@ -95,9 +105,9 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			err   error
 		)
 
-		if file, err = dir.Open(path); err != nil {
+		if file, err = fsys.Open(path); err != nil {
 			if options.CatchAllFile != "" {
-				return serveFile(c, dir, options.CatchAllFile)
+				return serveFile(c, fsys, options.CatchAllFile)
 			}
 			return routing.NewHTTPError(http.StatusNotFound)
 		}
@@ -111,9 +121,9 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			if options.IndexFile == "" {
 				return routing.NewHTTPError(http.StatusNotFound)
 			}
-			// http.Dir takes slash-separated names and rejects the OS separator, so filepath.Join
-			// (backslashes on Windows) would turn every index request into a 404 there.
-			return serveFile(c, dir, slashpath.Join(path, options.IndexFile))
+			// http.FileSystem names are slash-separated, so filepath.Join (backslashes on Windows)
+			// would turn every index request into a 404 there.
+			return serveFile(c, fsys, slashpath.Join(path, options.IndexFile))
 		}
 
 		c.Response.Header().Del("Content-Type")
@@ -122,8 +132,8 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	}
 }
 
-func serveFile(c *routing.Context, dir http.Dir, path string) error {
-	file, err := dir.Open(path)
+func serveFile(c *routing.Context, fsys http.FileSystem, path string) error {
+	file, err := fsys.Open(path)
 	if err != nil {
 		return routing.NewHTTPError(http.StatusNotFound)
 	}
@@ -219,4 +229,15 @@ func withinTarget(target, rest string) bool {
 	}
 	cleaned := slashpath.Clean("/" + target + rest)
 	return cleaned == base || strings.HasPrefix(cleaned, base+"/")
+}
+
+// cleanFS cleans the requested name the way http.Dir does before opening it. http.FS passes
+// the name to fs.FS as is, and fs.FS rejects trailing slashes and "//", "." or ".." segments
+// that http.Dir resolves, so without this an FS would 404 on requests RootPath serves.
+type cleanFS struct {
+	http.FileSystem
+}
+
+func (f cleanFS) Open(name string) (http.File, error) {
+	return f.FileSystem.Open(slashpath.Clean("/" + name))
 }
