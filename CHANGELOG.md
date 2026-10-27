@@ -7,6 +7,8 @@ Releases before v2.4.1 are described on the [GitHub releases page](https://githu
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-27
+
 ### BREAKING
 
 - **`auth` uses `github.com/golang-jwt/jwt/v5`** instead of `github.com/golang-jwt/jwt` (v3, unmaintained, advisory
@@ -71,5 +73,6 @@ Releases before v2.4.1 are described on the [GitHub releases page](https://githu
 - `file.Server` serves `IndexFile` for directory requests on Windows, where it answered 404 because the index path
   was joined with backslashes.
 
-[Unreleased]: https://github.com/go-ozzo/ozzo-routing/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/go-ozzo/ozzo-routing/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/go-ozzo/ozzo-routing/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/go-ozzo/ozzo-routing/compare/v2.4.0...v2.4.1
