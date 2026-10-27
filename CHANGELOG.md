@@ -18,6 +18,15 @@ Releases before v2.4.1 are described on the [GitHub releases page](https://githu
 - **Go 1.21 or newer is required** (was 1.13). It is the minimum of the jwt/v5 and `io/fs` changes planned for
   this release, and the oldest Go the CI tests.
 - deps: github.com/stretchr/testify v1.4.0 → v1.12.1.
+- deps: github.com/golang/gddo is removed. The repository is archived; `content.LanguageNegotiator` now parses
+  `Accept-Language` with a copy of its `ParseAccept` in an internal package, with gddo's tests. Behaviour is unchanged.
+
+### Fixed
+
+- `cors.Handler` answers a preflight with only the requested headers that `AllowHeaders` allows. It used to echo the
+  whole `Access-Control-Request-Headers` value as soon as one name was allowed, approving the others too. With an
+  explicit `AllowHeaders` list the allowed names now come back comma-joined without the original spacing
+  (`X-Ping,X-Pong`); with `AllowHeaders: "*"` the request value is echoed as before. (#72, @bensynapse)
 
 ### Internal
 
