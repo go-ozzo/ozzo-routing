@@ -101,7 +101,6 @@ func (w *JSONDataWriter2) SetHeader(res http.ResponseWriter) {
 }
 
 func TestTypeNegotiatorWithVersion(t *testing.T) {
-
 	req, _ := http.NewRequest("GET", "/users/", nil)
 	req.Header.Set("Accept", "application/xml,"+v1JSON)
 

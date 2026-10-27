@@ -90,7 +90,8 @@ func (c *Context) Query(name string, defaultValue ...string) string {
 // If key is not present, it returns the specified default value or an empty string.
 func (c *Context) Form(key string, defaultValue ...string) string {
 	r := c.Request
-	r.ParseMultipartForm(32 << 20)
+	// As in http.Request.FormValue: a request without a multipart body is not an error here.
+	_ = r.ParseMultipartForm(32 << 20)
 	if vs := r.Form[key]; len(vs) > 0 {
 		return vs[0]
 	}
@@ -105,7 +106,8 @@ func (c *Context) Form(key string, defaultValue ...string) string {
 // If key is not present, it returns the specified default value or an empty string.
 func (c *Context) PostForm(key string, defaultValue ...string) string {
 	r := c.Request
-	r.ParseMultipartForm(32 << 20)
+	// As in http.Request.PostFormValue: a request without a multipart body is not an error here.
+	_ = r.ParseMultipartForm(32 << 20)
 	if vs := r.PostForm[key]; len(vs) > 0 {
 		return vs[0]
 	}

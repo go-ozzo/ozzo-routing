@@ -90,7 +90,7 @@ type TU struct {
 }
 
 func (tu *TU) UnmarshalText(text []byte) error {
-	tu.UValue = "TU_" + string(text[:])
+	tu.UValue = "TU_" + string(text)
 	return nil
 }
 

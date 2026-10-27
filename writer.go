@@ -23,11 +23,11 @@ func (w *dataWriter) SetHeader(res http.ResponseWriter) {}
 
 func (w *dataWriter) Write(res http.ResponseWriter, data interface{}) error {
 	var bytes []byte
-	switch data.(type) {
+	switch d := data.(type) {
 	case []byte:
-		bytes = data.([]byte)
+		bytes = d
 	case string:
-		bytes = []byte(data.(string))
+		bytes = []byte(d)
 	default:
 		if data != nil {
 			_, err := fmt.Fprint(res, data)
