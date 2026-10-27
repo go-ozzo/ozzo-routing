@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	slashpath "path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -18,7 +19,9 @@ import (
 
 // ServerOptions defines the possible options for the Server handler.
 type ServerOptions struct {
-	// The FS to be used to serve files from. When set, this overrides RootPath.
+	// The file system to serve files from, such as an embed.FS. When set, it takes precedence over RootPath,
+	// and the file paths of the path map and CatchAllFile are relative to its root. Its files must implement
+	// io.Seeker (embed.FS and os.DirFS files do): http.ServeContent answers 500 for files that can't seek.
 	FS fs.FS
 	// The path that all files to be served should be located within. The path map passed to the Server method
 	// are all relative to this path. This property can be specified as an absolute file path or a path relative
@@ -30,7 +33,7 @@ type ServerOptions struct {
 	IndexFile string
 	// The file to be served when no file or directory matches the current request.
 	// If not set, the handler will return a 404 HTTP error when no file/directory matches the request.
-	// The path of this file is relative to RootPath
+	// The path of this file is relative to RootPath, or to the root of FS when it is set.
 	CatchAllFile string
 	// A function that checks if the requested file path is allowed. If allowed, the function
 	// may do additional work such as setting Expires HTTP header.
@@ -40,7 +43,7 @@ type ServerOptions struct {
 }
 
 // PathMap specifies the mapping between URL paths (keys) and file paths (keys).
-// The file paths are relative to Options.RootPath
+// The file paths are relative to ServerOptions.RootPath, or to the root of ServerOptions.FS when it is set.
 type PathMap map[string]string
 
 // RootPath stores the current working path
@@ -81,10 +84,10 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 
 	var fsys http.FileSystem
 	if options.FS != nil {
-		fsys = http.FS(options.FS)
+		fsys = cleanFS{http.FS(options.FS)}
 	} else {
 		// security measure: limit the files within options.RootPath
-		fsys = http.FS(os.DirFS(options.RootPath))
+		fsys = http.Dir(options.RootPath)
 	}
 
 	return func(c *routing.Context) error {
@@ -118,7 +121,9 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			if options.IndexFile == "" {
 				return routing.NewHTTPError(http.StatusNotFound)
 			}
-			return serveFile(c, fsys, filepath.Join(path, options.IndexFile))
+			// http.FileSystem names are slash-separated, so filepath.Join (backslashes on Windows)
+			// would turn every index request into a 404 there.
+			return serveFile(c, fsys, slashpath.Join(path, options.IndexFile))
 		}
 
 		c.Response.Header().Del("Content-Type")
@@ -196,4 +201,15 @@ func matchPath(path string, from, to []string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// cleanFS cleans the requested name the way http.Dir does before opening it. http.FS passes
+// the name to fs.FS as is, and fs.FS rejects trailing slashes and "//", "." or ".." segments
+// that http.Dir resolves, so without this an FS would 404 on requests RootPath serves.
+type cleanFS struct {
+	http.FileSystem
+}
+
+func (f cleanFS) Open(name string) (http.File, error) {
+	return f.FileSystem.Open(slashpath.Clean("/" + name))
 }

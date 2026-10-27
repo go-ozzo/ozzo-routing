@@ -351,6 +351,18 @@ router.Get("/*", file.Server(file.PathMap{
 }))
 ```
 
+To serve files compiled into the binary, pass an `fs.FS` such as an `embed.FS` in `file.ServerOptions.FS`.
+The paths in the path map are then relative to the root of that file system:
+
+```go
+//go:embed ui
+var ui embed.FS
+
+router.Get("/*", file.Server(file.PathMap{
+	"/": "/ui/",
+}, file.ServerOptions{FS: ui, IndexFile: "index.html"}))
+```
+
 ## Handlers
 
 ozzo-routing comes with a few commonly used handlers in its subpackages:
