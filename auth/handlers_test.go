@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -209,8 +209,9 @@ func TestJWT(t *testing.T) {
 	}
 }
 
-// golang-jwt v3 splits the token on every period before checking the segment count
-// (GO-2025-3553), allocating about 16 bytes per period of an attacker's header.
+// golang-jwt v3 split the token on every period before checking the segment count
+// (GO-2025-3553), allocating about 16 bytes per period of an attacker's header. A header full
+// of periods must stay cheap whatever JWT library the handler uses.
 func TestJWTRejectsWrongSegmentCountCheaply(t *testing.T) {
 	h := JWT("secret")
 	for id, token := range map[string]string{
@@ -232,7 +233,7 @@ func TestJWTRejectsWrongSegmentCountCheaply(t *testing.T) {
 
 		if assert.NotNil(t, err, id) {
 			assert.Equal(t, http.StatusUnauthorized, err.(routing.HTTPError).StatusCode(), id)
-			assert.Equal(t, "token contains an invalid number of segments", err.Error(), id)
+			assert.Contains(t, err.Error(), "token contains an invalid number of segments", id)
 		}
 		assert.Less(t, after.TotalAlloc-before.TotalAlloc, uint64(1<<20), id)
 	}

@@ -7,16 +7,31 @@ Releases before v2.4.1 are described on the [GitHub releases page](https://githu
 
 ## [Unreleased]
 
+### BREAKING
+
+- **`auth` uses `github.com/golang-jwt/jwt/v5`** instead of `github.com/golang-jwt/jwt` (v3, unmaintained, advisory
+  GO-2025-3553 / CVE-2025-30204 without a fixed version). `JWTTokenHandler`, `DefaultJWTTokenHandler` and `NewJWT`
+  take jwt/v5 types, and the token stored under `"JWT"` is a jwt/v5 `*jwt.Token`. Change the import to
+  `github.com/golang-jwt/jwt/v5` wherever you handle these tokens. Left on v3, custom token handlers and `NewJWT`
+  calls fail to compile, and **`c.Get("JWT").(*jwt.Token)` compiles but panics at runtime**. Validation keeps the
+  same rules (signing method pinned; `exp`, `nbf` and `iat` checked); jwt/v5 is stricter at the `exp` second, on
+  fractional `exp` values and on trailing data in the claims, and words the 401 messages differently. A v3
+  `jwt.TimeFunc` used for clock skew is silently ignored now: use `JWTOptions.Leeway`. See [UPGRADE.md](UPGRADE.md).
+
 ### Added
 
 - `file.ServerOptions.FS`: serve files from an `fs.FS`, such as an `embed.FS`, instead of `RootPath`. Names are
   cleaned the same way `http.Dir` cleans them, and the `PathMap` target bounds requests as it does for `RootPath`.
   (#68, @zekroTJA)
+- `auth.JWTOptions.Leeway`: the clock skew allowed when checking `exp`, `nbf` and `iat`.
 
 ### Changed
 
-- **Go 1.21 or newer is required** (was 1.13). It is the minimum of the jwt/v5 and `io/fs` changes planned for
-  this release, and the oldest Go the CI tests.
+- **Go 1.21 or newer is required** (was 1.13). It is the minimum of jwt/v5 and of the `io/fs` support in this
+  release, and the oldest Go the CI tests.
+- deps: github.com/golang-jwt/jwt v3.2.2 → github.com/golang-jwt/jwt/v5 v5.3.1 (see BREAKING). The v2.4.1
+  pre-check for bearer tokens without exactly two periods is removed: jwt/v5 splits tokens without the per-period
+  allocation, and a test keeps such headers cheap.
 - deps: github.com/stretchr/testify v1.4.0 → v1.12.1.
 - deps: github.com/golang/gddo is removed. The repository is archived; `content.LanguageNegotiator` now parses
   `Accept-Language` with a copy of its `ParseAccept` in an internal package, with gddo's tests. Behaviour is unchanged.
