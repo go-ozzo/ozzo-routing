@@ -101,7 +101,7 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			}
 			return routing.NewHTTPError(http.StatusNotFound)
 		}
-		defer file.Close()
+		defer file.Close() //nolint:errcheck // read-only file: a Close error loses nothing
 
 		if fstat, err = file.Stat(); err != nil {
 			return routing.NewHTTPError(http.StatusNotFound)
@@ -127,7 +127,7 @@ func serveFile(c *routing.Context, dir http.Dir, path string) error {
 	if err != nil {
 		return routing.NewHTTPError(http.StatusNotFound)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // read-only file: a Close error loses nothing
 	fstat, err := file.Stat()
 	if err != nil {
 		return routing.NewHTTPError(http.StatusNotFound)
@@ -151,11 +151,11 @@ func Content(path string) routing.Handler {
 		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
 			return routing.NewHTTPError(http.StatusMethodNotAllowed)
 		}
-		file, err := os.Open(path)
+		file, err := os.Open(path) //nolint:gosec // path is the handler's configured file, not request input
 		if err != nil {
 			return routing.NewHTTPError(http.StatusNotFound)
 		}
-		defer file.Close()
+		defer file.Close() //nolint:errcheck // read-only file: a Close error loses nothing
 		fstat, err := file.Stat()
 		if err != nil {
 			return routing.NewHTTPError(http.StatusNotFound)

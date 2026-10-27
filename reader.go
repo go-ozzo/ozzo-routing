@@ -66,7 +66,7 @@ type FormDataReader struct{}
 
 func (r *FormDataReader) Read(req *http.Request, data interface{}) error {
 	// Do not check return result. Otherwise GET request will cause problem.
-	req.ParseMultipartForm(32 << 20)
+	_ = req.ParseMultipartForm(32 << 20)
 	return ReadFormData(req.Form, data)
 }
 
@@ -75,7 +75,7 @@ const formTag = "form"
 // ReadFormData populates the data variable with the data from the given form values.
 func ReadFormData(form map[string][]string, data interface{}) error {
 	rv := reflect.ValueOf(data)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return errors.New("data must be a pointer")
 	}
 	rv = indirect(rv)
@@ -100,7 +100,7 @@ func readForm(form map[string][]string, prefix string, rv reflect.Value) error {
 		}
 
 		ft := field.Type
-		if ft.Kind() == reflect.Ptr {
+		if ft.Kind() == reflect.Pointer {
 			ft = ft.Elem()
 		}
 
@@ -147,7 +147,7 @@ func readFormFieldKnownType(form map[string][]string, name string, rv reflect.Va
 	// check if type implements encoding.TextUnmarshaler
 	if rt.Implements(textUnmarshalerType) {
 		return true, rv.Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(value[0]))
-	} else if reflect.PtrTo(rt).Implements(textUnmarshalerType) {
+	} else if reflect.PointerTo(rt).Implements(textUnmarshalerType) {
 		return true, rv.Addr().Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(value[0]))
 	}
 	return false, nil
@@ -223,7 +223,7 @@ func setFormFieldValue(rv reflect.Value, value string) error {
 // indirect dereferences pointers and returns the actual value it points to.
 // If a pointer is nil, it will be initialized with a new value.
 func indirect(v reflect.Value) reflect.Value {
-	for v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			v.Set(reflect.New(v.Type().Elem()))
 		}
