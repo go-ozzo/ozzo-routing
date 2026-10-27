@@ -18,14 +18,14 @@ import (
 // be used for redirecting GET requests. For other requests, the status code will be http.StatusTemporaryRedirect (307).
 // If the original URL has no trailing slash, the handler will do nothing. For example,
 //
-//     import (
-//         "net/http"
-//         "github.com/go-ozzo/ozzo-routing/v2"
-//         "github.com/go-ozzo/ozzo-routing/v2/slash"
-//     )
+//	import (
+//	    "net/http"
+//	    "github.com/go-ozzo/ozzo-routing/v2"
+//	    "github.com/go-ozzo/ozzo-routing/v2/slash"
+//	)
 //
-//     r := routing.New()
-//     r.Use(slash.Remover(http.StatusMovedPermanently))
+//	r := routing.New()
+//	r.Use(slash.Remover(http.StatusMovedPermanently))
 //
 // Note that Remover relies on HTTP redirection to remove the trailing slashes.
 // If you do not want redirection, please set `Router.IgnoreTrailingSlash` to be true without using Remover.

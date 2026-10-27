@@ -21,15 +21,15 @@ import (
 // An optional error conversion function can also be provided to convert an error into a normalized one
 // before sending it to the response.
 //
-//     import (
-//         "log"
-//         "github.com/go-ozzo/ozzo-routing/v2"
-//         "github.com/go-ozzo/ozzo-routing/v2/fault"
-//     )
+//	import (
+//	    "log"
+//	    "github.com/go-ozzo/ozzo-routing/v2"
+//	    "github.com/go-ozzo/ozzo-routing/v2/fault"
+//	)
 //
-//     r := routing.New()
-//     r.Use(fault.ErrorHandler(log.Printf))
-//     r.Use(fault.PanicHandler(log.Printf))
+//	r := routing.New()
+//	r.Use(fault.ErrorHandler(log.Printf))
+//	r.Use(fault.PanicHandler(log.Printf))
 func ErrorHandler(logf LogFunc, errorf ...ConvertErrorFunc) routing.Handler {
 	return func(c *routing.Context) error {
 		err := c.Next()

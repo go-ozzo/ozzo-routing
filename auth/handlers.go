@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/go-ozzo/ozzo-routing/v2"
+	"github.com/golang-jwt/jwt"
 )
 
 // User is the key used to store and retrieve the user identity information in routing.Context
@@ -31,26 +31,26 @@ type BasicAuthFunc func(c *routing.Context, username, password string) (Identity
 // Basic returns a routing.Handler that performs HTTP basic authentication.
 // It can be used like the following:
 //
-//   import (
-//     "errors"
-//     "fmt"
-//     "net/http"
-//     "github.com/go-ozzo/ozzo-routing/v2"
-//     "github.com/go-ozzo/ozzo-routing/v2/auth"
-//   )
-//   func main() {
-//     r := routing.New()
-//     r.Use(auth.Basic(func(c *routing.Context, username, password string) (auth.Identity, error) {
-//       if username == "demo" && password == "foo" {
-//         return auth.Identity(username), nil
-//       }
-//       return nil, errors.New("invalid credential")
-//     }))
-//     r.Get("/demo", func(c *routing.Context) error {
-//       fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
-//       return nil
-//     })
-//   }
+//	import (
+//	  "errors"
+//	  "fmt"
+//	  "net/http"
+//	  "github.com/go-ozzo/ozzo-routing/v2"
+//	  "github.com/go-ozzo/ozzo-routing/v2/auth"
+//	)
+//	func main() {
+//	  r := routing.New()
+//	  r.Use(auth.Basic(func(c *routing.Context, username, password string) (auth.Identity, error) {
+//	    if username == "demo" && password == "foo" {
+//	      return auth.Identity(username), nil
+//	    }
+//	    return nil, errors.New("invalid credential")
+//	  }))
+//	  r.Get("/demo", func(c *routing.Context) error {
+//	    fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
+//	    return nil
+//	  })
+//	}
 //
 // By default, the auth realm is named as "API". You may customize it by specifying the realm parameter.
 //
@@ -91,26 +91,26 @@ type TokenAuthFunc func(c *routing.Context, token string) (Identity, error)
 // Bearer returns a routing.Handler that performs HTTP authentication based on bearer token.
 // It can be used like the following:
 //
-//   import (
-//     "errors"
-//     "fmt"
-//     "net/http"
-//     "github.com/go-ozzo/ozzo-routing/v2"
-//     "github.com/go-ozzo/ozzo-routing/v2/auth"
-//   )
-//   func main() {
-//     r := routing.New()
-//     r.Use(auth.Bearer(func(c *routing.Context, token string) (auth.Identity, error) {
-//       if token == "secret" {
-//         return auth.Identity("demo"), nil
-//       }
-//       return nil, errors.New("invalid credential")
-//     }))
-//     r.Get("/demo", func(c *routing.Context) error {
-//       fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
-//       return nil
-//     })
-//   }
+//	import (
+//	  "errors"
+//	  "fmt"
+//	  "net/http"
+//	  "github.com/go-ozzo/ozzo-routing/v2"
+//	  "github.com/go-ozzo/ozzo-routing/v2/auth"
+//	)
+//	func main() {
+//	  r := routing.New()
+//	  r.Use(auth.Bearer(func(c *routing.Context, token string) (auth.Identity, error) {
+//	    if token == "secret" {
+//	      return auth.Identity("demo"), nil
+//	    }
+//	    return nil, errors.New("invalid credential")
+//	  }))
+//	  r.Get("/demo", func(c *routing.Context) error {
+//	    fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
+//	    return nil
+//	  })
+//	}
 //
 // By default, the auth realm is named as "API". You may customize it by specifying the realm parameter.
 //
@@ -148,26 +148,26 @@ var TokenName = "access-token"
 // Query returns a routing.Handler that performs authentication based on a token passed via a query parameter.
 // It can be used like the following:
 //
-//   import (
-//     "errors"
-//     "fmt"
-//     "net/http"
-//     "github.com/go-ozzo/ozzo-routing/v2"
-//     "github.com/go-ozzo/ozzo-routing/v2/auth"
-//   )
-//   func main() {
-//     r := routing.New()
-//     r.Use(auth.Query(func(token string) (auth.Identity, error) {
-//       if token == "secret" {
-//         return auth.Identity("demo"), nil
-//       }
-//       return nil, errors.New("invalid credential")
-//     }))
-//     r.Get("/demo", func(c *routing.Context) error {
-//       fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
-//       return nil
-//     })
-//   }
+//	import (
+//	  "errors"
+//	  "fmt"
+//	  "net/http"
+//	  "github.com/go-ozzo/ozzo-routing/v2"
+//	  "github.com/go-ozzo/ozzo-routing/v2/auth"
+//	)
+//	func main() {
+//	  r := routing.New()
+//	  r.Use(auth.Query(func(token string) (auth.Identity, error) {
+//	    if token == "secret" {
+//	      return auth.Identity("demo"), nil
+//	    }
+//	    return nil, errors.New("invalid credential")
+//	  }))
+//	  r.Get("/demo", func(c *routing.Context) error {
+//	    fmt.Fprintf(res, "Hello, %v", c.Get(auth.User))
+//	    return nil
+//	  })
+//	}
 //
 // When authentication fails, an http.StatusUnauthorized error will be returned.
 func Query(fn TokenAuthFunc, tokenName ...string) routing.Handler {
@@ -219,38 +219,38 @@ func DefaultJWTTokenHandler(c *routing.Context, token *jwt.Token) error {
 //
 // JWT can be used like the following:
 //
-//   import (
-//     "errors"
-//     "fmt"
-//     "net/http"
-//     "github.com/golang-jwt/jwt"
-//     "github.com/go-ozzo/ozzo-routing/v2"
-//     "github.com/go-ozzo/ozzo-routing/v2/auth"
-//   )
-//   func main() {
-//     signingKey := "secret-key"
-//     r := routing.New()
+//	import (
+//	  "errors"
+//	  "fmt"
+//	  "net/http"
+//	  "github.com/golang-jwt/jwt"
+//	  "github.com/go-ozzo/ozzo-routing/v2"
+//	  "github.com/go-ozzo/ozzo-routing/v2/auth"
+//	)
+//	func main() {
+//	  signingKey := "secret-key"
+//	  r := routing.New()
 //
-//     r.Get("/login", func(c *routing.Context) error {
-//       id, err := authenticate(c)
-//       if err != nil {
-//         return err
-//       }
-//       token, err := auth.NewJWT(jwt.MapClaims{
-//         "id": id
-//       }, signingKey)
-//       if err != nil {
-//         return err
-//       }
-//       return c.Write(token)
-//     })
+//	  r.Get("/login", func(c *routing.Context) error {
+//	    id, err := authenticate(c)
+//	    if err != nil {
+//	      return err
+//	    }
+//	    token, err := auth.NewJWT(jwt.MapClaims{
+//	      "id": id
+//	    }, signingKey)
+//	    if err != nil {
+//	      return err
+//	    }
+//	    return c.Write(token)
+//	  })
 //
-//     r.Use(auth.JWT(signingKey))
-//     r.Get("/restricted", func(c *routing.Context) error {
-//       claims := c.Get("JWT").(*jwt.Token).Claims.(jwt.MapClaims)
-//       return c.Write(fmt.Sprint("Welcome, %v!", claims["id"]))
-//     })
-//   }
+//	  r.Use(auth.JWT(signingKey))
+//	  r.Get("/restricted", func(c *routing.Context) error {
+//	    claims := c.Get("JWT").(*jwt.Token).Claims.(jwt.MapClaims)
+//	    return c.Write(fmt.Sprint("Welcome, %v!", claims["id"]))
+//	  })
+//	}
 func JWT(verificationKey string, options ...JWTOptions) routing.Handler {
 	var opt JWTOptions
 	if len(options) > 0 {

@@ -56,17 +56,17 @@ func init() {
 // For example, if the path map contains both "/css" and "/css/img", and the URL path is "/css/img/logo.gif",
 // then the path mapped by "/css/img" will be used.
 //
-//     import (
-//         "log"
-//         "github.com/go-ozzo/ozzo-routing/v2"
-//         "github.com/go-ozzo/ozzo-routing/v2/file"
-//     )
+//	import (
+//	    "log"
+//	    "github.com/go-ozzo/ozzo-routing/v2"
+//	    "github.com/go-ozzo/ozzo-routing/v2/file"
+//	)
 //
-//     r := routing.New()
-//     r.Get("/*", file.Server(file.PathMap{
-//          "/css": "/ui/dist/css",
-//          "/js": "/ui/dist/js",
-//     }))
+//	r := routing.New()
+//	r.Get("/*", file.Server(file.PathMap{
+//	     "/css": "/ui/dist/css",
+//	     "/js": "/ui/dist/js",
+//	}))
 func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 	var options ServerOptions
 	if len(opts) > 0 {

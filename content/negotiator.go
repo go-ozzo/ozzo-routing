@@ -12,12 +12,13 @@ import (
 // AcceptRange represents an accept range as defined in https://tools.ietf.org/html/rfc7231#section-5.3.2
 //
 // Accept = #( media-range [ accept-params ] )
-//  media-range    = ( "*/*"
-//                   / ( type "/" "*" )
-//                   / ( type "/" subtype )
-//                   ) *( OWS ";" OWS parameter )
-//  accept-params  = weight *( accept-ext )
-//  accept-ext = OWS ";" OWS token [ "=" ( token / quoted-string ) ]
+//
+//	media-range    = ( "*/*"
+//	                 / ( type "/" "*" )
+//	                 / ( type "/" subtype )
+//	                 ) *( OWS ";" OWS parameter )
+//	accept-params  = weight *( accept-ext )
+//	accept-ext = OWS ";" OWS token [ "=" ( token / quoted-string ) ]
 type AcceptRange struct {
 	Type       string
 	Subtype    string
