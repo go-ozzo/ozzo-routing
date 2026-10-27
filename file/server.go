@@ -8,6 +8,7 @@ package file
 import (
 	"net/http"
 	"os"
+	slashpath "path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -110,7 +111,9 @@ func Server(pathMap PathMap, opts ...ServerOptions) routing.Handler {
 			if options.IndexFile == "" {
 				return routing.NewHTTPError(http.StatusNotFound)
 			}
-			return serveFile(c, dir, filepath.Join(path, options.IndexFile))
+			// http.Dir takes slash-separated names and rejects the OS separator, so filepath.Join
+			// (backslashes on Windows) would turn every index request into a 404 there.
+			return serveFile(c, dir, slashpath.Join(path, options.IndexFile))
 		}
 
 		c.Response.Header().Del("Content-Type")
